@@ -4,6 +4,7 @@ project(OpenJoey2 VERSION 0.0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ── Raylib via FetchContent (reuse local copy if available) ──────────────────
 include(FetchContent)
@@ -26,8 +27,15 @@ add_executable(OpenJoey2
   src/main.cpp
 )
 
-target_include_directories(OpenJoey2 PRIVATE src)
+target_include_directories(OpenJoey2 PRIVATE src src/third_party)
 target_link_libraries(OpenJoey2 PRIVATE raylib)
+
+add_custom_command(TARGET OpenJoey2 POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+    ${CMAKE_SOURCE_DIR}/data
+    $<TARGET_FILE_DIR:OpenJoey2>/data
+  COMMENT "Symlinking data/ into build dir"
+)
 
 # ── Debug helpers ─────────────────────────────────────────────────────────────
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

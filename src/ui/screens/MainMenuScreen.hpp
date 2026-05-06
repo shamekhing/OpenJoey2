@@ -4,10 +4,12 @@
 
 namespace openjoey::ui {
 
-static const char *kItems[] = {"Duel", "Deck Editor", "Settings", "Quit"};
+static const char *kItems[] = {
+    "Duel", "Deck Editor", "Settings", "Testing", "Quit",
+};
 static constexpr AppScreen kScreenMap[] = {
     AppScreen::Duel, AppScreen::DeckEditor, AppScreen::Settings,
-    AppScreen::MainMenu};
+    AppScreen::Testing, AppScreen::MainMenu};
 
 class MainMenuScreen {
 public:
@@ -57,7 +59,7 @@ private:
   int selected_ = 0;
   AppScreen next_ = AppScreen::MainMenu;
   bool quit_ = false;
-  static constexpr int kItemCount = 4;
+  static constexpr int kItemCount = 5;
 };
 
 } // namespace openjoey::ui
