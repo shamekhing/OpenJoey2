@@ -1,5 +1,6 @@
 #pragma once
 #include "ui/AppScreen.hpp"
+#include "ui/StyleSheet.hpp"
 #include <raylib.h>
 
 namespace openjoey::ui {
@@ -27,29 +28,30 @@ public:
         next_ = kScreenMap[selected_];
     }
   }
+
   void Draw() const {
     const int sw = GetScreenWidth();
     const int sh = GetScreenHeight();
 
-    ClearBackground(Color{10, 10, 20, 255});
-    DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.35f));
+    ClearBackground(COLOR_BG_DARK);
+    DrawRectangle(0, 0, sw, sh, Fade(BLACK, OVERLAY_FADE));
 
     const char *title = "OpenJoey";
-    const int titleFontSize = 48;
-    const int titleW = MeasureText(title, titleFontSize);
-    DrawText(title, (sw - titleW) / 2, sh / 4, titleFontSize, GOLD);
+    const int titleW = MeasureText(title, FONT_MAIN_TITLE);
+    DrawText(title, (sw - titleW) / 2, sh / 4, FONT_MAIN_TITLE, GOLD);
 
-    const int itemFontSize = 28;
     const int startY = sh / 2;
     for (int i = 0; i < kItemCount; ++i) {
       Color col = (i == selected_) ? YELLOW : LIGHTGRAY;
-      int tw = MeasureText(kItems[i], itemFontSize);
+      int tw = MeasureText(kItems[i], FONT_MENU_ITEM);
       if (i == selected_)
-        DrawText(">", (sw - tw) / 2 - 24, startY + i * 40, itemFontSize,
-                 YELLOW);
-      DrawText(kItems[i], (sw - tw) / 2, startY + i * 40, itemFontSize, col);
+        DrawText(">", (sw - tw) / 2 - MENU_ARROW_OFFSET,
+                 startY + i * MENU_ITEM_SPACING, FONT_MENU_ITEM, YELLOW);
+      DrawText(kItems[i], (sw - tw) / 2, startY + i * MENU_ITEM_SPACING,
+               FONT_MENU_ITEM, col);
     }
-    DrawText("UP/DOWN to navigate, ENTER to select", 10, sh - 30, 16, DARKGRAY);
+    DrawText("UP/DOWN to navigate, ENTER to select", HEADER_TITLE_X,
+             sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, DARKGRAY);
   }
 
   AppScreen NextScreen() const { return next_; }

@@ -1,29 +1,49 @@
-#include "game/ContentPaths.hpp"
+#pragma once
+#include "card/Card.hpp"
+#include "ui/CardImageCache.hpp"
+#include "ui/StyleSheet.hpp"
+#include "ui/screens/widgets/ListItem.hpp"
+#include <functional>
 #include <raylib.h>
+#include <vector>
 
-static void DrawList() const {
+namespace openjoey::ui {
 
-  const int sw = GetScreenWidth();
-  const int sh = GetScreenHeight();
+class List {
+public:
+  static void Draw(const std::vector<const openjoey::Card *> &cards,
+                   CardImageCache &cache,
+                   int x, int y, int w, int h,
+                   int cursor, bool focused, int maxCopies,
+                   std::function<int(uint32_t)> countFn) {
+    // Cache metrics once per draw call
+    const int itemH    = CARD_ITEM_HEIGHT;
+    const int sbW      = SCROLLBAR_WIDTH;
+    const int sbXOff   = SCROLLBAR_X_OFFSET;
+    const int sbHTrim  = SCROLLBAR_H_TRIM;
+    const int sbThMin  = SCROLLBAR_THUMB_MIN;
 
-  Image menu_bgImg = LoadImageRaw(
-      openjoey::ContentPaths::BackgroundImage().string().c_str(), sw, sh, 4);
-  ImageClearBackground(&menu_bgImg, Color{10, 10, 20, 255});
-  DrawRectangle(0, 0, sw, sh, Fade(BLACK, 0.35f));
+    int maxVis = h / itemH;
+    int scroll = std::max(0, cursor - maxVis / 2);
 
-  const char *title = "OpenJoey";
-  const int titleFontSize = 48;
-  const int titleW = MeasureText(title, titleFontSize);
-  DrawText(title, (sw - titleW) / 2, sh / 4, titleFontSize, GOLD);
+    for (int i = 0; i < maxVis && scroll + i < (int)cards.size(); ++i) {
+      int idx = scroll + i;
+      const auto &card = *cards[idx];
+      bool sel = focused && idx == cursor;
+      int copies = countFn(card.cardNumber);
+      ListItem::Draw(card, cache, x, y + i * itemH, w, sel, copies, maxCopies);
+    }
 
-  const int itemFontSize = 28;
-  const int startY = sh / 2;
-  for (int i = 0; i < kItemCount; ++i) {
-    Color col = (i == selected_) ? YELLOW : LIGHTGRAY;
-    int tw = MeasureText(kItems[i], itemFontSize);
-    if (i == selected_)
-      DrawText(">", (sw - tw) / 2 - 24, startY + i * 40, itemFontSize, YELLOW);
-    DrawText(kItems[i], (sw - tw) / 2, startY + i * 40, itemFontSize, col);
+    if ((int)cards.size() > maxVis) {
+      int barH   = h - sbHTrim;
+      int barX   = x + w - sbXOff;
+      float frac = (float)scroll / std::max(1, (int)cards.size() - maxVis);
+      int thumbH = std::max(sbThMin, barH * maxVis / std::max(1, (int)cards.size()));
+      int thumbY = y + (int)(frac * (barH - thumbH));
+      DrawRectangle(barX, y, sbW, barH, COLOR_SCROLLBAR_BG);
+      DrawRectangle(barX, thumbY, sbW, thumbH, COLOR_SCROLLBAR_THUMB);
+    }
   }
-  DrawText("UP/DOWN to navigate, ENTER to select", 10, sh - 30, 16, DARKGRAY);
-}
+};
+
+} // namespace openjoey::ui

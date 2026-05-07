@@ -36,6 +36,14 @@ public:
     return it != byName_.end() ? it->second : nullptr;
   }
 
+  const std::vector<Card *> GetCardsByName(const std::string &name) const {
+    std::vector<Card *> out;
+    for (const auto &[n, c] : byName_)
+      if (n.find(name) != std::string::npos)
+        out.push_back(c);
+    return out;
+  }
+
   std::vector<Card> &GetAllCards() { return cards_; }
   const std::vector<Card> &GetAllCards() const { return cards_; }
 
