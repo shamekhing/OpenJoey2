@@ -21,8 +21,8 @@
   ((w) - TEXT_WIDTH((text), h) - TEXT_PAD(h) * 8)
 
 // Legacy proportional sizes kept for TextInput / Header (panel-height relative)
-#define TITLE_FONT_SIZE int(0.06f * AppConfig().screenHeight)
-#define TEXT_FONT_SIZE  int(0.04f * AppConfig().screenHeight)
+#define TITLE_FONT_SIZE int(0.06f * GetScreenHeight())
+#define TEXT_FONT_SIZE  int(0.04f * GetScreenHeight())
 
 // ── Background colors
 #define COLOR_BG_DARK         Color{10, 10, 20, 255}
