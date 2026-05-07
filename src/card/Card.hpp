@@ -6,9 +6,6 @@
 
 namespace openjoey {
 
-class Effect;
-class Duel;
-
 // ─── Enumerations ────────────────────────────────────────────────────────────
 
 enum class CardType : uint8_t { Monster, Spell, Trap };
@@ -76,9 +73,8 @@ struct Card {
   bool placedThisTurn = false;
 
   // Others
-  std::vector<Card *> equippedCards;   // Equip attachments
-  std::map<std::string, int> counters; // Counter storage
-  std::vector<Effect *> effects; // Subscribed effects (non-owning pointers)
+  std::vector<Card *> equippedCards;   // non-owning equip attachments
+  std::map<std::string, int> counters;
 
   // Convenience queries
   bool isMonster() const { return type == CardType::Monster; }
