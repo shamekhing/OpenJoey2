@@ -27,9 +27,16 @@ public:
       std::lock_guard<std::mutex> lk(mtx_);
       stop_ = true;
     }
-    cv_.notify_one();
+    cv_.notify_all();
     if (worker_.joinable())
       worker_.join();
+
+    // Clean up any .tmp files left by an in-flight download.
+    std::error_code ec;
+    while (!jobQueue_.empty()) {
+      std::filesystem::remove(jobQueue_.front().dest.string() + ".tmp", ec);
+      jobQueue_.pop();
+    }
 
     for (auto &[id, tex] : textures_)
       if (tex.id != 0)
@@ -73,6 +80,8 @@ public:
       done = std::exchange(completed_, {});
     }
     for (uint32_t id : done) {
+      if (textures_.count(id))
+        continue;
       std::filesystem::path dest = imgDir_ / (std::to_string(id) + ".jpg");
       if (std::filesystem::exists(dest)) {
         Texture2D tex = LoadTexture(dest.string().c_str());
