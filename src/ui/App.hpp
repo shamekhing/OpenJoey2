@@ -14,8 +14,10 @@ namespace openjoey::ui {
 
 class App {
 public:
-  App() : appConfig_{}, platform_(appConfig_) {};
-  ~App() {};
+  App() : appConfig_{}, platform_(appConfig_) {}
+  ~App() = default;
+  App(const App &) = delete;
+  App &operator=(const App &) = delete;
   void Run();
 
 private:
