@@ -74,8 +74,8 @@ private:
   std::vector<const openjoey::Card *> filteredPool() const;
   int countInDeck(uint32_t id) const;
 
-  void drawPoolPanel(int x, int y, int w, int h) const;
-  void drawPreviewPanel(int x, int y, int w, int h) const;
+  void drawPoolPanel(const std::vector<const openjoey::Card *> &fp, int x, int y, int w, int h) const;
+  void drawPreviewPanel(const std::vector<const openjoey::Card *> &fp, int x, int y, int w, int h) const;
   void drawDeckPanel(int x, int y, int w, int h) const;
 
   static const char *sortModeLabel(DeckSortMode m);
@@ -276,8 +276,7 @@ inline int DeckEditorScreen::countInDeck(uint32_t id) const {
 
 // ── Draw helpers
 
-inline void DeckEditorScreen::drawPoolPanel(int x, int y, int w, int h) const {
-  auto fp = filteredPool();
+inline void DeckEditorScreen::drawPoolPanel(const std::vector<const openjoey::Card *> &fp, int x, int y, int w, int h) const {
   std::string badge = std::string(sortModeLabel(sortMode_)) + "  [" +
                       typeFilterLabel(typeFilter_) + "]  " +
                       std::to_string(fp.size()) + " cards";
@@ -294,13 +293,11 @@ inline void DeckEditorScreen::drawPoolPanel(int x, int y, int w, int h) const {
              [this](uint32_t id) { return countInDeck(id); });
 }
 
-inline void DeckEditorScreen::drawPreviewPanel(int x, int y, int w,
+inline void DeckEditorScreen::drawPreviewPanel(const std::vector<const openjoey::Card *> &fp, int x, int y, int w,
                                                int h) const {
   DrawRectangleLines(x, y, w, h, DARKGRAY);
   DrawText("Preview", x + PREVIEW_PAD_X, y + CARD_TYPE_Y,
            FONT_CARD_NAME, DARKGRAY);
-
-  auto fp = filteredPool();
   const openjoey::Card *card = nullptr;
   if (focusPool_ && !fp.empty() && poolCursor_ < (int)fp.size())
     card = fp[poolCursor_];
@@ -416,8 +413,9 @@ inline void DeckEditorScreen::Draw() const {
   const int prevW  = sw * PREVIEW_WIDTH_PERCENT / 100;
   const int deckW  = sw - poolW - prevW - padX * 2;
 
-  drawPoolPanel(padX, padY, poolW, panH);
-  drawPreviewPanel(padX + poolW, padY, prevW, panH);
+  auto fp = filteredPool();
+  drawPoolPanel(fp, padX, padY, poolW, panH);
+  drawPreviewPanel(fp, padX + poolW, padY, prevW, panH);
   drawDeckPanel(padX + poolW + prevW, padY, deckW, panH);
 
   const int barY = sh - padBot + STATUS_BAR_Y_OFFSET;
@@ -456,7 +454,8 @@ inline bool DeckEditorScreen::LoadDeck(const std::string &name) {
     try {
       uint32_t id      = (uint32_t)std::stoul(line);
       const auto *card = db_.GetCardById(id);
-      if (card) deck_.push_back(*card);
+      if (card && (int)deck_.size() < kMaxDeckSize)
+        deck_.push_back(*card);
     } catch (...) {}
   }
   deckCursor_ = 0;
