@@ -38,6 +38,10 @@ struct Card {
   // Card classification
   CardType type = CardType::Monster;
 
+  bool operator==(const Card &other) const {
+    return this->cardNumber != 0 && this->cardNumber == other.cardNumber;
+  }
+
   // Stats
   int atk = 0;
   int def = 0;
@@ -73,7 +77,7 @@ struct Card {
   bool placedThisTurn = false;
 
   // Others
-  std::vector<Card *> equippedCards;   // non-owning equip attachments
+  std::vector<Card *> equippedCards; // non-owning equip attachments
   std::map<std::string, int> counters;
 
   // Convenience queries
