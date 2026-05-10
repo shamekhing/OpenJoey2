@@ -5,6 +5,7 @@
 #include "ui/platform/AppConfig.hpp"
 #include "ui/platform/PlatformContext.hpp"
 #include "ui/screens/DeckEditorScreen.hpp"
+#include "ui/screens/DuelScreen.hpp"
 #include "ui/screens/MainMenuScreen.hpp"
 #include <iostream>
 #include <raylib.h>
@@ -83,19 +84,24 @@ void openjoey::ui::App::Run() {
         return;
       break;
     }
-      /*
-              case AppScreen::Duel: {
-                StartDuel(selectedDeck);
-                DuelScreen duelScreen(platform_, duel_, cardDb_);
-                duelScreen.Run();
-                currentScreen_ = AppScreen::MainMenu;
-                break;
-              }
+    case AppScreen::Duel: {
+      DuelScreen duel;
+      while (!WindowShouldClose()) {
+        duel.Update();
+        AppScreen next = duel.NextScreen();
+        if (next != AppScreen::Duel) { currentScreen_ = next; break; }
+        BeginDrawing();
+        duel.Draw();
+        EndDrawing();
+      }
+      if (WindowShouldClose()) return;
+      break;
+    }
 
-              case AppScreen::Settings: {
-                currentScreen_ = AppScreen::MainMenu;
-                break;
-              }*/
+    case AppScreen::Testing:
+    case AppScreen::Settings:
+      currentScreen_ = AppScreen::MainMenu;
+      break;
     }
   }
 }
