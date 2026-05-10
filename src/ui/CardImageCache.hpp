@@ -63,6 +63,7 @@ public:
       // File on disk, load to GPU now
       Texture2D tex = LoadTexture(dest.string().c_str());
       if (tex.id != 0) {
+        SetTextureFilter(tex, TEXTURE_FILTER_TRILINEAR);
         textures_[id] = tex;
         return &textures_[id];
       }
@@ -85,8 +86,10 @@ public:
       std::filesystem::path dest = imgDir_ / (std::to_string(id) + ".jpg");
       if (std::filesystem::exists(dest)) {
         Texture2D tex = LoadTexture(dest.string().c_str());
-        if (tex.id != 0)
+        if (tex.id != 0) {
+          SetTextureFilter(tex, TEXTURE_FILTER_TRILINEAR);
           textures_[id] = tex;
+        }
       }
     }
   }
