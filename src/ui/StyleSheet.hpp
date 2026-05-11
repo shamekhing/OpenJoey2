@@ -131,3 +131,15 @@
 #define GRID_CARD_W(panelW) (((panelW) - GRID_GAP * (GRID_COLS + 1)) / GRID_COLS)
 #define GRID_CARD_H(panelW) (int((float)GRID_CARD_W(panelW) * PREVIEW_ASPECT_RATIO))
 #define GRID_CELL_H(panelW) (GRID_CARD_H(panelW) + GRID_LABEL_H + GRID_GAP)
+
+// ── Duel field colors
+#define COLOR_FIELD_MAT    Color{14, 20, 14, 255}
+#define COLOR_DIVIDER_LINE Color{50, 50, 80, 255}
+#define COLOR_DIVIDER_MID  Color{80, 80, 110, 220}
+#define COLOR_PANEL_BG     Color{16, 16, 26, 255}
+#define COLOR_PANEL_BORDER Color{55, 55, 85, 255}
+#define COLOR_CARD_BACK_FG Color{8, 6, 42, 255}
+
+// ── Duel screen layout (% of screen width)
+#define DUEL_LEFT_W_PCT    25
+#define DUEL_RIGHT_W_PCT   17

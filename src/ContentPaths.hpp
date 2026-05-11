@@ -13,8 +13,14 @@ struct ContentPaths {
   static std::filesystem::path cardImgDir() {
     return std::filesystem::current_path() / "data" / "card_images";
   }
-  static std::filesystem::path ygoprodeckUrl() {
-    return "https : // images.ygoprodeck.com/images/cards/"; // or cards_small
-  };
+  static std::string ygoprodeckUrl() {
+    return "https://images.ygoprodeck.com/images/cards/";
+  }
+  static std::string ygoprodeckUrlSmall() {
+    return "https://images.ygoprodeck.com/images/cards_small/";
+  }
+  static std::filesystem::path cardBackImg() {
+    return std::filesystem::current_path() / "data" / "card_back.png";
+  }
 };
 } // namespace openjoey

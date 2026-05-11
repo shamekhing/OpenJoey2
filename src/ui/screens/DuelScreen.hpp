@@ -1,14 +1,17 @@
 #pragma once
+#include "ContentPaths.hpp"
 #include "card/Card.hpp"
 #include "game/zone/Field.hpp"
 #include "game/zone/Zone.hpp"
 #include "ui/AppScreen.hpp"
-#include "ui/CardImageCache.hpp"
 #include "ui/StyleSheet.hpp"
-#include "ui/screens/widgets/ZoneCell.hpp"
-#include "ui/screens/widgets/ZoneInfoPanel.hpp"
+#include "ui/core/AppContext.hpp"
+#include "ui/screens/IScreen.hpp"
+#include "ui/widgets/duel/FieldGrid.hpp"
+#include "ui/widgets/duel/ZoneInfoPanel.hpp"
 #include <filesystem>
 #include <functional>
+#include <iostream>
 #include <raylib.h>
 #include <string>
 #include <vector>
@@ -16,777 +19,507 @@
 namespace openjoey::ui {
 using namespace openjoey::zone;
 
-class DuelScreen {
+class DuelScreen : public IScreen {
 public:
-  DuelScreen() {
-    loadCardBack();
-    buildPool();
-    buildGrid();
-    seedField();
-    rebuildActions();
-  }
+    explicit DuelScreen(AppContext& ctx) : ctx_(ctx) {
+        loadCardBack();
+        buildPool();
+        fieldGrid_.build(field_);
+        seedField();
+        rebuildActions();
+    }
 
-  ~DuelScreen() {
-    if (cardBack_.id)
-      UnloadTexture(cardBack_);
-  }
+    ~DuelScreen() override {
+        if (cardBack_.id) UnloadTexture(cardBack_);
+    }
 
-  void Update() {
-    imageCache_.PollAndLoad();
-    handleInput();
-  }
+    ScreenEvent Update(float /*dt*/) override {
+        ctx_.imageCache.PollAndLoad();
+        return handleInput();
+    }
 
-  void Draw() const {
-    ClearBackground(COLOR_BG_DARK);
+    void Draw() const override {
+        ClearBackground(COLOR_BG_DARK);
 
-    int leftW = _SW * 30 / 100;
-    int rightW = _SW * 15 / 100;
-    int centerW = _SW - leftW - rightW;
-    int headerH = HEADER_HEIGHT;
-    int footerH = int(0.03f * _SH);
-    int fieldH = _SH - headerH - footerH;
+        int leftW   = _SW * DUEL_LEFT_W_PCT / 100;
+        int rightW  = _SW * DUEL_RIGHT_W_PCT / 100;
+        int centerW = _SW - leftW - rightW;
+        int headerH = HEADER_HEIGHT;
+        int footerH = int(0.03f * _SH);
+        int fieldH  = _SH - headerH - footerH;
 
-    drawHeader(0, 0, _SW, headerH);
-    drawPreviewPanel(0, headerH, leftW, fieldH);
-    drawField(leftW, headerH, centerW, fieldH);
-    ZoneInfoPanel::Draw({(float)(leftW + centerW), (float)headerH,
-                         (float)rightW, (float)fieldH},
-                        cursorZone(), cursorLabel(), actionLabels_,
-                        actionCursor_, lastResult_, selectedZone_ != nullptr,
-                        imageCache_, cardBack_.id ? &cardBack_ : nullptr);
-    drawFooter(0, _SH - footerH, _SW, footerH);
-  }
+        drawHeader(0, 0, _SW, headerH);
+        drawPreviewPanel(0, headerH, leftW, fieldH);
 
-  AppScreen NextScreen() const { return next_; }
+        const Texture2D* cb = cardBack_.id ? &cardBack_ : nullptr;
+        fieldGrid_.draw({(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
+                        const_cast<Field&>(field_), ctx_.imageCache, cb);
+
+        ZoneInfoPanel::Draw(
+            {(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH},
+            fieldGrid_.cursorZone(const_cast<Field&>(field_)),
+            fieldGrid_.cursorLabel(const_cast<Field&>(field_)),
+            actionLabels_, actionCursor_, lastResult_,
+            fieldGrid_.selectedZone() != nullptr);
+
+        drawFooter(0, _SH - footerH, _SW, footerH);
+    }
 
 private:
-  openjoey::zone::Field field_;
-  std::vector<openjoey::Card> pool_;
-  mutable CardImageCache imageCache_;
-  Texture2D cardBack_ = {};
-  int poolIdx_ = 0;
+    AppContext&               ctx_;
+    openjoey::zone::Field     field_;
+    std::vector<openjoey::Card> pool_;
+    Texture2D                 cardBack_ = {};
+    int                       poolIdx_  = 0;
+    mutable FieldGrid         fieldGrid_;
 
-  // ROWS=6: row0=P2hand  row1=P2-monster+BAN/GY/FLD  row2=P2-ST+ED/DK
-  //         row3=P1-ST+DK/ED  row4=P1-monster+FLD/GY/BAN  row5=P1hand
-  // COLS=9: [0][1] = left side  [2..6] = 5 main zones  [7][8] = right side
-  static constexpr int ROWS = 6, COLS = 9;
-  IZone *grid_[ROWS][COLS] = {};
-  const char *labels_[ROWS][COLS] = {};
-  int cursorRow_ = 4, cursorCol_ = 4; // start on P1 M1[2] (Blue-Eyes)
-  IZone *selectedZone_ = nullptr;
-  int handCursor_ = 0;
-  AppScreen next_ = AppScreen::Duel;
-
-  struct Action {
-    std::string label;
-    std::function<std::string()> invoke;
-  };
-  std::vector<Action> actions_;
-  std::vector<std::string> actionLabels_;
-  int actionCursor_ = 0;
-  std::string lastResult_;
-
-  static constexpr const char *kST[2][5] = {
-      {"ST2-0", "ST2-1", "ST2-2", "ST2-3", "ST2-4"},
-      {"ST1-0", "ST1-1", "ST1-2", "ST1-3", "ST1-4"},
-  };
-  static constexpr const char *kM[2][5] = {
-      {"M2-0", "M2-1", "M2-2", "M2-3", "M2-4"},
-      {"M1-0", "M1-1", "M1-2", "M1-3", "M1-4"},
-  };
-
-  // ─────────────────────────────────────── setup
-  void loadCardBack() {
-    for (auto &p :
-         {"data/assets/card_back.jpg", "../data/assets/card_back.jpg"}) {
-      if (std::filesystem::exists(p)) {
-        cardBack_ = LoadTexture(p);
-        if (cardBack_.id)
-          break;
-      }
-    }
-  }
-
-  static openjoey::Card makeCard(const char *name, uint32_t num,
-                                 const char *desc, CardType t, int atk, int def,
-                                 int lvl) {
-    openjoey::Card c;
-    c.name = name;
-    c.cardNumber = num;
-    c.description = desc;
-    c.type = t;
-    c.atk = atk;
-    c.def = def;
-    c.level = lvl;
-    return c;
-  }
-
-  void buildPool() {
-    pool_ = {
-        makeCard("Blue-Eyes", 89631139, "3000 ATK dragon.", CardType::Monster,
-                 3000, 2500, 8),
-        makeCard("Dk Magician", 46986414, "2500 ATK spellcaster.",
-                 CardType::Monster, 2500, 2100, 7),
-        makeCard("Kuriboh", 40640057, "Reduce damage to 0.", CardType::Monster,
-                 300, 200, 1),
-        makeCard("Raigeki", 12580477, "Destroy all opp mons.", CardType::Spell,
-                 0, 0, 0),
-        makeCard("Reborn", 83764719, "Special Summon 1 mon.", CardType::Spell,
-                 0, 0, 0),
-        makeCard("Mirror Force", 44095762, "Destroy ATK monsters.",
-                 CardType::Trap, 0, 0, 0),
+    struct Action {
+        std::string                label;
+        std::function<std::string()> invoke;
     };
-  }
+    std::vector<Action>       actions_;
+    std::vector<std::string>  actionLabels_;
+    int                       actionCursor_ = 0;
+    std::string               lastResult_;
+    int                       previewScrollLines_ = 0;
+    std::string               numBuf_;
 
-  void buildGrid() {
-    // Row 1 — P2: [BAN2][GY2] | M2[4..0] | [FLD2]
-    grid_[1][0] = &field_.banishedZones[0];
-    labels_[1][0] = "BAN2";
-    grid_[1][1] = &field_.graveyardZones[0];
-    labels_[1][1] = "GY2";
-    for (int i = 0; i < 5; ++i) {
-      grid_[1][2 + i] = &field_.monsterZones[0][4 - i];
-      labels_[1][2 + i] = kM[0][4 - i];
-    }
-    grid_[1][7] = &field_.fieldZones[0];
-    labels_[1][7] = "FLD2";
-    // col 8 = null
-
-    // Row 2 — P2: [ED2] | ST2[4..0] | [DK2]
-    // col 0 = null (ED spans full left side width via cellRect)
-    grid_[2][1] = &field_.extraDeckZones[0];
-    labels_[2][1] = "ED2";
-    for (int i = 0; i < 5; ++i) {
-      grid_[2][2 + i] = &field_.spellTrapZones[0][4 - i];
-      labels_[2][2 + i] = kST[0][4 - i];
-    }
-    grid_[2][7] = &field_.deckZones[0];
-    labels_[2][7] = "DK2";
-    // col 8 = null
-
-    // Row 3 — P1: [DK1] | ST1[0..4] | [ED1]
-    // col 0 = null
-    grid_[3][1] = &field_.deckZones[1];
-    labels_[3][1] = "DK1";
-    for (int i = 0; i < 5; ++i) {
-      grid_[3][2 + i] = &field_.spellTrapZones[1][i];
-      labels_[3][2 + i] = kST[1][i];
-    }
-    grid_[3][7] = &field_.extraDeckZones[1];
-    labels_[3][7] = "ED1";
-    // col 8 = null
-
-    // Row 4 — P1: [FLD1] | M1[0..4] | [GY1][BAN1]
-    grid_[4][0] = &field_.fieldZones[1];
-    labels_[4][0] = "FLD1";
-    // col 1 = null (FLD spans full left side width via cellRect)
-    for (int i = 0; i < 5; ++i) {
-      grid_[4][2 + i] = &field_.monsterZones[1][i];
-      labels_[4][2 + i] = kM[1][i];
-    }
-    grid_[4][7] = &field_.graveyardZones[1];
-    labels_[4][7] = "GY1";
-    grid_[4][8] = &field_.banishedZones[1];
-    labels_[4][8] = "BAN1";
-    // Rows 0 and 5 are hand rows — handled separately.
-  }
-
-  void seedField() {
-    for (auto &c : pool_) {
-      c.owner = 1;
-      c.controller = 1;
-    }
-    pool_[1].owner = 0;
-    pool_[1].controller = 0;
-
-    for (int i = 2; i < (int)pool_.size(); ++i)
-      field_.deckZones[1].put(&pool_[i]);
-
-    field_.monsterZones[1][2].put(&pool_[0]);
-    field_.monsterZones[1][2].changeVisibility(Visibility::Visible);
-    field_.monsterZones[1][2].changeOrientation(Orientation::Vertical);
-
-    field_.monsterZones[0][2].put(&pool_[1]);
-    field_.monsterZones[0][2].changeVisibility(Visibility::Visible);
-    field_.monsterZones[0][2].changeOrientation(Orientation::Vertical);
-  }
-
-  // ─────────────────────────────────────── input
-  void handleInput() {
-    if (IsKeyPressed(KEY_ESCAPE)) {
-      if (selectedZone_) {
-        selectedZone_ = nullptr;
-        lastResult_ = "Deselected.";
-      } else
-        next_ = AppScreen::MainMenu;
-      return;
-    }
-    if (IsKeyPressed(KEY_ENTER)) {
-      handleEnter();
-      return;
+    // ── Setup
+    void loadCardBack() {
+        auto path = ContentPaths::cardBackImg();
+        if (std::filesystem::exists(path))
+            cardBack_ = LoadTexture(path.c_str());
+        if (!cardBack_.id)
+            std::cerr << "Failed to load card back image from " << path << "\n";
     }
 
-    if (IsKeyPressed(KEY_TAB)) {
-      if (!actions_.empty())
-        actionCursor_ = (actionCursor_ + 1) % (int)actions_.size();
-      return;
-    }
-
-    for (int k = KEY_ONE; k <= KEY_NINE; ++k) {
-      if (IsKeyPressed(k)) {
-        int idx = k - KEY_ONE;
-        if (idx < (int)actions_.size()) {
-          lastResult_ = actions_[idx].invoke();
-          rebuildActions();
-        }
-        return;
-      }
-    }
-
-    int dr = 0, dc = 0;
-    if (IsKeyPressed(KEY_UP))
-      dr = -1;
-    if (IsKeyPressed(KEY_DOWN))
-      dr = 1;
-    if (IsKeyPressed(KEY_LEFT))
-      dc = -1;
-    if (IsKeyPressed(KEY_RIGHT))
-      dc = 1;
-    if (dr || dc) {
-      moveCursor(dr, dc);
-      rebuildActions();
-    }
-  }
-
-  void handleEnter() {
-    IZone *z = cursorZone();
-    if (!z)
-      return;
-    if (!selectedZone_) {
-      if (!z->isEmpty()) {
-        selectedZone_ = z;
-        lastResult_ = "Source selected.";
-      } else
-        lastResult_ = "Zone empty — nothing to pick.";
-    } else {
-      if (z == selectedZone_) {
-        selectedZone_ = nullptr;
-        lastResult_ = "Deselected.";
-        return;
-      }
-      lastResult_ = selectedZone_->moveTo(*z) ? "Moved OK." : "Move failed.";
-      selectedZone_ = nullptr;
-      rebuildActions();
-    }
-  }
-
-  void moveCursor(int dr, int dc) {
-    bool inHand = (cursorRow_ == 0 || cursorRow_ == 5);
-    if (inHand) {
-      if (dc) {
-        int p = (cursorRow_ == 0) ? 0 : 1;
-        int cnt = field_.handZones[p].count();
-        if (cnt > 0)
-          handCursor_ = (handCursor_ + dc + cnt) % cnt;
-        return;
-      }
-      if (dr) {
-        int nr = std::clamp(cursorRow_ + dr, 0, ROWS - 1);
-        if (nr != cursorRow_) {
-          cursorRow_ = nr;
-          if (nr > 0 && nr < 5)
-            snapCol();
-        }
-      }
-      return;
-    }
-    if (dr) {
-      int nr = cursorRow_ + dr;
-      if (nr < 0 || nr >= ROWS)
-        return;
-      if (nr == 0 || nr == 5) {
-        cursorRow_ = nr;
-        handCursor_ = 0;
-        return;
-      }
-      int nc = cursorCol_;
-      if (!grid_[nr][nc]) {
-        for (int d = 1; d < COLS; ++d) {
-          if (nc - d >= 0 && grid_[nr][nc - d]) {
-            nc = nc - d;
-            break;
-          }
-          if (nc + d < COLS && grid_[nr][nc + d]) {
-            nc = nc + d;
-            break;
-          }
-        }
-      }
-      if (grid_[nr][nc]) {
-        cursorRow_ = nr;
-        cursorCol_ = nc;
-      }
-      return;
-    }
-    if (dc) {
-      int nc = cursorCol_ + dc;
-      while (nc >= 0 && nc < COLS) {
-        if (grid_[cursorRow_][nc]) {
-          cursorCol_ = nc;
-          return;
-        }
-        nc += dc;
-      }
-    }
-  }
-
-  void snapCol() {
-    if (grid_[cursorRow_][cursorCol_])
-      return;
-    for (int d = 1; d < COLS; ++d) {
-      if (cursorCol_ - d >= 0 && grid_[cursorRow_][cursorCol_ - d]) {
-        cursorCol_ -= d;
-        return;
-      }
-      if (cursorCol_ + d < COLS && grid_[cursorRow_][cursorCol_ + d]) {
-        cursorCol_ += d;
-        return;
-      }
-    }
-  }
-
-  // ─────────────────────────────────────── actions
-  void rebuildActions() {
-    actions_.clear();
-    actionLabels_.clear();
-    actionCursor_ = 0;
-    IZone *z = cursorZone();
-    if (!z)
-      return;
-
-    auto push = [&](std::string lbl, std::function<std::string()> fn) {
-      actions_.push_back({std::move(lbl), std::move(fn)});
-    };
-
-    push("put(card)", [this, z]() -> std::string {
-      Card *c = nextPoolCard();
-      return c ? (z->put(c) ? "put OK." : "put failed — zone full.")
-               : "Pool exhausted.";
-    });
-    push("remove()", [z]() -> std::string {
-      return z->remove() ? "remove OK." : "remove failed — empty.";
-    });
-    push("reset()", [z]() -> std::string {
-      z->reset();
-      return "reset OK.";
-    });
-
-    if (auto *zm = dynamic_cast<Zone_Monster *>(z)) {
-      push("setATK  [Vertical]", [zm] {
-        return zm->changeOrientation(Orientation::Vertical)
-                   ? "ATK OK."
-                   : "changeOrientation → false.";
-      });
-      push("setDEF  [Horizontal]", [zm] {
-        return zm->changeOrientation(Orientation::Horizontal)
-                   ? "DEF OK."
-                   : "changeOrientation → false.";
-      });
-      push("vis: Visible  (both)", [zm] {
-        return zm->changeVisibility(Visibility::Visible)
-                   ? "Visible OK."
-                   : "changeVisibility → false.";
-      });
-      push("vis: Limited  (owner)", [zm] {
-        return zm->changeVisibility(Visibility::Limited)
-                   ? "Limited OK."
-                   : "changeVisibility → false.";
-      });
-      push("vis: Restricted (FD)", [zm] {
-        return zm->changeVisibility(Visibility::Restricted)
-                   ? "Restricted OK."
-                   : "changeVisibility → false.";
-      });
-      push("flip()", [zm] {
-        return zm->flip() ? "flip OK."
-                          : "flip → false (need Vertical+Limited).";
-      });
-    }
-
-    if (auto *deck = dynamic_cast<ZoneStack_Deck *>(z)) {
-      push("draw() → P1 hand", [this, deck] {
-        return deck->draw(field_.handZones[1]) ? "draw OK." : "draw failed.";
-      });
-      push("mill(1) → P1 GY", [this, deck] {
-        return deck->mill(1, field_.graveyardZones[1]) ? "mill OK."
-                                                       : "mill failed.";
-      });
-      push("shuffle()", [deck] {
-        deck->shuffle();
-        return "shuffle OK.";
-      });
-    }
-    if (auto *zs = dynamic_cast<ZoneStack *>(z))
-      push("clear()", [zs] {
-        zs->clear();
-        return "clear OK.";
-      });
-
-    for (auto &a : actions_)
-      actionLabels_.push_back(a.label);
-  }
-
-  Card *nextPoolCard() {
-    for (int i = 0; i < (int)pool_.size(); ++i) {
-      Card *c = &pool_[poolIdx_];
-      poolIdx_ = (poolIdx_ + 1) % (int)pool_.size();
-      if (!inAnyZone(c))
+    static openjoey::Card makeCard(const char* name, uint32_t num,
+                                   const char* desc, CardType t,
+                                   int atk, int def, int lvl) {
+        openjoey::Card c;
+        c.name        = name;
+        c.cardNumber  = num;
+        c.description = desc;
+        c.type        = t;
+        c.atk         = atk;
+        c.def         = def;
+        c.level       = lvl;
         return c;
     }
-    return nullptr;
-  }
 
-  bool inAnyZone(Card *c) const {
-    for (int r = 1; r <= 4; ++r)
-      for (int col = 0; col < COLS; ++col)
-        if (grid_[r][col] && grid_[r][col]->contains(c))
-          return true;
-    return field_.handZones[0].contains(c) || field_.handZones[1].contains(c);
-  }
-
-  // ─────────────────────────────────────── draw
-  void drawHeader(int x, int y, int w, int h) const {
-    DrawRectangle(x, y, w, h, COLOR_HEADER_BG);
-    DrawLine(x, y + h - 1, x + w, y + h - 1, Color{50, 50, 80, 255});
-    int fs = FONT_SCREEN_TITLE;
-    const char *mode = selectedZone_ ? "SELECT DEST  [ESC=cancel]"
-                                     : "NAVIGATE  [ENTER=pick source]";
-    DrawText(("Duel Field  —  " + std::string(mode)).c_str(),
-             x + HEADER_TITLE_X, y + (h - fs) / 2, fs, YELLOW);
-    const char *cl = cursorLabel();
-    int tw = MeasureText(cl, fs);
-    DrawText(cl, x + w - tw - HEADER_TITLE_X, y + (h - fs) / 2, fs,
-             COLOR_STAT_TEXT);
-  }
-
-  void drawFooter(int x, int y, int w, int h) const {
-    DrawRectangle(x, y, w, h, COLOR_FOOTER_BG);
-    DrawLine(x, y, x + w, y, Color{50, 50, 80, 255});
-    int fs = FONT_HELP_TEXT;
-    DrawText("Arrows:navigate  Enter:select/move  1-9:action  Tab:cycle action "
-             " Esc:back",
-             x + MAIN_PAD_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
-  }
-
-  void drawPreviewPanel(int x, int y, int w, int h) const {
-    DrawRectangle(x, y, w, h, COLOR_BG_MAIN);
-    DrawLine(x + w - 1, y, x + w - 1, y + h, Color{50, 50, 80, 255});
-
-    int pad = PREVIEW_PAD_X;
-    int cy = y + pad;
-    int fs = FONT_CARD_STAT;
-    int fsT = FONT_CARD_NAME;
-
-    DrawText("Preview", x + pad, cy, FONT_PANEL_TITLE, COLOR_STAT_TEXT);
-    cy += FONT_PANEL_TITLE + pad / 2;
-
-    float aspect = 59.f / 86.f;
-    int cardW = w - pad * 2;
-    int cardH = (int)(cardW / aspect);
-    if (cardH > h * 45 / 100) {
-      cardH = h * 45 / 100;
-      cardW = (int)(cardH * aspect);
-    }
-    int cardX = x + (w - cardW) / 2;
-    Rectangle cardR = {(float)cardX, (float)cy, (float)cardW, (float)cardH};
-
-    IZone *z = cursorZone();
-    Card *top = nullptr;
-    bool fd = false;
-    if (z && !z->isEmpty()) {
-      if (auto *zm = dynamic_cast<Zone_Monster *>(z)) {
-        top = zm->peek();
-        fd = zm->visibility() == Visibility::Restricted;
-      } else if (auto *zs = dynamic_cast<ZoneStack *>(z))
-        top = zs->peek(-1);
-      else if (auto *zn = dynamic_cast<Zone *>(z))
-        top = zn->peek();
+    void buildPool() {
+        pool_ = {
+            makeCard("Blue-Eyes",    89631139, "3000 ATK dragon.",        CardType::Monster, 3000, 2500, 8),
+            makeCard("Dk Magician",  46986414, "2500 ATK spellcaster.",   CardType::Monster, 2500, 2100, 7),
+            makeCard("Kuriboh",      40640057, "Reduce damage to 0.",     CardType::Monster,  300,  200, 1),
+            makeCard("Raigeki",      12580477, "Destroy all opp mons.",   CardType::Spell,      0,    0, 0),
+            makeCard("Reborn",       83764719, "Special Summon 1 mon.",   CardType::Spell,      0,    0, 0),
+            makeCard("Mirror Force", 44095762, "Destroy ATK monsters.",   CardType::Trap,       0,    0, 0),
+        };
     }
 
-    const Texture2D *cb = cardBack_.id ? &cardBack_ : nullptr;
-    if (fd) {
-      if (cb)
-        DrawTexturePro(*cb, {0, 0, (float)cb->width, (float)cb->height}, cardR,
-                       {0, 0}, 0.f, WHITE);
-      else
-        DrawRectangleRec(cardR, Color{8, 6, 42, 255});
-      DrawRectangleLinesEx(cardR, 1.5f, Color{210, 170, 40, 255});
-    } else if (top) {
-      const Texture2D *tex = imageCache_.Get(*top);
-      if (tex && tex->id) {
-        DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                       cardR, {0, 0}, 0.f, WHITE);
-      } else {
-        Color fc = top->isMonster() ? Color{88, 60, 60, 255}
-                   : top->isSpell() ? Color{56, 90, 72, 255}
-                                    : Color{88, 56, 92, 255};
-        DrawRectangleRec(cardR, fc);
-      }
-      DrawRectangleLinesEx(cardR, 1.2f, Color{200, 180, 100, 255});
-    } else {
-      DrawRectangleRec(cardR, COLOR_BG_MAIN);
-      DrawRectangleLinesEx(cardR, 1.f, Color{50, 50, 70, 255});
-    }
-    cy += cardH + pad;
+    void seedField() {
+        for (auto& c : pool_) { c.owner = 1; c.controller = 1; }
+        pool_[1].owner = 0; pool_[1].controller = 0;
 
-    if (top && !fd) {
-      DrawText(top->name.c_str(), x + pad, cy, fsT, WHITE);
-      cy += fsT + 3;
-      DrawText(top->cardTypeTag().c_str(), x + pad, cy, fs,
-               top->isMonster() ? COLOR_MONSTER_STAT
-               : top->isSpell() ? COLOR_SPELL_STAT
-                                : COLOR_TRAP_STAT);
-      cy += fs + 3;
-      if (top->isMonster()) {
-        DrawText(top->statLine().c_str(), x + pad, cy, fs, COLOR_STAT_TEXT);
-        cy += fs + 4;
-      }
-      const std::string &desc = top->description;
-      int lineFs = FONT_HELP_TEXT;
-      int lineH2 = lineFs + 3;
-      int maxPx = w - pad * 2;
-      size_t pos = 0;
-      while (pos < desc.size() && cy + lineH2 < y + h - pad) {
-        size_t end = pos;
-        std::string line;
-        while (end < desc.size()) {
-          size_t nxt = desc.find(' ', end + 1);
-          if (nxt == std::string::npos)
-            nxt = desc.size();
-          std::string trial = desc.substr(pos, nxt - pos);
-          if (MeasureText(trial.c_str(), lineFs) > maxPx)
-            break;
-          line = trial;
-          end = nxt;
+        for (int i = 2; i < (int)pool_.size(); ++i)
+            field_.deckZones[1].put(&pool_[i]);
+
+        field_.monsterZones[1][2].put(&pool_[0]);
+        field_.monsterZones[1][2].changeVisibility(Visibility::Visible);
+        field_.monsterZones[1][2].changeOrientation(Orientation::Vertical);
+
+        field_.monsterZones[0][2].put(&pool_[1]);
+        field_.monsterZones[0][2].changeVisibility(Visibility::Visible);
+        field_.monsterZones[0][2].changeOrientation(Orientation::Vertical);
+    }
+
+    // ── Input
+    ScreenEvent handleInput() {
+        float wheel = GetMouseWheelMove();
+        if (wheel != 0.f) {
+            previewScrollLines_ = std::max(0, previewScrollLines_ - (int)wheel);
+            return ScreenEvent::none();
         }
-        if (end == pos) {
-          end = pos + 1;
-          line = desc.substr(pos, 1);
+
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            numBuf_.clear();
+            if (fieldGrid_.selectedZone()) {
+                fieldGrid_.setSelectedZone(nullptr);
+                lastResult_ = "Deselected.";
+            } else {
+                return ScreenEvent::replace(AppScreen::MainMenu);
+            }
+            return ScreenEvent::none();
         }
-        DrawText(line.c_str(), x + pad, cy, lineFs, COLOR_DESC_TEXT);
-        cy += lineH2;
-        pos = (end < desc.size() && desc[end] == ' ') ? end + 1 : end;
-      }
-    }
-  }
 
-  void drawField(int fx, int fy, int fw, int fh) const {
-    DrawRectangle(fx, fy, fw, fh, Color{14, 20, 14, 255}); // felt-green mat
-
-    int gapX = fw * 5 / 1000;
-    int gapY = fh * 6 / 1000;
-    int sideW = fw * 9 / 100;
-    int mainW = fw - sideW * 2;
-    int handH = fh * 11 / 100;
-
-    // 4 field rows: P2support, P2mon, P1mon, P1support
-    int zoneH = (fh - handH * 2 - gapY * 5) / 4;
-    int zoneW = (mainW - gapX * 6) / 5;
-    if (zoneW > zoneH * 85 / 100)
-      zoneW = zoneH * 85 / 100;
-
-    int boardX = fx + sideW;
-
-    int rowY[4];
-    rowY[0] = fy + handH + gapY;
-    rowY[1] = rowY[0] + zoneH + gapY;
-    rowY[2] = rowY[1] + zoneH + gapY;
-    rowY[3] = rowY[2] + zoneH + gapY;
-
-    drawOppHand(fx, fy, fw, handH);
-
-    // Draw all field rows 1-4; null cells get a subtle empty-slot background
-    // so monster rows have no visual gaps on the sides.
-    for (int gridRow = 1; gridRow <= 4; ++gridRow) {
-      DrawRectangle(fx, rowY[gridRow - 1], fw, zoneH,
-                    Fade(COLOR_BG_MAIN, 0.85f));
-
-      for (int col = 0; col < COLS; ++col) {
-        Rectangle r = cellRect(gridRow, col, fx, fw, boardX, zoneW, zoneH, gapX,
-                               sideW, rowY);
-        bool isCur = (cursorRow_ == gridRow && cursorCol_ == col);
-        bool isSel = (grid_[gridRow][col] == selectedZone_);
-        const Texture2D *cb = cardBack_.id ? &cardBack_ : nullptr;
-        if (grid_[gridRow][col]) {
-          ZoneCell::Draw(r, grid_[gridRow][col], labels_[gridRow][col], isCur,
-                         isSel, imageCache_, cb);
+        if (IsKeyPressed(KEY_ENTER)) {
+            if (!numBuf_.empty()) {
+                int idx = std::stoi(numBuf_) - 1;
+                numBuf_.clear();
+                if (idx >= 0 && idx < (int)actions_.size()) {
+                    lastResult_ = actions_[idx].invoke();
+                    rebuildActions();
+                } else {
+                    lastResult_ = "No action at that index.";
+                }
+                return ScreenEvent::none();
+            }
+            handleEnter();
+            return ScreenEvent::none();
         }
-      }
+
+        if (IsKeyPressed(KEY_TAB)) {
+            numBuf_.clear();
+            if (!actions_.empty())
+                actionCursor_ = (actionCursor_ + 1) % (int)actions_.size();
+            return ScreenEvent::none();
+        }
+
+        if (IsKeyPressed(KEY_SPACE)) {
+            numBuf_.clear();
+            if (!actions_.empty()) {
+                lastResult_ = actions_[actionCursor_].invoke();
+                rebuildActions();
+            }
+            return ScreenEvent::none();
+        }
+
+        for (int k = KEY_ZERO; k <= KEY_NINE; ++k) {
+            if (IsKeyPressed(k)) {
+                if (numBuf_.size() < 2)
+                    numBuf_ += static_cast<char>('0' + (k - KEY_ZERO));
+                return ScreenEvent::none();
+            }
+        }
+
+        int dr = 0, dc = 0;
+        if (IsKeyPressed(KEY_UP))    dr = -1;
+        if (IsKeyPressed(KEY_DOWN))  dr =  1;
+        if (IsKeyPressed(KEY_LEFT))  dc = -1;
+        if (IsKeyPressed(KEY_RIGHT)) dc =  1;
+        if (dr || dc) {
+            numBuf_.clear();
+            fieldGrid_.moveCursor(dr, dc, field_);
+            rebuildActions();
+            previewScrollLines_ = 0;
+        }
+        return ScreenEvent::none();
     }
 
-    // Center divider — between P2 ST row and P1 ST row
-    int divY = rowY[1] + zoneH + gapY / 2;
-    DrawLineEx({(float)(fx + 2), (float)divY},
-               {(float)(fx + fw - 2), (float)divY}, 2.f,
-               Color{80, 80, 110, 220});
+    void handleEnter() {
+        IZone* z = fieldGrid_.cursorZone(field_);
+        if (!z) return;
+        previewScrollLines_ = 0;
 
-    drawOwnHand(fx, fy + fh - handH, fw, handH);
-  }
-
-  // Returns screen rect for every cell (null or not) — drives both ZoneCell and
-  // empty-slot draws. Layout per row:
-  //   row1 (P2 monster): col0=BAN2(half-L)  col1=GY2(half-L)  cols2-6=M×5
-  //   col7=FLD2(full-R)  col8=empty row2 (P2 ST):      col0=empty
-  //   col1=ED2(full-L)  cols2-6=ST×5 col7=DK2(full-R)   col8=empty row3 (P1
-  //   ST):      col0=empty          col1=DK1(full-L)  cols2-6=ST×5
-  //   col7=ED1(full-R)   col8=empty row4 (P1 monster): col0=FLD1(full-L)
-  //   col1=empty        cols2-6=M×5  col7=GY1(half-R)   col8=BAN1(half-R)
-  Rectangle cellRect(int row, int col, int fx, int fw, int boardX, int zoneW,
-                     int zoneH, int gapX, int sideW, const int rowY[4]) const {
-    int ry = rowY[row - 1];
-    int half = sideW / 2;
-
-    // ── left side (cols 0, 1)
-    if (col == 0) {
-      if (row == 1)
-        return {(float)fx, (float)ry, (float)(half - 1),
-                (float)zoneH}; // BAN2 half
-      if (row == 4)
-        return {(float)fx, (float)ry, (float)(sideW - 1),
-                (float)zoneH}; // FLD1 full
-      return {(float)fx, (float)ry, (float)(half - 1),
-              (float)zoneH}; // empty slot
-    }
-    if (col == 1) {
-      if (row == 1)
-        return {(float)(fx + half), (float)ry, (float)(half - 1),
-                (float)zoneH}; // GY2 half
-      if (row == 2)
-        return {(float)fx, (float)ry, (float)(sideW - 1),
-                (float)zoneH}; // ED2 full
-      if (row == 3)
-        return {(float)fx, (float)ry, (float)(sideW - 1),
-                (float)zoneH}; // DK1 full
-      return {(float)(fx + half), (float)ry, (float)(half - 1),
-              (float)zoneH}; // empty slot
+        if (!fieldGrid_.selectedZone()) {
+            if (!z->isEmpty()) {
+                fieldGrid_.setSelectedZone(z);
+                lastResult_ = "Source selected.";
+            } else {
+                lastResult_ = "Zone empty — nothing to pick.";
+            }
+        } else {
+            if (z == fieldGrid_.selectedZone()) {
+                fieldGrid_.setSelectedZone(nullptr);
+                lastResult_ = "Deselected.";
+                return;
+            }
+            lastResult_ = fieldGrid_.selectedZone()->moveTo(*z) ? "Moved OK." : "Move failed.";
+            fieldGrid_.setSelectedZone(nullptr);
+            rebuildActions();
+        }
     }
 
-    // ── center (cols 2-6)
-    if (col >= 2 && col <= 6) {
-      int cx = boardX + gapX + (col - 2) * (zoneW + gapX);
-      return {(float)cx, (float)ry, (float)zoneW, (float)zoneH};
+    // ── Actions
+    void rebuildActions() {
+        actions_.clear();
+        actionLabels_.clear();
+        actionCursor_ = 0;
+        IZone* z = fieldGrid_.cursorZone(field_);
+        if (!z) return;
+
+        auto push = [&](std::string lbl, std::function<std::string()> fn) {
+            actions_.push_back({std::move(lbl), std::move(fn)});
+        };
+
+        push("put(card)", [this, z]() -> std::string {
+            Card* c = nextPoolCard();
+            return c ? (z->put(c) ? "put OK." : "put failed — zone full.")
+                     : "Pool exhausted.";
+        });
+        push("remove()", [z]() -> std::string {
+            return z->remove() ? "remove OK." : "remove failed — empty.";
+        });
+        push("reset()", [z]() -> std::string { z->reset(); return "reset OK."; });
+
+        if (auto* zm = dynamic_cast<Zone_Monster*>(z)) {
+            push("setATK  [Vertical]", [zm] {
+                return zm->changeOrientation(Orientation::Vertical) ? "ATK OK." : "changeOrientation → false.";
+            });
+            push("setDEF  [Horizontal]", [zm] {
+                return zm->changeOrientation(Orientation::Horizontal) ? "DEF OK." : "changeOrientation → false.";
+            });
+            push("vis: Visible  (both)", [zm] {
+                return zm->changeVisibility(Visibility::Visible) ? "Visible OK." : "changeVisibility → false.";
+            });
+            push("vis: Limited  (owner)", [zm] {
+                return zm->changeVisibility(Visibility::Limited) ? "Limited OK." : "changeVisibility → false.";
+            });
+            push("vis: Restricted (FD)", [zm] {
+                return zm->changeVisibility(Visibility::Restricted) ? "Restricted OK." : "changeVisibility → false.";
+            });
+            push("flip()", [zm] {
+                return zm->flip() ? "flip OK." : "flip → false (need Vertical+Limited).";
+            });
+        }
+
+        push("contains(top)", [z]() -> std::string {
+            Card* top = nullptr;
+            if (auto* zm = dynamic_cast<Zone_Monster*>(z))      top = zm->peek();
+            else if (auto* zs = dynamic_cast<ZoneStack*>(z))    top = zs->peek(-1);
+            else if (auto* zn = dynamic_cast<Zone*>(z))         top = zn->peek();
+            if (!top) return "contains: zone empty.";
+            return z->contains(top) ? "contains(top) → true." : "contains(top) → false.";
+        });
+        push("moveTo→P1 GY", [this, z]() -> std::string {
+            return z->moveTo(field_.graveyardZones[1]) ? "moveTo OK." : "moveTo failed.";
+        });
+        push("moveTo→P2 GY", [this, z]() -> std::string {
+            return z->moveTo(field_.graveyardZones[0]) ? "moveTo OK." : "moveTo failed.";
+        });
+
+        if (auto* deck = dynamic_cast<ZoneStack_Deck*>(z)) {
+            push("draw()→P1 hand", [this, deck] {
+                return deck->draw(field_.handZones[1]) ? "draw OK." : "draw failed.";
+            });
+            push("mill(1)→P1 GY", [this, deck] {
+                return deck->mill(1, field_.graveyardZones[1]) ? "mill OK." : "mill failed.";
+            });
+        }
+
+        if (auto* zs = dynamic_cast<ZoneStack*>(z)) {
+            push("peek(-1) top", [zs]() -> std::string {
+                Card* c = zs->peek(-1);
+                return c ? "peek(-1) → " + c->name : "peek(-1) → null.";
+            });
+            push("peek(0) bottom", [zs]() -> std::string {
+                Card* c = zs->peek(0);
+                return c ? "peek(0) → " + c->name : "peek(0) → null.";
+            });
+            push("findAll(monster)", [zs]() -> std::string {
+                auto v = zs->findAll([](const Card* c) { return c->isMonster(); });
+                return "findAll(monster) → " + std::to_string(v.size()) + " cards.";
+            });
+            push("findAll(!monster)", [zs]() -> std::string {
+                auto v = zs->findAll([](const Card* c) { return !c->isMonster(); });
+                return "findAll(!monster) → " + std::to_string(v.size()) + " cards.";
+            });
+            push("shuffle()", [zs]() -> std::string { zs->shuffle(); return "shuffle OK."; });
+            push("clear()",   [zs]() -> std::string { zs->clear();   return "clear OK."; });
+        }
+
+        push("clearField()", [this]() -> std::string { field_.clearField(); return "clearField OK."; });
+        push("cntMon P1", [this]() -> std::string {
+            return "countMonsters(P1) → " + std::to_string(field_.countMonsters(1));
+        });
+        push("cntMon P2", [this]() -> std::string {
+            return "countMonsters(P2) → " + std::to_string(field_.countMonsters(0));
+        });
+        push("fstEmptyMon P1", [this]() -> std::string {
+            return "firstEmptyMonsterZone(P1) → " + std::to_string(field_.firstEmptyMonsterZone(1));
+        });
+        push("fstEmptyMon P2", [this]() -> std::string {
+            return "firstEmptyMonsterZone(P2) → " + std::to_string(field_.firstEmptyMonsterZone(0));
+        });
+        push("fstEmptyST P1", [this]() -> std::string {
+            return "firstEmptySpellTrapZone(P1) → " + std::to_string(field_.firstEmptySpellTrapZone(1));
+        });
+        push("fstEmptyST P2", [this]() -> std::string {
+            return "firstEmptySpellTrapZone(P2) → " + std::to_string(field_.firstEmptySpellTrapZone(0));
+        });
+        push("fstOccupMon P1", [this]() -> std::string {
+            return "firstOccupiedMonsterZone(P1) → " + std::to_string(field_.firstOccupiedMonsterZone(1));
+        });
+        push("fstOccupMon P2", [this]() -> std::string {
+            return "firstOccupiedMonsterZone(P2) → " + std::to_string(field_.firstOccupiedMonsterZone(0));
+        });
+        push("fstEmptyEMZ", [this]() -> std::string {
+            return "firstEmptyExtraMonsterZone() → " + std::to_string(field_.firstEmptyExtraMonsterZone());
+        });
+
+        for (auto& a : actions_) actionLabels_.push_back(a.label);
     }
 
-    // ── right side (cols 7, 8)
-    if (col == 7) {
-      if (row == 4)
-        return {(float)(fx + fw - sideW), (float)ry, (float)(half - 1),
-                (float)zoneH}; // GY1 half
-      return {(float)(fx + fw - sideW), (float)ry, (float)(sideW - 1),
-              (float)zoneH}; // full
-    }
-    if (col == 8) {
-      // only row4 col8 = BAN1 half; everything else is empty slot
-      return {(float)(fx + fw - half), (float)ry, (float)(half - 1),
-              (float)zoneH};
+    Card* nextPoolCard() {
+        for (int i = 0; i < (int)pool_.size(); ++i) {
+            Card* c = &pool_[poolIdx_];
+            poolIdx_ = (poolIdx_ + 1) % (int)pool_.size();
+            if (!inAnyZone(c)) return c;
+        }
+        return nullptr;
     }
 
-    // fallback
-    int cellW = fw / COLS;
-    return {(float)(fx + col * cellW), (float)ry, (float)(cellW - 2),
-            (float)zoneH};
-  }
-
-  void drawOppHand(int fx, int fy, int fw, int handH) const {
-    DrawRectangle(fx, fy, fw, handH, COLOR_BG_DARK);
-    DrawLine(fx, fy + handH - 1, fx + fw, fy + handH - 1,
-             Color{40, 40, 65, 180});
-    int cnt = field_.handZones[0].count();
-    int fs = FONT_CARD_STAT;
-    DrawText(TextFormat("P2 Hand: %d", cnt), fx + MAIN_PAD_X,
-             fy + (handH - fs) / 2, fs, COLOR_STAT_TEXT);
-    if (cnt == 0)
-      return;
-    int cw = (int)(handH * 0.75f * (59.f / 86.f));
-    int ch = (int)(handH * 0.75f);
-    int totalW = cnt * (cw + 3) - 3;
-    int startX = fx + (fw - totalW) / 2;
-    const Texture2D *cb = cardBack_.id ? &cardBack_ : nullptr;
-    for (int i = 0; i < cnt; ++i) {
-      int cx = startX + i * (cw + 3);
-      int cy2 = fy + (handH - ch) / 2;
-      if (cb)
-        DrawTexturePro(*cb, {0, 0, (float)cb->width, (float)cb->height},
-                       {(float)cx, (float)cy2, (float)cw, (float)ch}, {0, 0},
-                       0.f, WHITE);
-      else {
-        DrawRectangle(cx, cy2, cw, ch, COLOR_BG_DARK);
-        DrawRectangleLines(cx, cy2, cw, ch, Color{210, 170, 40, 255});
-      }
+    bool inAnyZone(Card* c) const {
+        for (int p = 0; p < 2; ++p) {
+            for (int i = 0; i < 5; ++i)
+                if (field_.monsterZones[p][i].contains(c) ||
+                    field_.spellTrapZones[p][i].contains(c)) return true;
+            if (field_.graveyardZones[p].contains(c) ||
+                field_.deckZones[p].contains(c) ||
+                field_.extraDeckZones[p].contains(c) ||
+                field_.fieldZones[p].contains(c) ||
+                field_.banishedZones[p].contains(c) ||
+                field_.handZones[p].contains(c)) return true;
+        }
+        return false;
     }
-  }
 
-  void drawOwnHand(int fx, int fy, int fw, int handH) const {
-    DrawRectangle(fx, fy, fw, handH, COLOR_BG_DARK);
-    DrawLine(fx, fy, fx + fw, fy, Color{40, 40, 65, 180});
-    auto &hand = const_cast<ZoneStack_Hand &>(field_.handZones[1]);
-    int cnt = hand.count();
-    int fs = FONT_CARD_STAT;
-    DrawText(TextFormat("P1 Hand: %d", cnt), fx + MAIN_PAD_X, fy + 3, fs,
-             COLOR_STAT_TEXT);
-    if (cnt == 0) {
-      DrawText("(empty)", fx + fw / 2, fy + (handH - fs) / 2, fs, DARKGRAY);
-      return;
+    // ── Draw
+    void drawHeader(int x, int y, int w, int h) const {
+        DrawRectangle(x, y, w, h, COLOR_HEADER_BG);
+        DrawLine(x, y + h - 1, x + w, y + h - 1, COLOR_DIVIDER_LINE);
+        int fs = FONT_SCREEN_TITLE;
+        const char* mode = fieldGrid_.selectedZone()
+            ? "SELECT DEST  [ESC=cancel]"
+            : "NAVIGATE  [ENTER=pick source]";
+        DrawText(("Duel Field  —  " + std::string(mode)).c_str(),
+                 x + HEADER_TITLE_X, y + (h - fs) / 2, fs, YELLOW);
+        const char* cl = fieldGrid_.cursorLabel(const_cast<Field&>(field_));
+        int tw = MeasureText(cl, fs);
+        DrawText(cl, x + w - tw - HEADER_TITLE_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
     }
-    int cw = (int)(handH * 0.85f * (59.f / 86.f));
-    int ch = (int)(handH * 0.85f);
-    int totalW = cnt * (cw + 4) - 4;
-    int startX = fx + (fw - totalW) / 2;
-    for (int i = 0; i < cnt; ++i) {
-      Card *c = hand.peek(i);
-      if (!c)
-        continue;
-      int cx = startX + i * (cw + 4);
-      int cy2 = fy + (handH - ch) - 4;
-      bool cur = (cursorRow_ == 5 && handCursor_ == i);
-      bool sel = selectedZone_ == &field_.handZones[1];
-      const Texture2D *tex = imageCache_.Get(*c);
-      Rectangle cr = {(float)cx, (float)cy2, (float)cw, (float)ch};
-      if (tex && tex->id)
-        DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height}, cr,
-                       {0, 0}, 0.f, WHITE);
-      else {
-        Color fc = c->isMonster() ? COLOR_MONSTER_STAT
-                   : c->isSpell() ? COLOR_SPELL_STAT
-                                  : COLOR_TRAP_STAT;
-        DrawRectangleRec(cr, Fade(fc, 0.6f));
-        DrawText(c->name.substr(0, 6).c_str(), (int)cx + 2, (int)cy2 + 2,
-                 FONT_HELP_TEXT, WHITE);
-      }
-      float thick = (cur || sel) ? 2.5f : 1.f;
-      Color border = cur ? YELLOW : sel ? GREEN : Color{180, 180, 210, 200};
-      DrawRectangleLinesEx(cr, thick, border);
+
+    void drawFooter(int x, int y, int w, int h) const {
+        DrawRectangle(x, y, w, h, COLOR_FOOTER_BG);
+        DrawLine(x, y, x + w, y, COLOR_DIVIDER_LINE);
+        int fs = FONT_HELP_TEXT;
+        DrawText("Arrows:move  Enter:zone-select/move or confirm-#  "
+                 "0-9:type action#  Tab:cycle  Space:exec-tab  Esc:back",
+                 x + MAIN_PAD_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
+        if (!numBuf_.empty()) {
+            std::string nb = "  #" + numBuf_ + "_  ";
+            int tw = MeasureText(nb.c_str(), fs);
+            DrawRectangle(x + w - tw - MAIN_PAD_X, y + 1, tw, h - 2, Fade(YELLOW, 0.25f));
+            DrawText(nb.c_str(), x + w - tw - MAIN_PAD_X, y + (h - fs) / 2, fs, YELLOW);
+        }
     }
-  }
 
-  // ─────────────────────────────────────── helpers
-  IZone *cursorZone() const {
-    auto &f = const_cast<openjoey::zone::Field &>(field_);
-    if (cursorRow_ == 0)
-      return &f.handZones[0];
-    if (cursorRow_ == 5)
-      return &f.handZones[1];
-    return grid_[cursorRow_][cursorCol_];
-  }
+    void drawPreviewPanel(int x, int y, int w, int h) const {
+        DrawRectangle(x, y, w, h, COLOR_BG_MAIN);
+        DrawLine(x + w - 1, y, x + w - 1, y + h, COLOR_DIVIDER_LINE);
 
-  const char *cursorLabel() const {
-    if (cursorRow_ == 0)
-      return "P2 Hand";
-    if (cursorRow_ == 5)
-      return "P1 Hand";
-    IZone *z = grid_[cursorRow_][cursorCol_];
-    return z ? labels_[cursorRow_][cursorCol_] : "---";
-  }
+        int pad = PREVIEW_PAD_X;
+        int cy  = y + pad;
+        DrawText("Preview", x + pad, cy, FONT_PANEL_TITLE, COLOR_STAT_TEXT);
+        cy += FONT_PANEL_TITLE + pad / 2;
+
+        float aspect = 59.f / 86.f;
+        int cardW = w - pad * 2;
+        int cardH = (int)(cardW / aspect);
+        if (cardH > h * 48 / 100) {
+            cardH = h * 48 / 100;
+            cardW = (int)(cardH * aspect);
+        }
+        int cardX = x + (w - cardW) / 2;
+        Rectangle cardR = {(float)cardX, (float)cy, (float)cardW, (float)cardH};
+
+        IZone* z   = fieldGrid_.cursorZone(const_cast<Field&>(field_));
+        Card*  top = nullptr;
+        bool   fd  = false;
+        if (z && !z->isEmpty()) {
+            if (auto* zm = dynamic_cast<Zone_Monster*>(z)) {
+                top = zm->peek();
+                fd  = zm->visibility() == Visibility::Restricted;
+            } else if (auto* zs = dynamic_cast<ZoneStack*>(z)) {
+                top = zs->peek(-1);
+            } else if (auto* zn = dynamic_cast<Zone*>(z)) {
+                top = zn->peek();
+            }
+        }
+
+        const Texture2D* cb = cardBack_.id ? &cardBack_ : nullptr;
+        if (fd) {
+            if (cb)
+                DrawTexturePro(*cb, {0, 0, (float)cb->width, (float)cb->height},
+                               cardR, {0, 0}, 0.f, WHITE);
+            else
+                DrawRectangleRec(cardR, COLOR_CARD_BACK_FG);
+            DrawRectangleLinesEx(cardR, 1.5f, Color{210, 170, 40, 255});
+        } else if (top) {
+            const Texture2D* tex = ctx_.imageCache.Get(*top);
+            if (tex && tex->id) {
+                DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
+                               cardR, {0, 0}, 0.f, WHITE);
+            } else {
+                Color fc = top->isMonster() ? COLOR_MONSTER_STAT
+                           : top->isSpell() ? COLOR_SPELL_STAT
+                                            : COLOR_TRAP_STAT;
+                DrawRectangleRec(cardR, Fade(fc, 0.4f));
+            }
+            DrawRectangleLinesEx(cardR, 1.2f, Color{200, 180, 100, 255});
+        } else {
+            DrawRectangleRec(cardR, COLOR_BG_MAIN);
+            DrawRectangleLinesEx(cardR, 1.f, COLOR_DIVIDER_LINE);
+        }
+        cy += cardH + pad;
+
+        if (top && !fd) {
+            DrawText(top->name.c_str(), x + pad, cy, FONT_CARD_NAME, WHITE);
+            cy += FONT_CARD_NAME + 3;
+            DrawText(top->cardTypeTag().c_str(), x + pad, cy, FONT_CARD_STAT,
+                     top->isMonster() ? COLOR_MONSTER_STAT
+                     : top->isSpell() ? COLOR_SPELL_STAT
+                                      : COLOR_TRAP_STAT);
+            cy += FONT_CARD_STAT + 3;
+            if (top->isMonster()) {
+                DrawText(top->statLine().c_str(), x + pad, cy, FONT_CARD_STAT, COLOR_STAT_TEXT);
+                cy += FONT_CARD_STAT + 4;
+            }
+
+            const std::string& desc = top->description;
+            int lineFs = FONT_HELP_TEXT;
+            int lineH2 = lineFs + 3;
+            int maxPx  = w - pad * 2;
+
+            std::vector<std::string> lines;
+            size_t pos = 0;
+            while (pos < desc.size()) {
+                size_t end = pos;
+                std::string line;
+                while (end < desc.size()) {
+                    size_t nxt = desc.find(' ', end + 1);
+                    if (nxt == std::string::npos) nxt = desc.size();
+                    std::string trial = desc.substr(pos, nxt - pos);
+                    if (MeasureText(trial.c_str(), lineFs) > maxPx) break;
+                    line = trial;
+                    end  = nxt;
+                }
+                if (end == pos) { end = pos + 1; line = desc.substr(pos, 1); }
+                lines.push_back(line);
+                pos = (end < desc.size() && desc[end] == ' ') ? end + 1 : end;
+            }
+
+            int maxScroll = std::max(0, (int)lines.size() - 1);
+            int scroll    = std::min(previewScrollLines_, maxScroll);
+
+            for (int i = scroll; i < (int)lines.size(); ++i) {
+                if (cy + lineH2 > y + h - pad) break;
+                DrawText(lines[i].c_str(), x + pad, cy, lineFs, COLOR_DESC_TEXT);
+                cy += lineH2;
+            }
+
+            if ((int)lines.size() > 1) {
+                int barX   = x + w - pad / 2 - 2;
+                int barTop = y + cardH + pad * 3;
+                int barH   = y + h - pad - barTop;
+                DrawRectangle(barX, barTop, 2, barH, COLOR_SCROLLBAR_BG);
+                int thumbH = std::max(barH / (int)lines.size(), int(0.01f * h));
+                int thumbY = barTop + (barH - thumbH) * scroll / std::max(maxScroll, 1);
+                DrawRectangle(barX, thumbY, 2, thumbH, COLOR_SCROLLBAR_THUMB);
+            }
+        }
+    }
 };
 
 } // namespace openjoey::ui
