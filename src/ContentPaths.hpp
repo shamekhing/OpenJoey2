@@ -20,10 +20,20 @@ struct ContentPaths {
     return "https://images.ygoprodeck.com/images/cards_small/";
   }
   static std::filesystem::path cardBackImg() {
-    return std::filesystem::current_path() / "data" / "card_back.png";
+    return std::filesystem::current_path() / "data" / "assets" /
+           "card_back.jpg";
+  }
+  static std::filesystem::path mainMenuBgImg() {
+    return std::filesystem::current_path() / "data" / "assets" /
+           "main_menu_background.png";
+  }
+  static std::filesystem::path deckEditorBgImg() {
+    return std::filesystem::current_path() / "data" / "assets" /
+           "deck_editor_background.png";
   }
   static std::filesystem::path duelFieldBgImg() {
-    return std::filesystem::current_path() / "data" / "assets" / "duel_field_background.png";
+    return std::filesystem::current_path() / "data" / "assets" /
+           "duel_field_background.png";
   }
 };
 } // namespace openjoey
