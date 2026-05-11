@@ -16,6 +16,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <raylib.h>
 #include <string>
 #include <vector>
@@ -50,8 +51,8 @@ public:
     const Theme t = Theme::FromScreen();
     ClearBackground(t.colors.bgDark);
 
-    int leftW = t.sw * t.duelLeftWPct / 100;
-    int centerW = t.sw - leftW;
+    int centerW = std::min(t.sw, t.sh); // t.sw - leftW;
+    int leftW = t.sw - centerW;         //* t.duelLeftWPct / 100;
     int headerH = t.headerHeight;
     int footerH = t.duelFooterH;
     int fieldH = t.sh - headerH - footerH;
@@ -66,30 +67,16 @@ public:
 
     {
       IZone *z = fieldGrid_.cursorZone(const_cast<Field &>(field_));
-      Card *top = nullptr;
-      bool fd = false;
-      if (z && !z->isEmpty()) {
-        if (z->isVisible() || (z->isLimited() && z->isOwner(0))) {
-        }
-        if (auto *zm = dynamic_cast<Zone_Monster *>(z)) {
-          top = zm->peek();
-          fd = zm->visibility() == Visibility::Restricted;
-        } else if (auto *zs = dynamic_cast<ZoneStack *>(z)) {
-          top = zs->peek(-1);
-        } else if (auto *zn = dynamic_cast<Zone *>(z)) {
-          top = zn->peek();
-        }
-      }
-      preview_.SetCard(top, fd);
+      preview_.SetCard(z->peek(), !z->canView(1));
       preview_.Draw({0.f, (float)headerH, (float)leftW, (float)fieldH},
                     ctx_.imageCache);
     }
 
     if (duelBg_.id)
-      DrawTexturePro(duelBg_,
-                     {0, 0, (float)duelBg_.width, (float)duelBg_.height},
-                     {(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
-                     {0, 0}, 0.f, Fade(WHITE, t.duelFieldBgAlpha));
+      DrawTexturePro(
+          duelBg_, {0, 0, (float)duelBg_.width, (float)duelBg_.height},
+          {(float)leftW, (float)headerH, (float)centerW, (float)fieldH}, {0, 0},
+          0.f, Fade(WHITE, t.duelFieldBgAlpha));
 
     const Texture2D *cb = cardBack_.id ? &cardBack_ : nullptr;
     fieldGrid_.draw(
@@ -101,31 +88,38 @@ public:
         "Arrows:move  Enter:select/move  H:actions  B:banished  Esc:back", t);
 
     if (showBanZone_) {
-      Rectangle r = Popup::Begin(t.banPopupW, t.banPopupH,
-                                 "Banished Zone   [B] close",
-                                 t.colors.banZoneAccent, t);
+      Rectangle r =
+          Popup::Begin(t.banPopupW, t.banPopupH, "Banished Zone   [B] close",
+                       t.colors.banZoneAccent, t);
       int pad = t.previewPadX, bodyFs = t.fontCardStat, lineH = bodyFs + 6;
       int cx = (int)r.x, cy = (int)r.y, colW = t.banPopupW / 2;
-      DrawLine(cx + pad / 2, cy, cx + t.banPopupW - pad / 2, cy, t.colors.dividerLine);
+      DrawLine(cx + pad / 2, cy, cx + t.banPopupW - pad / 2, cy,
+               t.colors.dividerLine);
       cy += pad / 2;
-      auto drawBanColumn = [&](IZone* zone, int ox) {
-        if (!zone) return;
-        DrawText(TextFormat("%s Banished: %d card(s)", ox == cx ? "P2" : "P1", zone->count()),
+      auto drawBanColumn = [&](IZone *zone, int ox) {
+        if (!zone)
+          return;
+        DrawText(TextFormat("%s Banished: %d card(s)", ox == cx ? "P2" : "P1",
+                            zone->count()),
                  ox + pad, cy, bodyFs, t.colors.statText);
         int iy = cy + lineH, shown = 0;
-        if (auto* zs = dynamic_cast<ZoneStack*>(zone)) {
+        if (auto *zs = dynamic_cast<ZoneStack *>(zone)) {
           for (int i = zs->count() - 1; i >= 0 && shown < 8; --i, ++shown) {
-            Card* c = zs->peek(i);
-            if (!c) continue;
+            Card *c = zs->peek(i);
+            if (!c)
+              continue;
             Color col = c->isMonster() ? t.colors.monsterStat
-                        : c->isSpell() ? t.colors.spellStat : t.colors.trapStat;
+                        : c->isSpell() ? t.colors.spellStat
+                                       : t.colors.trapStat;
             DrawText(c->name.c_str(), ox + pad, iy, bodyFs, col);
             iy += lineH;
           }
         } else if (!zone->isEmpty()) {
-          if (auto* zn = dynamic_cast<Zone*>(zone)) {
-            Card* c = zn->peek();
-            if (c) DrawText(c->name.c_str(), ox + pad, iy, bodyFs, t.colors.descText);
+          if (auto *zn = dynamic_cast<Zone *>(zone)) {
+            Card *c = zn->peek();
+            if (c)
+              DrawText(c->name.c_str(), ox + pad, iy, bodyFs,
+                       t.colors.descText);
           }
         }
       };
@@ -135,18 +129,18 @@ public:
     }
 
     if (showHelp_) {
-      Rectangle r = Popup::Begin(t.helpPopupW, t.helpPopupH,
-                                 "Actions / Help  [H] close",
-                                 t.colors.popupBorder, t);
+      Rectangle r =
+          Popup::Begin(t.helpPopupW, t.helpPopupH, "Actions / Help  [H] close",
+                       t.colors.popupBorder, t);
       if (!numBuf_.empty()) {
         std::string nb = "  #" + numBuf_ + "_";
         int tw = MeasureText(nb.c_str(), t.fontPanelTitle);
-        DrawText(nb.c_str(),
-                 t.helpPopupX + t.helpPopupW - tw - t.previewPadX,
-                 t.helpPopupY + t.previewPadX, t.fontPanelTitle, t.colors.popupBorder);
+        DrawText(nb.c_str(), t.helpPopupX + t.helpPopupW - tw - t.previewPadX,
+                 t.helpPopupY + t.previewPadX, t.fontPanelTitle,
+                 t.colors.popupBorder);
       }
-      ZoneInfoPanel::Draw(r, fieldGrid_.cursorZone(const_cast<Field&>(field_)),
-                          fieldGrid_.cursorLabel(const_cast<Field&>(field_)),
+      ZoneInfoPanel::Draw(r, fieldGrid_.cursorZone(const_cast<Field &>(field_)),
+                          fieldGrid_.cursorLabel(const_cast<Field &>(field_)),
                           actionLabels_, actionCursor_, lastResult_,
                           fieldGrid_.selectedZone() != nullptr);
       Popup::End();
@@ -271,6 +265,17 @@ private:
       } else {
         lastResult_ = "No action at that index.";
       }
+    }
+    if (IsKeyPressed(KEY_UP)) {
+      if (!actions_.empty())
+        actionCursor_ =
+            (actionCursor_ - 1 + (int)actions_.size()) % (int)actions_.size();
+      return ScreenEvent::none();
+    }
+    if (IsKeyPressed(KEY_DOWN)) {
+      if (!actions_.empty())
+        actionCursor_ = (actionCursor_ + 1) % (int)actions_.size();
+      return ScreenEvent::none();
     }
     return ScreenEvent::none();
   }
@@ -528,7 +533,6 @@ private:
     }
     return false;
   }
-
 };
 
 } // namespace openjoey::ui
