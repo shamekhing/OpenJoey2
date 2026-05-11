@@ -23,6 +23,8 @@ namespace openjoey::zone {
 
 class Field {
 public:
+  Field() { clearField(); }
+
   static constexpr int PLAYERS = 2;
   static constexpr int MONSTER_ZONES = 5;
   static constexpr int ST_ZONES = 5;
@@ -66,12 +68,14 @@ inline void Field::clearField() {
     banishedZones[p].reset();
     sideDeckZones[p].reset();
     extraDeckZones[p].reset();
+    deckZones[p].reset();
     fieldZones[p].setOwner(p);
     handZones[p].setOwner(p);
     graveyardZones[p].setOwner(p);
     banishedZones[p].setOwner(p);
     sideDeckZones[p].setOwner(p);
     extraDeckZones[p].setOwner(p);
+    deckZones[p].setOwner(p);
     for (int z = 0; z < MONSTER_ZONES; ++z) {
       monsterZones[p][z].reset();
       spellTrapZones[p][z].reset();

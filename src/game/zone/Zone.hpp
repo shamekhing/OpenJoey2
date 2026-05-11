@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <functional>
 #include <random>
-#include <type_traits>
 #include <vector>
 
 #define vcit std::vector<Card *>::iterator
@@ -50,9 +49,9 @@ public:
   virtual bool put(Card *c) = 0;
   virtual bool contains(const Card *c) const = 0;
   virtual void reset() {}
-
   // nullptr → remove top/only occupant.
   virtual Card *remove(Card *c = nullptr) = 0;
+  virtual Card *peek(int = -1) const { return nullptr; }
 
   // Move the top/only card to dest. Rolls back if dest.put fails.
   bool moveTo(IZone &dest) {
@@ -60,24 +59,22 @@ public:
     return !c ? false : (!dest.put(c) ? (put(c), false) : true);
   }
 
-  bool isOwner(int player) const { return owner_ == player; }
   bool isVertical() const { return ori_ == Orientation::Vertical; }
   bool isHorizontal() const { return ori_ == Orientation::Horizontal; }
   bool isVisible() const { return vis_ == Visibility::Visible; }
   bool isLimited() const { return vis_ == Visibility::Limited; }
   bool isRestricted() const { return vis_ == Visibility::Restricted; }
+  bool isOwner(int player) const { return owner_ == player; }
+  bool canView(int player) const {
+    return isVisible() || (!isRestricted() && isOwner(player));
+  }
 
-  void setVertical() { ori_ = Orientation::Vertical; }
-  void setHorizontal() { ori_ = Orientation::Horizontal; }
-  void setVisible() { vis_ = Visibility::Visible; }
-  void setLimited() { vis_ = Visibility::Limited; }
-  void setRestricted() { vis_ = Visibility::Restricted; }
   void setOwner(int player) { owner_ = player; }
-
-  void getOwner(int &player) const { player = owner_; }
+  int getOwner() const { return owner_; }
 
 protected:
-  int owner_ = 0; // true = player 1, false = player 2
+  bool isStack_ = false; // for type checking in FieldGrid
+  int owner_ = -1;       // 0 or 1 for player, or -1 for shared zones like EMZ
   Orientation ori_ = Orientation::Vertical;
   Visibility vis_ = Visibility::Visible;
 };
@@ -87,14 +84,14 @@ protected:
 // single-card slot: monster zone, spell/trap zone, field zone, EMZ.
 class Zone : public IZone {
 public:
-  Zone() : card_(nullptr) {};
+  Zone() : card_(nullptr) { isStack_ = false; };
   bool isEmpty() const override { return card_ == nullptr; }
   bool contains(const Card *c) const override { return card_ && card_ == c; }
 
   int count() const override { return card_ ? 1 : 0; }
 
   void reset() override { card_ = nullptr; }
-  Card *peek() const { return card_; }
+  Card *peek(int = -1) const override { return card_; }
 
   bool put(Card *c) override {
     return (card_ || !c) ? false : (card_ = c, true);
@@ -115,7 +112,10 @@ protected:
 // Top = back of vector, bottom = front.
 class ZoneStack : public IZone {
 public:
-  ZoneStack() { cards_ = {}; };
+  ZoneStack() {
+    cards_ = {};
+    isStack_ = true;
+  };
   bool isEmpty() const override { return cards_.empty(); }
   void reset() override { clear(); }
 
@@ -230,12 +230,14 @@ public:
 // Hand Zone — cards held by the player; hidden from the opponent.
 class ZoneStack_Hand : public ZoneStack {
 public:
+  ZoneStack_Hand() { vis_ = Visibility::Limited; }
   ZoneType type() const override { return ZoneType::Hand; }
 };
 
 // Deck Zone — player's main deck. Top = back.
 class ZoneStack_Deck : public ZoneStack {
 public:
+  ZoneStack_Deck() { vis_ = Visibility::Restricted; }
   ZoneType type() const override { return ZoneType::Deck; }
 
   // Draw one card from the top.
@@ -277,6 +279,7 @@ private:
 // Side Deck — used between duels to swap cards in/out of the main/extra deck.
 class ZoneStack_SideDeck : public ZoneStack {
 public:
+  ZoneStack_SideDeck() { vis_ = Visibility::Limited; }
   ZoneType type() const override { return ZoneType::SideDeck; }
 };
 
