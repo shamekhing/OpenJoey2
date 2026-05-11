@@ -1,5 +1,5 @@
 #pragma once
-#include "ui/AppScreen.hpp"
+#include "ui/core/AppScreen.hpp"
 
 namespace openjoey::ui {
 

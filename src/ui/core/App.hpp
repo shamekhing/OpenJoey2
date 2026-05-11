@@ -1,7 +1,7 @@
 #pragma once
 #include "ContentPaths.hpp"
 #include "card/CardDatabase.hpp"
-#include "ui/AppScreen.hpp"
+#include "ui/core/AppScreen.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/core/Event.hpp"
 #include "ui/core/ScreenManager.hpp"

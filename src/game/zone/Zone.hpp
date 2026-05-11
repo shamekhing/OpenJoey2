@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 #define vcit std::vector<Card *>::iterator
@@ -59,13 +60,24 @@ public:
     return !c ? false : (!dest.put(c) ? (put(c), false) : true);
   }
 
+  bool isOwner(int player) const { return owner_ == player; }
   bool isVertical() const { return ori_ == Orientation::Vertical; }
   bool isHorizontal() const { return ori_ == Orientation::Horizontal; }
   bool isVisible() const { return vis_ == Visibility::Visible; }
   bool isLimited() const { return vis_ == Visibility::Limited; }
   bool isRestricted() const { return vis_ == Visibility::Restricted; }
 
+  void setVertical() { ori_ = Orientation::Vertical; }
+  void setHorizontal() { ori_ = Orientation::Horizontal; }
+  void setVisible() { vis_ = Visibility::Visible; }
+  void setLimited() { vis_ = Visibility::Limited; }
+  void setRestricted() { vis_ = Visibility::Restricted; }
+  void setOwner(int player) { owner_ = player; }
+
+  void getOwner(int &player) const { player = owner_; }
+
 protected:
+  int owner_ = 0; // true = player 1, false = player 2
   Orientation ori_ = Orientation::Vertical;
   Visibility vis_ = Visibility::Visible;
 };

@@ -1,7 +1,7 @@
 #pragma once
-#include "ui/AppScreen.hpp"
-#include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
+#include "ui/core/AppScreen.hpp"
+#include "ui/core/Theme.hpp"
 #include "ui/screens/IScreen.hpp"
 #include "ui/widgets/input/KeyboardNav.hpp"
 #include <cassert>
@@ -15,50 +15,46 @@ public:
     explicit MainMenuScreen(AppContext& /*ctx*/) { loadBackground(); }
 
     ~MainMenuScreen() override {
-        if (background_.id)
-            UnloadTexture(background_);
+        if (background_.id) UnloadTexture(background_);
     }
 
     ScreenEvent Update(float /*dt*/) override {
         nav_.setCount(kItemCount);
         nav_.handleWrapKeys();
-
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            if (nav_.cursor == kItemCount - 1)
-                return ScreenEvent::quit();
+            if (nav_.cursor == kItemCount - 1) return ScreenEvent::quit();
             return ScreenEvent::replace(kScreenMap[nav_.cursor]);
         }
         return ScreenEvent::none();
     }
 
     void Draw() const override {
-        const int sw = GetScreenWidth();
-        const int sh = GetScreenHeight();
+        const Theme t = Theme::FromScreen();
 
-        ClearBackground(COLOR_BG_DARK);
+        ClearBackground(t.colors.bgDark);
         if (background_.id) {
-            const float scaleX = (float)sw / background_.width;
-            const float scaleY = (float)sh / background_.height;
+            const float scaleX = (float)t.sw / background_.width;
+            const float scaleY = (float)t.sh / background_.height;
             DrawTextureEx(background_, {0.f, 0.f}, 0.f, fmaxf(scaleX, scaleY), WHITE);
         }
-        DrawRectangle(0, 0, sw, sh, Fade(BLACK, OVERLAY_FADE));
+        DrawRectangle(0, 0, t.sw, t.sh, Fade(BLACK, 0.35f));
 
         const char* title  = "OpenJoey";
-        const int   titleW = MeasureText(title, FONT_MAIN_TITLE);
-        DrawText(title, (sw - titleW) / 2, sh / 4, FONT_MAIN_TITLE, GOLD);
+        const int   titleW = MeasureText(title, t.fontMainTitle);
+        DrawText(title, (t.sw - titleW) / 2, t.sh / 4, t.fontMainTitle, GOLD);
 
-        const int startY = sh / 2;
+        const int startY = t.sh / 2;
         for (int i = 0; i < kItemCount; ++i) {
             Color col = (i == nav_.cursor) ? YELLOW : LIGHTGRAY;
-            int tw = MeasureText(kItems[i], FONT_MENU_ITEM);
+            int tw = MeasureText(kItems[i], t.fontMenuItem);
             if (i == nav_.cursor)
-                DrawText(">", (sw - tw) / 2 - MENU_ARROW_OFFSET,
-                         startY + i * MENU_ITEM_SPACING, FONT_MENU_ITEM, YELLOW);
-            DrawText(kItems[i], (sw - tw) / 2,
-                     startY + i * MENU_ITEM_SPACING, FONT_MENU_ITEM, col);
+                DrawText(">", (t.sw - tw) / 2 - t.menuArrowOffset,
+                         startY + i * t.menuItemSpacing, t.fontMenuItem, YELLOW);
+            DrawText(kItems[i], (t.sw - tw) / 2,
+                     startY + i * t.menuItemSpacing, t.fontMenuItem, col);
         }
-        DrawText("UP/DOWN to navigate, ENTER to select", HEADER_TITLE_X,
-                 sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, DARKGRAY);
+        DrawText("UP/DOWN to navigate, ENTER to select", t.headerTitleX,
+                 t.sh - t.menuHelpBottomOffset, t.fontHelpSmall, DARKGRAY);
     }
 
 private:
@@ -70,7 +66,7 @@ private:
         AppScreen::Duel, AppScreen::DeckEditor,
         AppScreen::Settings, AppScreen::Testing, AppScreen::MainMenu,
     };
-    static_assert(sizeof(kItems) / sizeof(kItems[0]) ==
+    static_assert(sizeof(kItems)     / sizeof(kItems[0]) ==
                   sizeof(kScreenMap) / sizeof(kScreenMap[0]),
                   "kItems and kScreenMap must have the same length");
 

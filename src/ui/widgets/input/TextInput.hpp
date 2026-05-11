@@ -1,5 +1,4 @@
 #pragma once
-#include "ui/StyleSheet.hpp"
 #include <raylib.h>
 #include <string>
 
@@ -44,13 +43,21 @@ inline void TextInput::Update() {
 }
 
 inline void TextInput::Draw(int x, int y, int w, int h) const {
-    DrawRectangleLines(x + TEXT_PAD(h), y, w - TEXT_PAD(h) * 2, h, COLOR_FOCUS(typing_));
+    int charW = MeasureText("W", int(0.8f * h));
+    int pad   = charW;
+    Color border = typing_ ? YELLOW : GRAY;
+    DrawRectangleLines(x + pad, y, w - pad * 2, h, border);
+
     std::string display = text_ + (typing_ ? "_" : "");
-    int clipW = CLIP_WIDTH(display.c_str(), w, h);
-    if (clipW > 0)
-        display = text_.substr(0, text_.size() > (size_t)clipW ? text_.size() - clipW : 0) + "...";
-    DrawText(display.c_str(), x + TEXT_PAD(h) * 2, y + 2,
-             TEXT_FONT_SIZE, typing_ ? YELLOW : GRAY);
+    int textW = MeasureText(display.c_str(), int(0.8f * h));
+    int avail = w - pad * 4;
+    if (textW > avail) {
+        int overflow = (textW - avail) / std::max(1, charW);
+        size_t trim = (size_t)overflow < text_.size() ? text_.size() - overflow : 0;
+        display = text_.substr(0, trim) + "...";
+    }
+    int fs = int(0.04f * GetScreenHeight());
+    DrawText(display.c_str(), x + pad * 2, y + 2, fs, typing_ ? YELLOW : GRAY);
 }
 
 } // namespace openjoey::ui

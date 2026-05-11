@@ -1,16 +1,17 @@
 #pragma once
 #include "card/Card.hpp"
 #include "card/CardDatabase.hpp"
-#include "ui/AppScreen.hpp"
-#include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
+#include "ui/core/AppScreen.hpp"
+#include "ui/core/Theme.hpp"
 #include "ui/screens/IScreen.hpp"
-#include "ui/screens/widgets/DeckStats.hpp"
-#include "ui/screens/widgets/Grid.hpp"
-#include "ui/screens/widgets/Header.hpp"
-#include "ui/screens/widgets/List.hpp"
-#include "ui/screens/widgets/ListItem.hpp"
-#include "ui/screens/widgets/TextInput.hpp"
+#include "ui/widgets/display/CardGrid.hpp"
+#include "ui/widgets/display/CardList.hpp"
+#include "ui/widgets/display/DeckStats.hpp"
+#include "ui/widgets/input/TextInput.hpp"
+#include "ui/widgets/display/CardPreview.hpp"
+#include "ui/widgets/layout/Panel.hpp"
+#include "ui/widgets/layout/ScreenChrome.hpp"
 #include "ui/widgets/input/KeyboardNav.hpp"
 #include <algorithm>
 #include <filesystem>
@@ -59,16 +60,16 @@ private:
     DeckTypeFilter typeFilter_ = DeckTypeFilter::All;
 
     std::string statusMsg_;
+    mutable CardPreview preview_;
 
     void rebuildPool();
     std::vector<const openjoey::Card*> filteredPool() const;
     int  countInDeck(uint32_t id) const;
 
-    void drawPoolPanel(const std::vector<const openjoey::Card*>& fp,
-                       int x, int y, int w, int h) const;
-    void drawPreviewPanel(const std::vector<const openjoey::Card*>& fp,
-                          int x, int y, int w, int h) const;
-    void drawDeckPanel(int x, int y, int w, int h) const;
+    void handlePoolInput(const std::vector<const openjoey::Card*>& fp);
+    void handleDeckInput();
+    ScreenEvent handleGlobalInput(const std::vector<const openjoey::Card*>& fp);
+
 
     static const char* sortModeLabel(DeckSortMode m);
     static const char* typeFilterLabel(DeckTypeFilter f);
@@ -119,13 +120,67 @@ inline const char* DeckEditorScreen::typeFilterLabel(DeckTypeFilter f) {
 
 inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
     ctx_.imageCache.PollAndLoad();
-
     if (IsKeyPressed(KEY_ESCAPE) && !searchInput_.isTyping())
         return ScreenEvent::replace(AppScreen::MainMenu);
-
     searchInput_.Update();
     if (searchInput_.isChanged()) poolNav_.cursor = 0;
+    auto fp = filteredPool();
+    if (focusPool_) handlePoolInput(fp);
+    else            handleDeckInput();
+    return handleGlobalInput(fp);
+}
 
+inline void DeckEditorScreen::handlePoolInput(
+    const std::vector<const openjoey::Card*>& fp) {
+    poolNav_.setCount((int)fp.size());
+    poolNav_.handleClampKeys();
+
+    if (IsKeyPressed(KEY_ENTER) && !fp.empty()) {
+        const auto& card = *fp[poolNav_.cursor];
+        if ((int)deck_.size() < kMaxDeckSize &&
+            countInDeck(card.cardNumber) < kMaxCopies) {
+            deck_.push_back(card);
+            statusMsg_ = "Added: " + card.name;
+        } else if (countInDeck(card.cardNumber) >= kMaxCopies) {
+            statusMsg_ = "Max 3 copies of " + card.name;
+        } else {
+            statusMsg_ = "Deck full (60 cards max)";
+        }
+    }
+    if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_RIGHT))
+        focusPool_ = false;
+}
+
+inline void DeckEditorScreen::handleDeckInput() {
+    const int deckSz = (int)deck_.size();
+    const int step   = deckGridView_ ? CardGrid::ColCount() : 1;
+    deckNav_.setCount(deckSz);
+
+    if (IsKeyPressed(KEY_DOWN))      deckNav_.clampNext(step);
+    if (IsKeyPressed(KEY_UP))        deckNav_.clampPrev(step);
+    if (IsKeyPressed(KEY_PAGE_DOWN)) deckNav_.clampNext(step * 3);
+    if (IsKeyPressed(KEY_PAGE_UP))   deckNav_.clampPrev(step * 3);
+    if (deckGridView_) {
+        if (IsKeyPressed(KEY_RIGHT)) deckNav_.clampNext();
+        if (IsKeyPressed(KEY_LEFT))  deckNav_.clampPrev();
+    }
+
+    if ((IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE) ||
+         IsKeyPressed(KEY_D)) && deckSz > 0) {
+        statusMsg_ = "Removed: " + deck_[deckNav_.cursor].name;
+        deck_.erase(deck_.begin() + deckNav_.cursor);
+        deckNav_.setCount((int)deck_.size());
+    }
+    if (IsKeyPressed(KEY_G)) {
+        deckGridView_ = !deckGridView_;
+        statusMsg_ = deckGridView_ ? "Deck: grid view" : "Deck: list view";
+    }
+    if (IsKeyPressed(KEY_TAB) || (!deckGridView_ && IsKeyPressed(KEY_LEFT)))
+        focusPool_ = true;
+}
+
+inline ScreenEvent DeckEditorScreen::handleGlobalInput(
+    const std::vector<const openjoey::Card*>& /*fp*/) {
     if (IsKeyPressed(KEY_O)) {
         sortMode_ = static_cast<DeckSortMode>(
             (static_cast<int>(sortMode_) + 1) % static_cast<int>(DeckSortMode::COUNT));
@@ -139,58 +194,6 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
         poolNav_.cursor = 0;
         statusMsg_ = std::string("Filter: ") + typeFilterLabel(typeFilter_);
     }
-
-    auto fp    = filteredPool();
-    int poolSz = (int)fp.size();
-    int deckSz = (int)deck_.size();
-
-    if (focusPool_) {
-        poolNav_.setCount(poolSz);
-        poolNav_.handleClampKeys();
-
-        if (IsKeyPressed(KEY_ENTER) && poolSz > 0) {
-            const auto& card = *fp[poolNav_.cursor];
-            if ((int)deck_.size() < kMaxDeckSize &&
-                countInDeck(card.cardNumber) < kMaxCopies) {
-                deck_.push_back(card);
-                statusMsg_ = "Added: " + card.name;
-            } else if (countInDeck(card.cardNumber) >= kMaxCopies) {
-                statusMsg_ = "Max 3 copies of " + card.name;
-            } else {
-                statusMsg_ = "Deck full (60 cards max)";
-            }
-        }
-        if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_RIGHT))
-            focusPool_ = false;
-
-    } else {
-        const int step = deckGridView_ ? Grid::ColCount() : 1;
-        deckNav_.setCount(deckSz);
-
-        if (IsKeyPressed(KEY_DOWN))      deckNav_.clampNext(step);
-        if (IsKeyPressed(KEY_UP))        deckNav_.clampPrev(step);
-        if (IsKeyPressed(KEY_PAGE_DOWN)) deckNav_.clampNext(step * 3);
-        if (IsKeyPressed(KEY_PAGE_UP))   deckNav_.clampPrev(step * 3);
-
-        if (deckGridView_) {
-            if (IsKeyPressed(KEY_RIGHT)) deckNav_.clampNext();
-            if (IsKeyPressed(KEY_LEFT))  deckNav_.clampPrev();
-        }
-
-        if ((IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE) ||
-             IsKeyPressed(KEY_D)) && deckSz > 0) {
-            statusMsg_ = "Removed: " + deck_[deckNav_.cursor].name;
-            deck_.erase(deck_.begin() + deckNav_.cursor);
-            deckNav_.setCount((int)deck_.size());
-        }
-        if (IsKeyPressed(KEY_G)) {
-            deckGridView_ = !deckGridView_;
-            statusMsg_ = deckGridView_ ? "Deck: grid view" : "Deck: list view";
-        }
-        if (IsKeyPressed(KEY_TAB) || (!deckGridView_ && IsKeyPressed(KEY_LEFT)))
-            focusPool_ = true;
-    }
-
     if (IsKeyPressed(KEY_S)) {
         SaveDeck("default");
         statusMsg_ = "Saved as 'default'";
@@ -214,7 +217,6 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
     }
     if (IsKeyPressed(KEY_ESCAPE))
         statusMsg_.clear();
-
     return ScreenEvent::none();
 }
 
@@ -247,150 +249,84 @@ inline int DeckEditorScreen::countInDeck(uint32_t id) const {
     return n;
 }
 
-// ── Draw helpers
-
-inline void DeckEditorScreen::drawPoolPanel(
-    const std::vector<const openjoey::Card*>& fp, int x, int y, int w, int h) const {
-    std::string badge = std::string(sortModeLabel(sortMode_)) + "  [" +
-                        typeFilterLabel(typeFilter_) + "]  " +
-                        std::to_string(fp.size()) + " cards";
-    Header::Draw("Card Pool", badge, x, y, w, h, focusPool_);
-
-    int searchY = y + SEARCH_BAR_Y_OFFSET;
-    searchInput_.Draw(x + THUMBNAIL_PAD, searchY,
-                      w - THUMBNAIL_PAD * 2, SEARCH_BAR_HEIGHT(h));
-
-    int listY = searchY + LIST_Y_OFFSET;
-    List::Draw(fp, ctx_.imageCache, x, listY, w, y + h - listY,
-               poolNav_.cursor, focusPool_, kMaxCopies,
-               [this](uint32_t id) { return countInDeck(id); });
-}
-
-inline void DeckEditorScreen::drawPreviewPanel(
-    const std::vector<const openjoey::Card*>& fp, int x, int y, int w, int h) const {
-    using namespace openjoey::ui;
-    DrawRectangleLines(x, y, w, h, DARKGRAY);
-    DrawText("Preview", x + PREVIEW_PAD_X, y + CARD_TYPE_Y, FONT_CARD_NAME, DARKGRAY);
-
-    const openjoey::Card* card = nullptr;
-    if (focusPool_ && !fp.empty() && poolNav_.cursor < (int)fp.size())
-        card = fp[poolNav_.cursor];
-    else if (!focusPool_ && !deck_.empty() && deckNav_.cursor < (int)deck_.size())
-        card = &deck_[deckNav_.cursor];
-    if (!card) return;
-
-    Color col  = ListItem::cardTypeColor(*card);
-    int artX   = x + PREVIEW_PAD_X;
-    int artY   = y + PREVIEW_ART_Y_OFFSET;
-    int artW   = w - PREVIEW_ART_SIDE_PAD;
-    int artH   = (int)((float)artW * PREVIEW_ASPECT_RATIO);
-    if (artY + artH > y + h - MAIN_PAD_BOTTOM / 2)
-        artH = y + h - MAIN_PAD_BOTTOM / 2 - artY;
-
-    const Texture2D* tex = ctx_.imageCache.Get(*card);
-    Rectangle dst = {(float)artX, (float)artY, (float)artW, (float)artH};
-    if (tex && tex->id != 0) {
-        DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                       dst, {0, 0}, 0, WHITE);
-    } else {
-        DrawRectangle(artX, artY, artW, artH,
-                      Color{col.r, col.g, col.b, CARD_PREVIEW_ALPHA});
-        int nameW = MeasureText(card->name.c_str(), FONT_CARD_NAME);
-        DrawText(card->name.c_str(), artX + (artW - nameW) / 2,
-                 artY + artH / 2 - FONT_CARD_NAME / 2, FONT_CARD_NAME, WHITE);
-    }
-    DrawRectangleLines(artX, artY, artW, artH, col);
-    DrawText(card->cardTypeTag().c_str(), artX + THUMBNAIL_PAD,
-             artY + THUMBNAIL_PAD, FONT_CARD_STAT, col);
-
-    int infoY = artY + artH + PREVIEW_INFO_GAP;
-    DrawText(card->statLine().c_str(), x + PREVIEW_PAD_X, infoY, FONT_CARD_TYPE, LIGHTGRAY);
-    infoY += FONT_CARD_TYPE + PREVIEW_INFO_GAP;
-
-    int copies = countInDeck(card->cardNumber);
-    Color cpCol = (copies >= kMaxCopies) ? RED : (copies > 0 ? GREEN : GRAY);
-    DrawText(TextFormat("In deck: %d / %d", copies, kMaxCopies),
-             x + PREVIEW_PAD_X, infoY, FONT_CARD_STAT, cpCol);
-    infoY += FONT_CARD_STAT + PREVIEW_INFO_GAP;
-
-    const std::string& desc = card->description;
-    int charsPerLine = (w - PREVIEW_DESC_SIDE_PAD) / std::max(1, PREVIEW_DESC_CHAR_W);
-    int cur = 0;
-    int lineH = FONT_CARD_STAT + 3;
-    while (cur < (int)desc.size() && infoY < y + h - THUMBNAIL_PAD) {
-        int end = std::min(cur + charsPerLine, (int)desc.size());
-        if (end < (int)desc.size()) {
-            int wb = (int)desc.rfind(' ', end);
-            if (wb > cur) end = wb;
-        }
-        DrawText(desc.substr(cur, end - cur).c_str(),
-                 x + PREVIEW_PAD_X, infoY, FONT_CARD_STAT, COLOR_DESC_TEXT);
-        infoY += lineH;
-        cur = end;
-        if (cur < (int)desc.size() && desc[cur] == ' ') ++cur;
-    }
-}
-
-inline void DeckEditorScreen::drawDeckPanel(int x, int y, int w, int h) const {
-    Color border = !focusPool_ ? YELLOW : DARKGRAY;
-    DrawRectangleLines(x, y, w, h, border);
-    std::string title = deckGridView_ ? "Deck [Grid]" : "Deck [List]";
-    DrawText(title.c_str(), x + PREVIEW_PAD_X, y + CARD_TYPE_Y, FONT_PANEL_TITLE, border);
-
-    DeckStats::Draw(deck_, kMinDeckSize,
-                    x + PREVIEW_PAD_X, y + SEARCH_BAR_Y_OFFSET,
-                    w - PREVIEW_ART_SIDE_PAD);
-
-    std::vector<const openjoey::Card*> deckPtrs;
-    deckPtrs.reserve(deck_.size());
-    for (const auto& c : deck_) deckPtrs.push_back(&c);
-
-    int listY = y + DECK_LIST_Y_OFFSET;
-    int listH = y + h - listY;
-
-    if (deckGridView_) {
-        Grid::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
-                   deckNav_.cursor, !focusPool_);
-    } else {
-        List::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
-                   deckNav_.cursor, !focusPool_, kMaxCopies,
-                   [this](uint32_t id) { return countInDeck(id); });
-    }
-}
-
 // ── Draw
 
 inline void DeckEditorScreen::Draw() const {
-    ClearBackground(COLOR_BG_MAIN);
-    const int sw = GetScreenWidth();
-    const int sh = GetScreenHeight();
+    const Theme t = Theme::FromScreen();
+    ClearBackground(t.colors.bgMain);
 
-    DrawRectangle(0, 0, sw, HEADER_HEIGHT, COLOR_HEADER_BG);
-    DrawText("DECK EDITOR", HEADER_TITLE_X, HEADER_TITLE_Y, FONT_SCREEN_TITLE, WHITE);
-    DrawText("[ESC] clear status", sw - HELP_TEXT_X_OFFSET, HELP_TEXT_Y, FONT_CARD_TYPE, GRAY);
+    ScreenChrome::DrawHeader(0, 0, t.sw, t.headerHeight,
+                             "DECK EDITOR", "[ESC] clear status", WHITE, t);
 
-    const int padY   = MAIN_PAD_Y;
-    const int padX   = MAIN_PAD_X;
-    const int padBot = MAIN_PAD_BOTTOM;
-    const int panH   = sh - padY - padBot;
-    const int poolW  = sw * POOL_WIDTH_PERCENT / 100;
-    const int prevW  = sw * PREVIEW_WIDTH_PERCENT / 100;
-    const int deckW  = sw - poolW - prevW - padX * 2;
+    const int panH  = t.sh - t.mainPadY - t.mainPadBottom;
+    const int poolW = t.sw * t.poolWidthPct / 100;
+    const int prevW = t.sw * t.previewWidthPct / 100;
+    const int deckW = t.sw - poolW - prevW - t.mainPadX * 2;
+    const int poolX = t.mainPadX;
+    const int prevX = poolX + poolW;
+    const int deckX = prevX + prevW;
 
     auto fp = filteredPool();
-    drawPoolPanel(fp, padX, padY, poolW, panH);
-    drawPreviewPanel(fp, padX + poolW, padY, prevW, panH);
-    drawDeckPanel(padX + poolW + prevW, padY, deckW, panH);
 
-    DrawRectangle(0, sh - padBot, sw, padBot, COLOR_FOOTER_BG);
-    const int barY = sh - padBot + STATUS_BAR_Y_OFFSET;
-    DrawText("[TAB] switch  [Arrows] navigate  [PgUp/Dn] fast scroll  "
-             "[ENTER] add  [DEL/D] remove  [O] sort  [T] filter  "
-             "[G] grid/list  [C] clear  [S] save  [L] load  [F] duel (40+)",
-             PREVIEW_PAD_X, barY, FONT_HELP_TEXT, LIGHTGRAY);
-    if (!statusMsg_.empty())
-        DrawText(statusMsg_.c_str(), PREVIEW_PAD_X, barY + FONT_HELP_TEXT + 2,
-                 FONT_CARD_NAME, GREEN);
+    // Pool panel
+    {
+        std::string badge = std::string(sortModeLabel(sortMode_)) + "  [" +
+                            typeFilterLabel(typeFilter_) + "]  " +
+                            std::to_string(fp.size()) + " cards";
+        Panel::Draw("Card Pool", badge.c_str(), poolX, t.mainPadY, poolW, panH, focusPool_);
+        int searchY = t.mainPadY + t.searchBarYOffset;
+        searchInput_.Draw(poolX + t.thumbnailPad, searchY,
+                          poolW - t.thumbnailPad * 2, t.searchBarHeight(panH));
+        int listY = searchY + t.listYOffset;
+        CardList::Draw(fp, ctx_.imageCache, poolX, listY, poolW, t.mainPadY + panH - listY,
+                       poolNav_.cursor, focusPool_, kMaxCopies,
+                       [this](uint32_t id) { return countInDeck(id); });
+    }
+
+    // Preview panel
+    {
+        const openjoey::Card* card = nullptr;
+        if (focusPool_ && !fp.empty() && poolNav_.cursor < (int)fp.size())
+            card = fp[poolNav_.cursor];
+        else if (!focusPool_ && !deck_.empty() && deckNav_.cursor < (int)deck_.size())
+            card = &deck_[deckNav_.cursor];
+        preview_.SetCard(card);
+        preview_.Draw({(float)prevX, (float)t.mainPadY, (float)prevW, (float)panH},
+                      ctx_.imageCache);
+    }
+
+    // Deck panel
+    {
+        Color border = !focusPool_ ? YELLOW : DARKGRAY;
+        DrawRectangleLines(deckX, t.mainPadY, deckW, panH, border);
+        std::string title = deckGridView_ ? "Deck [Grid]" : "Deck [List]";
+        DrawText(title.c_str(), deckX + t.previewPadX, t.mainPadY + t.cardTypeY,
+                 t.fontPanelTitle, border);
+        DeckStats::Draw(deck_, kMinDeckSize,
+                        deckX + t.previewPadX, t.mainPadY + t.searchBarYOffset,
+                        deckW - t.previewArtSidePad);
+        std::vector<const openjoey::Card*> deckPtrs;
+        deckPtrs.reserve(deck_.size());
+        for (const auto& c : deck_) deckPtrs.push_back(&c);
+        int listY = t.mainPadY + t.deckListYOffset;
+        if (deckGridView_)
+            CardGrid::Draw(deckPtrs, ctx_.imageCache, deckX, listY, deckW,
+                           t.mainPadY + panH - listY, deckNav_.cursor, !focusPool_);
+        else
+            CardList::Draw(deckPtrs, ctx_.imageCache, deckX, listY, deckW,
+                           t.mainPadY + panH - listY, deckNav_.cursor, !focusPool_,
+                           kMaxCopies, [this](uint32_t id) { return countInDeck(id); });
+    }
+
+    ScreenChrome::DrawFooter(0, t.sh - t.mainPadBottom, t.sw, t.mainPadBottom,
+        "[TAB] switch  [Arrows] navigate  [PgUp/Dn] fast scroll  "
+        "[ENTER] add  [DEL/D] remove  [O] sort  [T] filter  "
+        "[G] grid/list  [C] clear  [S] save  [L] load  [F] duel (40+)", t);
+    if (!statusMsg_.empty()) {
+        const int barY = t.sh - t.mainPadBottom + t.statusBarYOffset;
+        DrawText(statusMsg_.c_str(), t.previewPadX, barY + t.fontHelpText + 2,
+                 t.fontCardName, GREEN);
+    }
 }
 
 // ── Persistence

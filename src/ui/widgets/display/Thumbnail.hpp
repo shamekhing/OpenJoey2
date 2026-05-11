@@ -1,7 +1,6 @@
 #pragma once
 #include "card/Card.hpp"
 #include "ui/renderer/CardImageCache.hpp"
-#include "ui/StyleSheet.hpp"
 #include <raylib.h>
 
 namespace openjoey::ui {
@@ -16,7 +15,7 @@ public:
             DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
                            dst, {0, 0}, 0, WHITE);
         else
-            DrawRectangle(x, y, w, h, Color{typeCol.r, typeCol.g, typeCol.b, CARD_TYPE_ALPHA});
+            DrawRectangle(x, y, w, h, Color{typeCol.r, typeCol.g, typeCol.b, 90});
         DrawRectangleLines(x, y, w, h, typeCol);
     }
 };

@@ -22,5 +22,8 @@ struct ContentPaths {
   static std::filesystem::path cardBackImg() {
     return std::filesystem::current_path() / "data" / "card_back.png";
   }
+  static std::filesystem::path duelFieldBgImg() {
+    return std::filesystem::current_path() / "data" / "assets" / "duel_field_background.png";
+  }
 };
 } // namespace openjoey

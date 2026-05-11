@@ -1,5 +1,5 @@
 // OpenJoey - entry point
-#include "ui/App.hpp"
+#include "ui/core/App.hpp"
 
 int main() {
   openjoey::ui::App app;

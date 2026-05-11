@@ -42,7 +42,6 @@ public:
 
   // Clear all on-field zones (does not clear decks/hands/GY/banished).
   void clearField();
-
   // Find the first empty monster zone for a player; returns -1 if full.
   int firstEmptyMonsterZone(int player) const;
 
@@ -61,11 +60,24 @@ public:
 
 inline void Field::clearField() {
   for (int p = 0; p < PLAYERS; ++p) {
+    fieldZones[p].reset();
+    handZones[p].reset();
+    graveyardZones[p].reset();
+    banishedZones[p].reset();
+    sideDeckZones[p].reset();
+    extraDeckZones[p].reset();
+    fieldZones[p].setOwner(p);
+    handZones[p].setOwner(p);
+    graveyardZones[p].setOwner(p);
+    banishedZones[p].setOwner(p);
+    sideDeckZones[p].setOwner(p);
+    extraDeckZones[p].setOwner(p);
     for (int z = 0; z < MONSTER_ZONES; ++z) {
       monsterZones[p][z].reset();
       spellTrapZones[p][z].reset();
+      monsterZones[p][z].setOwner(p);
+      spellTrapZones[p][z].setOwner(p);
     }
-    fieldZones[p].remove();
   }
 }
 

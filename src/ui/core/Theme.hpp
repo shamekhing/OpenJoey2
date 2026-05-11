@@ -80,30 +80,68 @@ struct Theme {
     int gridGap;
     int gridLabelH;
 
-    // ── Duel screen layout percentage (multiply by sw)
-    int duelLeftWPct  = 25;
-    int duelRightWPct = 17;
+    // ── Duel screen layout
+    int   duelLeftWPct = 25;
+    int   duelFooterH;
+    float duelFieldBgAlpha = 0.82f;
+
+    // ── Popup geometry (absolute pixels, centered on screen)
+    int helpPopupW, helpPopupH, helpPopupX, helpPopupY;
+    int banPopupW,  banPopupH,  banPopupX,  banPopupY;
 
     // ── Colors (palette constants — same regardless of resolution)
     struct Palette {
-        Color bgDark         = {10,  10,  20,  255};
-        Color bgMain         = {15,  15,  20,  255};
-        Color headerBg       = {30,  30,  40,  255};
-        Color footerBg       = {25,  25,  35,  255};
+        // ── Screen chrome
+        Color bgDark         = { 10,  10,  20, 255};
+        Color bgMain         = { 15,  15,  20, 255};
+        Color headerBg       = { 30,  30,  40, 255};
+        Color footerBg       = { 25,  25,  35, 255};
         Color statText       = {160, 160, 180, 255};
         Color descText       = {200, 200, 200, 255};
-        Color progressBg     = {40,  40,  40,  255};
-        Color scrollbarBg    = {40,  40,  60,  255};
+        Color progressBg     = { 40,  40,  40, 255};
+        Color scrollbarBg    = { 40,  40,  60, 255};
         Color scrollbarThumb = {160, 160, 200, 200};
-        Color monsterStat    = {180, 60,  60,  255};
-        Color spellStat      = {0,   180, 140, 255};
-        Color trapStat       = {160, 60,  200, 255};
-        Color fieldMat       = {14,  20,  14,  255};
-        Color dividerLine    = {50,  50,  80,  255};
-        Color dividerMid     = {80,  80,  110, 220};
-        Color panelBg        = {16,  16,  26,  255};
-        Color panelBorder    = {55,  55,  85,  255};
-        Color cardBackFg     = {8,   6,   42,  255};
+        Color monsterStat    = {180,  60,  60, 255};
+        Color spellStat      = {  0, 180, 140, 255};
+        Color trapStat       = {160,  60, 200, 255};
+        Color fieldMat       = { 14,  20,  14, 255};
+        Color dividerLine    = { 50,  50,  80, 255};
+        Color dividerMid     = { 80,  80, 110, 220};
+        Color panelBg        = { 16,  16,  26, 255};
+        Color panelBorder    = { 55,  55,  85, 255};
+        Color cardBackFg     = {  8,   6,  42, 255};
+
+        // ── Zone cell backgrounds
+        Color zoneBgMonster      = { 50,  14,  14, 220};
+        Color zoneBgSpellTrap    = { 12,  48,  34, 220};
+        Color zoneBgField        = { 12,  30,  58, 220};
+        Color zoneBgExtraMonster = { 42,  12,  58, 220};
+        Color zoneBgDeck         = { 22,  22,  32, 220};
+        Color zoneBgExtraDeck    = { 28,  14,  48, 220};
+        Color zoneBgGraveyard    = { 48,  22,   8, 220};
+        Color zoneBgBanished     = { 50,  38,   8, 220};
+        Color zoneBgDefault      = { 20,  20,  30, 220};
+
+        // ── Card face fallback colors
+        Color cardFaceMonster    = { 88,  60,  60, 255};
+        Color cardFaceSpell      = { 56,  90,  72, 255};
+        Color cardFaceTrap       = { 88,  56,  92, 255};
+        Color cardFaceUnknown    = { 60,  60,  60, 255};
+
+        // ── Cursor / selection / card borders
+        Color cursorBorder       = {255, 220,   0, 255};
+        Color selectedBorder     = { 60, 220,  80, 255};
+        Color zoneCellBorder     = { 55,  55,  80, 140};
+        Color cardBorderFaceDown = {210, 170,  40, 255};
+        Color cardBorderFaceUp   = {200, 180, 100, 255};
+        Color atkBadge           = {150, 255, 150, 255};
+        Color defBadge           = {100, 200, 255, 255};
+
+        // ── Popup / overlay
+        Color overlayDim         = {  0,   0,   0, 160};
+        Color popupBg            = { 18,  18,  28, 245};
+        Color popupBorder        = { 80,  80, 120, 255};
+        Color banZoneAccent      = {200, 100,  20, 255};
     } colors;
 
     // Build a Theme from the current window size. Call once per frame.
@@ -168,6 +206,18 @@ struct Theme {
 
         t.gridGap    = int(0.0047f * sw);
         t.gridLabelH = int(0.023f * sh);
+
+        t.duelFooterH = int(0.030f * sh);
+
+        t.helpPopupW = sw * 55 / 100;
+        t.helpPopupH = sh * 75 / 100;
+        t.helpPopupX = (sw - t.helpPopupW) / 2;
+        t.helpPopupY = (sh - t.helpPopupH) / 2;
+
+        t.banPopupW = sw * 62 / 100;
+        t.banPopupH = sh * 52 / 100;
+        t.banPopupX = (sw - t.banPopupW) / 2;
+        t.banPopupY = (sh - t.banPopupH) / 2;
 
         return t;
     }
