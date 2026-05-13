@@ -1,6 +1,6 @@
 #pragma once
 #include "card/Card.hpp"
-#include "game/zone/Zone.hpp"
+#include "zone/Zone.hpp"
 #include "ui/core/Theme.hpp"
 #include "ui/renderer/CardImageCache.hpp"
 #include "ui/renderer/DrawUtils.hpp"

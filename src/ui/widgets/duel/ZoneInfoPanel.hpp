@@ -1,5 +1,5 @@
 #pragma once
-#include "game/zone/Zone.hpp"
+#include "zone/Zone.hpp"
 #include "ui/core/Theme.hpp"
 #include "ui/renderer/DrawUtils.hpp"
 #include <raylib.h>

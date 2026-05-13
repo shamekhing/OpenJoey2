@@ -1,6 +1,8 @@
 #pragma once
 #include "ContentPaths.hpp"
 #include "card/CardDatabase.hpp"
+#include "effect/EffectRegistry.hpp"
+#include "card/LocalCardRepository.hpp"
 #include "ui/core/AppScreen.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/core/Event.hpp"
@@ -10,6 +12,7 @@
 #include "ui/screens/DeckEditorScreen.hpp"
 #include "ui/screens/DuelScreen.hpp"
 #include "ui/screens/MainMenuScreen.hpp"
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <raylib.h>
@@ -32,13 +35,15 @@ private:
     std::unique_ptr<IScreen> makeScreen(AppScreen s);
     void handleEvent(const ScreenEvent& ev);
 
-    // Declaration order matters: ctx_ must come after the three fields it references.
+    // Declaration order matters: ctx_ must come after the fields it references.
     AppConfig                    appConfig_;
     PlatformContext              platform_;
-    openjoey::CardDatabase       cardDb_;
+    openjoey::CardDatabase       cardDb_;         // legacy (DeckEditorScreen)
+    openjoey::LocalCardRepository repo_;           // repository layer
+    openjoey::EffectRegistry      effectRegistry_;
     std::vector<openjoey::Card>  selectedDeck_;
     CardImageCache               imageCache_;
-    AppContext                   ctx_;          // references cardDb_, selectedDeck_, imageCache_
+    AppContext                   ctx_;
     ScreenManager                screenManager_;
 };
 
@@ -46,8 +51,19 @@ private:
 
 inline void openjoey::ui::App::LoadCards() {
     const std::string path = openjoey::ContentPaths::cardsJson().string();
+    // Legacy CardDatabase (used by DeckEditorScreen)
     if (!cardDb_.LoadFromFile(path))
-        std::cerr << "[App] Failed to load " << path << "\n";
+        std::cerr << "[App] Failed to load cards (legacy db): " << path << "\n";
+    // Repository layer
+    if (repo_.loadFromFile(path)) {
+        const std::string regPath =
+            (std::filesystem::path(path).parent_path() / "effect_registry.json").string();
+        effectRegistry_.loadFromFile(regPath);
+        effectRegistry_.bind(repo_);
+        ctx_.cardRepo = &repo_;
+    } else {
+        std::cerr << "[App] Failed to load cards (repo): " << path << "\n";
+    }
 }
 
 inline std::unique_ptr<openjoey::ui::IScreen>

@@ -1,6 +1,5 @@
 #pragma once
-#include "game/zone/Field.hpp"
-#include "game/zone/Zone.hpp"
+#include "zone/Field.hpp"
 #include "ui/core/Theme.hpp"
 #include "ui/renderer/CardImageCache.hpp"
 #include "ui/widgets/duel/ZoneCell.hpp"

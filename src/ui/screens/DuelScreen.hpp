@@ -1,8 +1,9 @@
 #pragma once
 #include "ContentPaths.hpp"
 #include "card/Card.hpp"
-#include "game/zone/Field.hpp"
-#include "game/zone/Zone.hpp"
+#include "effect/EffectFactory.hpp"
+#include "effect/summon/NormalSummonEffect.hpp"
+#include "duel/DuelCore.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/core/AppScreen.hpp"
 #include "ui/core/Theme.hpp"
@@ -29,8 +30,8 @@ public:
   explicit DuelScreen(AppContext &ctx) : ctx_(ctx) {
     loadCardBack();
     loadDuelFieldBg();
-    loadSelectedDeck();
-    fieldGrid_.build(field_);
+    loadSelectedDeck();           // populates duelCore_ pools + starts duel
+    fieldGrid_.build(duelCore_.field());
     rebuildActions();
     preview_.SetCardBack(&cardBack_);
   }
@@ -51,22 +52,23 @@ public:
     const Theme t = Theme::FromScreen();
     ClearBackground(t.colors.bgDark);
 
-    int centerW = std::min(t.sw, t.sh); // t.sw - leftW;
-    int leftW = t.sw - centerW;         //* t.duelLeftWPct / 100;
+    int centerW = std::min(t.sw, t.sh);
+    int leftW   = t.sw - centerW;
     int headerH = t.headerHeight;
     int footerH = t.duelFooterH;
-    int fieldH = t.sh - headerH - footerH;
+    int fieldH  = t.sh - headerH - footerH;
 
     const char *modeStr = fieldGrid_.selectedZone()
                               ? "SELECT DEST  [ESC=cancel]"
                               : "NAVIGATE  [ENTER=pick source]";
     std::string headerTitle = std::string("Duel Field  ") + modeStr;
-    const char *zoneLabel = fieldGrid_.cursorLabel(const_cast<Field &>(field_));
+    const char *zoneLabel =
+        fieldGrid_.cursorLabel(const_cast<Field &>(duelCore_.field()));
     ScreenChrome::DrawHeader(0, 0, t.sw, headerH, headerTitle.c_str(),
                              zoneLabel, YELLOW, t);
 
     {
-      IZone *z = fieldGrid_.cursorZone(const_cast<Field &>(field_));
+      IZone *z = fieldGrid_.cursorZone(const_cast<Field &>(duelCore_.field()));
       preview_.SetCard(z->peek(), !z->canView(1));
       preview_.Draw({0.f, (float)headerH, (float)leftW, (float)fieldH},
                     ctx_.imageCache);
@@ -75,13 +77,13 @@ public:
     if (duelBg_.id)
       DrawTexturePro(
           duelBg_, {0, 0, (float)duelBg_.width, (float)duelBg_.height},
-          {(float)leftW, (float)headerH, (float)centerW, (float)fieldH}, {0, 0},
-          0.f, Fade(WHITE, t.duelFieldBgAlpha));
+          {(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
+          {0, 0}, 0.f, Fade(WHITE, t.duelFieldBgAlpha));
 
     const Texture2D *cb = cardBack_.id ? &cardBack_ : nullptr;
     fieldGrid_.draw(
         {(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
-        const_cast<Field &>(field_), ctx_.imageCache, cb, t);
+        const_cast<Field &>(duelCore_.field()), ctx_.imageCache, cb, t);
 
     ScreenChrome::DrawFooter(
         0, t.sh - footerH, t.sw, footerH,
@@ -97,8 +99,7 @@ public:
                t.colors.dividerLine);
       cy += pad / 2;
       auto drawBanColumn = [&](IZone *zone, int ox) {
-        if (!zone)
-          return;
+        if (!zone) return;
         DrawText(TextFormat("%s Banished: %d card(s)", ox == cx ? "P2" : "P1",
                             zone->count()),
                  ox + pad, cy, bodyFs, t.colors.statText);
@@ -106,8 +107,7 @@ public:
         if (auto *zs = dynamic_cast<ZoneStack *>(zone)) {
           for (int i = zs->count() - 1; i >= 0 && shown < 8; --i, ++shown) {
             Card *c = zs->peek(i);
-            if (!c)
-              continue;
+            if (!c) continue;
             Color col = c->isMonster() ? t.colors.monsterStat
                         : c->isSpell() ? t.colors.spellStat
                                        : t.colors.trapStat;
@@ -139,8 +139,9 @@ public:
                  t.helpPopupY + t.previewPadX, t.fontPanelTitle,
                  t.colors.popupBorder);
       }
-      ZoneInfoPanel::Draw(r, fieldGrid_.cursorZone(const_cast<Field &>(field_)),
-                          fieldGrid_.cursorLabel(const_cast<Field &>(field_)),
+      ZoneInfoPanel::Draw(r,
+                          fieldGrid_.cursorZone(const_cast<Field &>(duelCore_.field())),
+                          fieldGrid_.cursorLabel(const_cast<Field &>(duelCore_.field())),
                           actionLabels_, actionCursor_, lastResult_,
                           fieldGrid_.selectedZone() != nullptr);
       Popup::End();
@@ -148,28 +149,27 @@ public:
   }
 
 private:
-  AppContext &ctx_;
-  openjoey::zone::Field field_;
-  std::vector<openjoey::Card> pool_; // owns cards for the duration of the duel
-  Texture2D cardBack_ = {};
-  Texture2D duelBg_ = {};
-  int poolIdx_ = 0;
+  AppContext        &ctx_;
+  openjoey::EffectFactory   factory_;
+  openjoey::game::DuelCore  duelCore_{ctx_.cardRepo, &factory_};
+  Texture2D         cardBack_   = {};
+  Texture2D         duelBg_     = {};
   mutable FieldGrid fieldGrid_;
   mutable CardPreview preview_;
-  bool showHelp_ = false;
-  bool showBanZone_ = false;
-  std::string numBuf_;
+  bool              showHelp_    = false;
+  bool              showBanZone_ = false;
+  std::string       numBuf_;
 
   struct Action {
     std::string label;
     std::function<std::string()> invoke;
   };
-  std::vector<Action> actions_;
+  std::vector<Action>      actions_;
   std::vector<std::string> actionLabels_;
-  int actionCursor_ = 0;
-  std::string lastResult_;
+  int                      actionCursor_ = 0;
+  std::string              lastResult_;
 
-  // ── Setup ────────────────────────────────────────────────────────────────
+  // ── Setup ──────────────────────────────────────────────────────────────────
 
   void loadCardBack() {
     auto path = ContentPaths::cardBackImg();
@@ -186,48 +186,48 @@ private:
   }
 
   void loadSelectedDeck() {
-    if (ctx_.selectedDeck.empty())
-      loadDeckFromFile("default");
-    else
-      pool_ = ctx_.selectedDeck;
-
-    for (auto &c : pool_) {
-      c.owner = 1;
+    std::vector<openjoey::Card> deck;
+    if (!ctx_.selectedDeck.empty()) {
+      deck = ctx_.selectedDeck;
+    } else {
+      deck = loadDeckFromFile("default");
+    }
+    // Assign all cards to player 1 (human side)
+    for (auto &c : deck) {
+      c.owner      = 1;
       c.controller = 1;
     }
-    for (auto &c : pool_)
-      field_.deckZones[1].put(&c);
+    duelCore_.loadDeckFromCards(1, deck);
+    duelCore_.startDuel();
   }
 
-  void loadDeckFromFile(const std::string &name) {
+  std::vector<openjoey::Card> loadDeckFromFile(const std::string &name) {
     std::filesystem::path path =
         std::filesystem::current_path() / "data" / "decks" / (name + ".txt");
     std::ifstream f(path);
+    std::vector<openjoey::Card> result;
     if (!f.is_open()) {
       std::cerr << "[DuelScreen] no saved deck at: " << path << "\n";
-      return;
+      return result;
     }
     std::string line;
     while (std::getline(f, line)) {
-      if (line.empty() || line[0] == '#')
-        continue;
+      if (line.empty() || line[0] == '#') continue;
       try {
-        uint32_t id = (uint32_t)std::stoul(line);
+        uint32_t id      = (uint32_t)std::stoul(line);
         const auto *card = ctx_.cardDb.GetCardById(id);
-        if (card && (int)pool_.size() < 60)
-          pool_.push_back(*card);
-      } catch (...) {
-      }
+        if (card && (int)result.size() < 60)
+          result.push_back(*card);
+      } catch (...) {}
     }
+    return result;
   }
 
-  // ── Input ─────────────────────────────────────────────────────────────────
+  // ── Input ──────────────────────────────────────────────────────────────────
 
   ScreenEvent handleInput() {
-    if (showHelp_)
-      return handleHelpInput();
-    if (showBanZone_)
-      return handleBanInput();
+    if (showHelp_)    return handleHelpInput();
+    if (showBanZone_) return handleBanInput();
     return handleFieldInput();
   }
 
@@ -290,19 +290,10 @@ private:
 
   ScreenEvent handleFieldInput() {
     float wheel = GetMouseWheelMove();
-    if (wheel != 0.f) {
-      preview_.scroll((int)wheel);
-      return ScreenEvent::none();
-    }
+    if (wheel != 0.f) { preview_.scroll((int)wheel); return ScreenEvent::none(); }
 
-    if (IsKeyPressed(KEY_H)) {
-      showHelp_ = true;
-      return ScreenEvent::none();
-    }
-    if (IsKeyPressed(KEY_B)) {
-      showBanZone_ = true;
-      return ScreenEvent::none();
-    }
+    if (IsKeyPressed(KEY_H)) { showHelp_    = true; return ScreenEvent::none(); }
+    if (IsKeyPressed(KEY_B)) { showBanZone_ = true; return ScreenEvent::none(); }
 
     if (IsKeyPressed(KEY_ESCAPE)) {
       if (fieldGrid_.selectedZone()) {
@@ -313,33 +304,23 @@ private:
       }
       return ScreenEvent::none();
     }
-
-    if (IsKeyPressed(KEY_ENTER)) {
-      handleEnter();
-      return ScreenEvent::none();
-    }
+    if (IsKeyPressed(KEY_ENTER)) { handleEnter(); return ScreenEvent::none(); }
 
     int dr = 0, dc = 0;
-    if (IsKeyPressed(KEY_UP))
-      dr = -1;
-    if (IsKeyPressed(KEY_DOWN))
-      dr = 1;
-    if (IsKeyPressed(KEY_LEFT))
-      dc = -1;
-    if (IsKeyPressed(KEY_RIGHT))
-      dc = 1;
+    if (IsKeyPressed(KEY_UP))    dr = -1;
+    if (IsKeyPressed(KEY_DOWN))  dr =  1;
+    if (IsKeyPressed(KEY_LEFT))  dc = -1;
+    if (IsKeyPressed(KEY_RIGHT)) dc =  1;
     if (dr || dc) {
-      fieldGrid_.moveCursor(dr, dc, field_);
+      fieldGrid_.moveCursor(dr, dc, duelCore_.field());
       rebuildActions();
     }
     return ScreenEvent::none();
   }
 
   void handleEnter() {
-    IZone *z = fieldGrid_.cursorZone(field_);
-    if (!z)
-      return;
-
+    IZone *z = fieldGrid_.cursorZone(duelCore_.field());
+    if (!z) return;
     if (!fieldGrid_.selectedZone()) {
       if (!z->isEmpty()) {
         fieldGrid_.setSelectedZone(z);
@@ -353,29 +334,110 @@ private:
         lastResult_ = "Deselected.";
         return;
       }
-      lastResult_ =
-          fieldGrid_.selectedZone()->moveTo(*z) ? "Moved OK." : "Move failed.";
+      lastResult_ = fieldGrid_.selectedZone()->moveTo(*z) ? "Moved OK." : "Move failed.";
       fieldGrid_.setSelectedZone(nullptr);
       rebuildActions();
     }
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   void rebuildActions() {
     actions_.clear();
     actionLabels_.clear();
     actionCursor_ = 0;
-    IZone *z = fieldGrid_.cursorZone(field_);
-    if (!z)
-      return;
+    IZone *z = fieldGrid_.cursorZone(duelCore_.field());
+    if (!z) return;
 
     auto push = [&](std::string lbl, std::function<std::string()> fn) {
       actions_.push_back({std::move(lbl), std::move(fn)});
     };
 
+    // ── Effect actions ──────────────────────────────────────────────────────
+
+    // Show pending target fulfillment first if needed.
+    if (duelCore_.hasPendingTarget()) {
+      push("[!] Fulfill target: pick this zone", [this, z]() -> std::string {
+        // Determine zone index from field position
+        Field &f = duelCore_.field();
+        for (int p = 0; p < 2; ++p) {
+          for (int i = 0; i < 5; ++i) {
+            if (&f.monsterZones[p][i] == z || &f.spellTrapZones[p][i] == z) {
+              // Mark request fulfilled with this zone
+              openjoey::TargetRequest req = duelCore_.targetRequest();
+              req.resolvedPlayer = p;
+              req.resolvedZone   = i;
+              req.fulfilled      = true;
+              duelCore_.pushTargetRequest(req);
+              duelCore_.resolveChain();
+              return "Target fulfilled. Chain resolved.";
+            }
+          }
+        }
+        return "Cannot resolve target at this zone.";
+      });
+    }
+
+    // Phase display
+    static const char *phaseNames[] = {"Draw","Standby","Main1","Battle","Main2","End"};
+    int phIdx = duelCore_.phase();
+    push(std::string("Phase: ") + phaseNames[phIdx] +
+             "  Turn: " + std::to_string(duelCore_.phaseManager().turnNumber) +
+             "  P" + std::to_string(duelCore_.turnPlayerIdx() + 1),
+         []() -> std::string { return "Phase info only."; });
+
+    push("Next Phase", [this]() -> std::string {
+      auto p = duelCore_.advancePhase();
+      static const char *names[] = {"Draw","Standby","Main1","Battle","Main2","End"};
+      return std::string("Phase → ") + names[(int)p];
+    });
+
+    // Normal Summon — only meaningful when cursor is on a hand zone
+    // The UI picks hand[0] by default; a real UI would let the player choose.
+    push("Normal Summon hand[0] → auto zone", [this]() -> std::string {
+      auto eff = std::make_unique<openjoey::NormalSummonEffect>();
+      eff->handIndex = 0;
+      eff->destZone  = -1;
+      eff->sourceCard = nullptr;
+      if (!eff->condition(duelCore_)) return "Normal Summon: condition failed.";
+      eff->cost(duelCore_);
+      openjoey::Effect *raw = eff.get();
+      if (!duelCore_.chain().canAdd(raw))
+        return "Normal Summon: chain rejected (spell-speed).";
+      // Bypass chain push for summon — resolve immediately (no chain needed for normal summon)
+      raw->resolve(duelCore_);
+      return "Normal Summon resolved.";
+    });
+
+    push("Draw 1 (P1)", [this]() -> std::string {
+      return duelCore_.activateEffect("draw_1", nullptr, 1)
+                 ? (duelCore_.resolveChain(), "Drew 1 card.")
+                 : "Draw: condition failed (deck empty?).";
+    });
+
+    push("Pass Priority → resolve chain", [this]() -> std::string {
+      duelCore_.passPriority();
+      return "Passed. Chain size: " + std::to_string(duelCore_.chain().size());
+    });
+
+    push("Resolve Chain now", [this]() -> std::string {
+      duelCore_.resolveChain();
+      return "Chain resolved.";
+    });
+
+    push("LP P1: " + std::to_string(duelCore_.lifePoints(1)) +
+             "  P2: " + std::to_string(duelCore_.lifePoints(0)),
+         []() -> std::string { return "LP info only."; });
+
+    push("Apply 500 damage to P1", [this]() -> std::string {
+      duelCore_.applyDamage(1, 500);
+      return "P1 LP → " + std::to_string(duelCore_.lifePoints(1));
+    });
+
+    // ── Zone manipulation actions (unchanged from original) ──────────────────
+
     push("put(card)", [this, z]() -> std::string {
-      Card *c = nextPoolCard();
+      Card *c = nextUnplacedCard();
       return c ? (z->put(c) ? "put OK." : "put failed — zone full.")
                : "Pool exhausted.";
     });
@@ -390,28 +452,23 @@ private:
     if (auto *zm = dynamic_cast<Zone_Monster *>(z)) {
       push("setATK  [Vertical]", [zm] {
         return zm->changeOrientation(Orientation::Vertical)
-                   ? "ATK OK."
-                   : "changeOrientation false.";
+                   ? "ATK OK." : "changeOrientation false.";
       });
       push("setDEF  [Horizontal]", [zm] {
         return zm->changeOrientation(Orientation::Horizontal)
-                   ? "DEF OK."
-                   : "changeOrientation false.";
+                   ? "DEF OK." : "changeOrientation false.";
       });
       push("vis: Visible  (both)", [zm] {
         return zm->changeVisibility(Visibility::Visible)
-                   ? "Visible OK."
-                   : "changeVisibility false.";
+                   ? "Visible OK." : "changeVisibility false.";
       });
       push("vis: Limited  (owner)", [zm] {
         return zm->changeVisibility(Visibility::Limited)
-                   ? "Limited OK."
-                   : "changeVisibility false.";
+                   ? "Limited OK." : "changeVisibility false.";
       });
       push("vis: Restricted (FD)", [zm] {
         return zm->changeVisibility(Visibility::Restricted)
-                   ? "Restricted OK."
-                   : "changeVisibility false.";
+                   ? "Restricted OK." : "changeVisibility false.";
       });
       push("flip()", [zm] {
         return zm->flip() ? "flip OK." : "flip false (need Vertical+Limited).";
@@ -420,40 +477,31 @@ private:
 
     push("contains(top)", [z]() -> std::string {
       Card *top = nullptr;
-      if (auto *zm = dynamic_cast<Zone_Monster *>(z))
-        top = zm->peek();
-      else if (auto *zs = dynamic_cast<ZoneStack *>(z))
-        top = zs->peek(-1);
-      else if (auto *zn = dynamic_cast<Zone *>(z))
-        top = zn->peek();
-      if (!top)
-        return "contains: zone empty.";
+      if (auto *zm = dynamic_cast<Zone_Monster *>(z)) top = zm->peek();
+      else if (auto *zs = dynamic_cast<ZoneStack *>(z)) top = zs->peek(-1);
+      else if (auto *zn = dynamic_cast<Zone *>(z)) top = zn->peek();
+      if (!top) return "contains: zone empty.";
       return z->contains(top) ? "contains(top) true." : "contains(top) false.";
     });
     push("moveTo P1 GY", [this, z]() -> std::string {
-      return z->moveTo(field_.graveyardZones[1]) ? "moveTo OK."
-                                                 : "moveTo failed.";
+      return z->moveTo(duelCore_.field().graveyardZones[1]) ? "moveTo OK." : "moveTo failed.";
     });
     push("moveTo P2 GY", [this, z]() -> std::string {
-      return z->moveTo(field_.graveyardZones[0]) ? "moveTo OK."
-                                                 : "moveTo failed.";
+      return z->moveTo(duelCore_.field().graveyardZones[0]) ? "moveTo OK." : "moveTo failed.";
     });
     push("moveTo P1 Banished", [this, z]() -> std::string {
-      return z->moveTo(field_.banishedZones[1]) ? "moveTo OK."
-                                                : "moveTo failed.";
+      return z->moveTo(duelCore_.field().banishedZones[1]) ? "moveTo OK." : "moveTo failed.";
     });
     push("moveTo P2 Banished", [this, z]() -> std::string {
-      return z->moveTo(field_.banishedZones[0]) ? "moveTo OK."
-                                                : "moveTo failed.";
+      return z->moveTo(duelCore_.field().banishedZones[0]) ? "moveTo OK." : "moveTo failed.";
     });
 
     if (auto *deck = dynamic_cast<ZoneStack_Deck *>(z)) {
       push("draw() P1 hand", [this, deck] {
-        return deck->draw(field_.handZones[1]) ? "draw OK." : "draw failed.";
+        return deck->draw(duelCore_.field().handZones[1]) ? "draw OK." : "draw failed.";
       });
       push("mill(1) P1 GY", [this, deck] {
-        return deck->mill(1, field_.graveyardZones[1]) ? "mill OK."
-                                                       : "mill failed.";
+        return deck->mill(1, duelCore_.field().graveyardZones[1]) ? "mill OK." : "mill failed.";
       });
     }
 
@@ -470,67 +518,66 @@ private:
         auto v = zs->findAll([](const Card *c) { return c->isMonster(); });
         return "findAll(monster) " + std::to_string(v.size()) + " cards.";
       });
-      push("shuffle()", [zs]() -> std::string {
-        zs->shuffle();
-        return "shuffle OK.";
-      });
-      push("clear()", [zs]() -> std::string {
-        zs->clear();
-        return "clear OK.";
-      });
+      push("shuffle()", [zs]() -> std::string { zs->shuffle(); return "shuffle OK."; });
+      push("clear()", [zs]() -> std::string { zs->clear(); return "clear OK."; });
     }
 
     push("clearField()", [this]() -> std::string {
-      field_.clearField();
+      duelCore_.field().clearField();
       return "clearField OK.";
     });
     push("countMonsters P1", [this]() -> std::string {
-      return "countMonsters(P1) " + std::to_string(field_.countMonsters(1));
+      return "countMonsters(P1) " + std::to_string(duelCore_.field().countMonsters(1));
     });
     push("countMonsters P2", [this]() -> std::string {
-      return "countMonsters(P2) " + std::to_string(field_.countMonsters(0));
+      return "countMonsters(P2) " + std::to_string(duelCore_.field().countMonsters(0));
     });
     push("firstEmptyMon P1", [this]() -> std::string {
       return "firstEmptyMonster(P1) " +
-             std::to_string(field_.firstEmptyMonsterZone(1));
+             std::to_string(duelCore_.field().firstEmptyMonsterZone(1));
     });
     push("firstEmptyMon P2", [this]() -> std::string {
       return "firstEmptyMonster(P2) " +
-             std::to_string(field_.firstEmptyMonsterZone(0));
+             std::to_string(duelCore_.field().firstEmptyMonsterZone(0));
     });
     push("firstEmptyST P1", [this]() -> std::string {
       return "firstEmptySpellTrap(P1) " +
-             std::to_string(field_.firstEmptySpellTrapZone(1));
+             std::to_string(duelCore_.field().firstEmptySpellTrapZone(1));
     });
 
     for (auto &a : actions_)
       actionLabels_.push_back(a.label);
   }
 
-  Card *nextPoolCard() {
-    for (int i = 0; i < (int)pool_.size(); ++i) {
-      Card *c = &pool_[poolIdx_];
-      poolIdx_ = (poolIdx_ + 1) % (int)pool_.size();
-      if (!inAnyZone(c))
-        return c;
+  // Returns a pointer to a card in the pool that is not currently in any zone.
+  Card *nextUnplacedCard() {
+    const auto &pools = duelCore_.pools();
+    for (int p = 0; p < 2; ++p) {
+      for (const Card &c : pools[p]) {
+        Card *ptr = const_cast<Card *>(&c);
+        if (!inAnyZone(ptr)) return ptr;
+      }
     }
     return nullptr;
   }
 
   bool inAnyZone(Card *c) const {
+    const Field &f = const_cast<openjoey::game::DuelCore &>(duelCore_).field();
     for (int p = 0; p < 2; ++p) {
       for (int i = 0; i < 5; ++i)
-        if (field_.monsterZones[p][i].contains(c) ||
-            field_.spellTrapZones[p][i].contains(c))
+        if (f.monsterZones[p][i].contains(c) ||
+            f.spellTrapZones[p][i].contains(c))
           return true;
-      if (field_.graveyardZones[p].contains(c) ||
-          field_.deckZones[p].contains(c) ||
-          field_.extraDeckZones[p].contains(c) ||
-          field_.fieldZones[p].contains(c) ||
-          field_.banishedZones[p].contains(c) ||
-          field_.handZones[p].contains(c))
+      if (f.graveyardZones[p].contains(c)  ||
+          f.deckZones[p].contains(c)        ||
+          f.extraDeckZones[p].contains(c)   ||
+          f.fieldZones[p].contains(c)       ||
+          f.banishedZones[p].contains(c)    ||
+          f.handZones[p].contains(c))
         return true;
     }
+    for (int i = 0; i < 2; ++i)
+      if (f.extraMonsterZones[i].contains(c)) return true;
     return false;
   }
 };
