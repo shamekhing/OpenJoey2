@@ -2,11 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      "label": "oj2-build-debug",
       "type": "shell",
-      "command": "cmake --build build",
+      "command": "./OpenJoey2.sh",
+      "args": ["-s", "-b"],
       "options": { "cwd": "${workspaceFolder}" },
       "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "oj2-build-release",
+      "type": "shell",
+      "command": "./OpenJoey2.sh",
+      "args": ["-s", "-B"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build" },
       "problemMatcher": ["$gcc"]
     }
   ]

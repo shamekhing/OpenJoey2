@@ -39,5 +39,11 @@ add_custom_command(TARGET OpenJoey2 POST_BUILD
 
 # ── Debug helpers ─────────────────────────────────────────────────────────────
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  target_compile_options(OpenJoey2 PRIVATE -g -O0 -Wall -Wextra)
+  # Line-by-line debugging enforced: no optimization, no inlining, full debug info.
+  target_compile_options(OpenJoey2 PRIVATE 
+    -O0 -g3 -ggdb 
+    -fno-omit-frame-pointer 
+    -fno-inline 
+    -fno-optimize-sibling-calls 
+    -Wall -Wextra -Wpedantic)
 endif()
