@@ -1,26 +1,11 @@
 #pragma once
+#include "Type.hpp"
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
 namespace openjoey {
-
-// ─── Enumerations ────────────────────────────────────────────────────────────
-
-enum class CardType : uint8_t { Monster, Spell, Trap };
-
-enum class Position : uint8_t { FaceUp, FaceDown };
-
-enum class Location : uint8_t {
-  Hand,
-  Deck,
-  ExtraDeck,
-  Field,
-  Graveyard,
-  Banished,
-  None
-};
 
 // ─── Card ────────────────────────────────────────────────────────────────────
 

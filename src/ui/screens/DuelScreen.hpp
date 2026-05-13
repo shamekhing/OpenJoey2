@@ -215,7 +215,7 @@ private:
       if (line.empty() || line[0] == '#') continue;
       try {
         uint32_t id      = (uint32_t)std::stoul(line);
-        const auto *card = ctx_.cardDb.GetCardById(id);
+        const auto *card = ctx_.cardRepo->getById(id);
         if (card && (int)result.size() < 60)
           result.push_back(*card);
       } catch (...) {}

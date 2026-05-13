@@ -1,18 +1,7 @@
 #pragma once
-#include <cstdint>
+#include "Type.hpp"
 
 namespace openjoey::game {
-
-// ─── Phase ────────────────────────────────────────────────────────────────────
-
-enum class Phase : uint8_t {
-  Draw    = 0,
-  Standby = 1,
-  Main1   = 2,
-  Battle  = 3,
-  Main2   = 4,
-  End     = 5,
-};
 
 // ─── PhaseManager ─────────────────────────────────────────────────────────────
 // Tracks the current phase and turn within a duel.

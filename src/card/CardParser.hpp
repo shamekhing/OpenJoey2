@@ -118,10 +118,10 @@ static bool tryLoadYgoProDeckJson(const std::string &content,
     }
     return !out->empty();
   } catch (const nlohmann::json::exception &ex) {
-    std::cerr << "[CardDatabase] YGOProDeck JSON: " << ex.what() << "\n";
+    std::cerr << "[CardParser] YGOProDeck JSON: " << ex.what() << "\n";
     return false;
   } catch (const std::exception &ex) {
-    std::cerr << "[CardDatabase] JSON load: " << ex.what() << "\n";
+    std::cerr << "[CardParser] JSON load: " << ex.what() << "\n";
     return false;
   }
 }

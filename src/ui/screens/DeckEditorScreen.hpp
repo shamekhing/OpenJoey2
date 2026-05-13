@@ -1,6 +1,5 @@
 #pragma once
 #include "card/Card.hpp"
-#include "card/CardDatabase.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/core/AppScreen.hpp"
 #include "ui/core/Theme.hpp"
@@ -92,7 +91,7 @@ private:
 inline void DeckEditorScreen::rebuildPool() {
   using CmpFn = bool (*)(const openjoey::Card &, const openjoey::Card &);
   pool_.clear();
-  for (const auto &c : ctx_.cardDb.GetAllCards())
+  for (const auto &c : ctx_.cardRepo->all())
     pool_.push_back(c);
 
   static constexpr std::pair<CmpFn, bool> kSort[] = {
@@ -397,7 +396,7 @@ inline bool DeckEditorScreen::LoadDeck(const std::string &name) {
       continue;
     try {
       uint32_t id = (uint32_t)std::stoul(line);
-      const auto *card = ctx_.cardDb.GetCardById(id);
+      const auto *card = ctx_.cardRepo->getById(id);
       if (card && (int)deck_.size() < kMaxDeckSize)
         deck_.push_back(*card);
     } catch (...) {

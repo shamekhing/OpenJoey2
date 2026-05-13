@@ -10,30 +10,9 @@
 
 namespace openjoey::zone {
 
-// ─── ZoneType
-enum class ZoneType : uint8_t {
-  Monster,
-  SpellTrap,
-  Field,
-  ExtraMonster,
-  Hand,
-  Deck,
-  ExtraDeck,
-  Graveyard,
-  Banished,
-  SideDeck,
-};
-
-enum class Orientation : uint8_t {
-  Vertical,
-  Horizontal,
-};
-
-enum class Visibility : uint8_t {
-  Visible,
-  Limited,
-  Restricted,
-};
+using openjoey::Orientation;
+using openjoey::Visibility;
+using openjoey::ZoneType;
 
 // ─── IZone
 // base for all zone types. A zone owns no cards — it holds raw pointers.

@@ -110,6 +110,7 @@ private:
         case ZoneType::Graveyard:    return "Graveyard";
         case ZoneType::Banished:     return "Banished";
         case ZoneType::SideDeck:     return "Side Deck";
+        case ZoneType::None:         return "";
         }
         return "Unknown";
     }
