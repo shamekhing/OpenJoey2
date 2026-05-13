@@ -80,6 +80,9 @@ struct Card {
   std::vector<Card *> equippedCards; // non-owning equip attachments
   std::map<std::string, int> counters;
 
+  // Effect keys populated by EffectRegistry::bind() at startup — data only.
+  std::vector<std::string> effectKeys;
+
   // Convenience queries
   bool isMonster() const { return type == CardType::Monster; }
   bool isSpell() const { return type == CardType::Spell; }
