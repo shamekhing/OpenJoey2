@@ -1,4 +1,5 @@
 #pragma once
+#include "Type.hpp"
 #include "card/Card.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -76,14 +77,14 @@ static Card cardFromYgoProDeckJson(const nlohmann::json &j) {
   const std::string frame = optStringMember(j, "frameType");
 
   if (frame == "spell" || frame == "skill")
-    c.type = CardType::Spell;
+    c.type = enum_card::Spell;
   else if (frame == "trap")
-    c.type = CardType::Trap;
+    c.type = enum_card::Trap;
   else
-    c.type = CardType::Monster;
+    c.type = enum_card::Monster;
 
-  c.atk   = parseStatField(j, "atk");
-  c.def   = parseStatField(j, "def");
+  c.atk = parseStatField(j, "atk");
+  c.def = parseStatField(j, "def");
   c.level = optIntMember(j, "level", 0);
   const int rank = optIntMember(j, "rank", 0);
   if (c.level == 0 && rank > 0)

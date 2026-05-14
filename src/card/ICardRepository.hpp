@@ -1,4 +1,5 @@
 #pragma once
+#include "Type.hpp"
 #include "card/Card.hpp"
 #include <optional>
 #include <string>
@@ -9,12 +10,12 @@ namespace openjoey {
 // ─── CardFilter ──────────────────────────────────────────────────────────────
 
 struct CardFilter {
-  std::optional<CardType>    type;
+  std::optional<enum_card> type;
   std::optional<std::string> nameContains;
-  std::optional<int>         levelMin;
-  std::optional<int>         levelMax;
-  std::optional<int>         atkMin;
-  std::optional<int>         atkMax;
+  std::optional<int> levelMin;
+  std::optional<int> levelMax;
+  std::optional<int> atkMin;
+  std::optional<int> atkMax;
 };
 
 // ─── ICardRepository ─────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ struct Card {
   std::string description;
 
   // Card classification
-  CardType type = CardType::Monster;
+  enum_card type = enum_card::Monster;
 
   bool operator==(const Card &other) const {
     return this->cardNumber != 0 && this->cardNumber == other.cardNumber;
@@ -49,14 +49,6 @@ struct Card {
   int owner = -1;      // player index
   int controller = -1; // player index (may differ from owner)
 
-  // Placement
-  Location location = Location::None;
-  Position position = Position::FaceDown;
-
-  bool isFaceUp() const {
-    return location == Location::Field && position == Position::FaceUp;
-  }
-
   // Turn-state flags
   bool setThisTurn = false;
   bool placedThisTurn = false;
@@ -69,9 +61,9 @@ struct Card {
   std::vector<std::string> effectKeys;
 
   // Convenience queries
-  bool isMonster() const { return type == CardType::Monster; }
-  bool isSpell() const { return type == CardType::Spell; }
-  bool isTrap() const { return type == CardType::Trap; }
+  bool isMonster() const { return type == enum_card::Monster; }
+  bool isSpell() const { return type == enum_card::Spell; }
+  bool isTrap() const { return type == enum_card::Trap; }
   std::string cardTypeTag() const {
     return this->isMonster() ? "[MON]"
            : this->isSpell() ? "[SPL]"

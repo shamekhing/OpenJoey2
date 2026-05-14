@@ -1,4 +1,5 @@
 #pragma once
+#include "Type.hpp"
 #include "card/CardParser.hpp"
 #include "card/ICardRepository.hpp"
 #include <fstream>
@@ -39,8 +40,7 @@ public:
     for (const Card &c : cards_) {
       if (f.type && c.type != *f.type)
         continue;
-      if (f.nameContains &&
-          c.name.find(*f.nameContains) == std::string::npos)
+      if (f.nameContains && c.name.find(*f.nameContains) == std::string::npos)
         continue;
       if (f.levelMin && c.level < *f.levelMin)
         continue;
@@ -81,8 +81,9 @@ public:
     auto it = byId_.find(id);
     if (it == byId_.end())
       return false;
-    cards_.erase(std::find_if(cards_.begin(), cards_.end(),
-                               [id](const Card &c) { return c.cardNumber == id; }));
+    cards_.erase(
+        std::find_if(cards_.begin(), cards_.end(),
+                     [id](const Card &c) { return c.cardNumber == id; }));
     reindex();
     return true;
   }
@@ -97,7 +98,7 @@ public:
       return false;
     }
     std::string content((std::istreambuf_iterator<char>(f)),
-                         std::istreambuf_iterator<char>());
+                        std::istreambuf_iterator<char>());
     cards_.clear();
     byId_.clear();
     byName_.clear();
@@ -119,20 +120,21 @@ public:
     root["data"] = nlohmann::json::array();
     for (const Card &c : cards_) {
       nlohmann::json j;
-      j["id"]        = c.cardNumber;
-      j["name"]      = c.name;
-      j["desc"]      = c.description;
-      j["frameType"] = c.type == CardType::Spell ? "spell"
-                       : c.type == CardType::Trap ? "trap"
-                                                  : "effect";
-      j["atk"]   = c.atk;
-      j["def"]   = c.def;
+      j["id"] = c.cardNumber;
+      j["name"] = c.name;
+      j["desc"] = c.description;
+      j["frameType"] = c.type == enum_card::Spell  ? "spell"
+                       : c.type == enum_card::Trap ? "trap"
+                                                   : "effect";
+      j["atk"] = c.atk;
+      j["def"] = c.def;
       j["level"] = c.level;
       root["data"].push_back(std::move(j));
     }
     std::ofstream out(filePath_);
     if (!out.is_open()) {
-      std::cerr << "[LocalCardRepository] flush: cannot write: " << filePath_ << "\n";
+      std::cerr << "[LocalCardRepository] flush: cannot write: " << filePath_
+                << "\n";
       return false;
     }
     out << root.dump(2);
@@ -140,10 +142,10 @@ public:
   }
 
 private:
-  std::vector<Card>                            cards_;
-  std::unordered_map<uint32_t, Card *>         byId_;
-  std::unordered_map<std::string, Card *>      byName_;
-  std::string                                  filePath_;
+  std::vector<Card> cards_;
+  std::unordered_map<uint32_t, Card *> byId_;
+  std::unordered_map<std::string, Card *> byName_;
+  std::string filePath_;
 
   void reindex() {
     byId_.clear();
