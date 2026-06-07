@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - web
+      - github-pages
   workflow_dispatch:
 
 permissions:
