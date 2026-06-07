@@ -107,33 +107,102 @@
         "[TAB] hand/monster/spell [ENTER] play own hand [D] draw own card [G] own monster to grave [ESC] menu",
       );
       this.layout();
-      this.drawPreview(g);
       this.drawField(g);
       this.drawHands(g);
-      this.drawInfo(g);
+      this.drawPreview(g);
     }
 
     layout() {
-      const leftW = Math.max(260, Math.floor(this.app.w * 0.24));
-      this.preview = { x: 14, y: 72, w: leftW, h: this.app.h - 126 };
-      this.field = { x: leftW + 28, y: 72, w: this.app.w - leftW - 42, h: this.app.h - 220 };
-      this.oppHand = { x: this.field.x, y: this.field.y, w: this.field.w, h: 60 };
-      this.ownHand = { x: this.field.x, y: this.app.h - 138, w: this.field.w, h: 84 };
+      const compact = this.app.w < 900;
+      this.compact = compact;
+      const sideW = compact ? 0 : Math.max(238, Math.min(310, Math.floor(this.app.w * 0.22)));
+      const outer = 14;
+      const top = compact ? 60 : 68;
+      const bottomBar = compact ? 30 : 44;
+      const handH = compact ? 86 : 88;
+      const gap = compact ? 6 : 14;
 
-      const zoneW = Math.min(82, (this.field.w - 80) / 5);
-      const zoneH = zoneW * 86 / 59;
-      const startX = this.field.x + (this.field.w - zoneW * 5 - 10 * 4) / 2;
-      const top = this.field.y + 88;
-      const bottom = this.ownHand.y - zoneH * 2 - 36;
+      this.preview = {
+        x: outer,
+        y: compact ? 0 : top,
+        w: compact ? 0 : sideW,
+        h: compact ? 0 : this.app.h - top - bottomBar - gap,
+      };
 
-      this.oppSpells = this.zones(startX, top, zoneW, zoneH);
-      this.oppMonsters = this.zones(startX, top + zoneH + 16, zoneW, zoneH);
-      this.ownMonsters = this.zones(startX, bottom, zoneW, zoneH);
-      this.ownSpells = this.zones(startX, bottom + zoneH + 16, zoneW, zoneH);
+      const fieldX = compact ? outer : outer + sideW + gap;
+      const fieldW = compact ? this.app.w - outer * 2 : this.app.w - fieldX - outer;
+      this.field = {
+        x: fieldX,
+        y: top,
+        w: fieldW,
+        h: this.app.h - top - bottomBar - (compact ? handH + gap : handH * 2 + gap * 2),
+      };
+
+      this.oppHand = compact
+        ? { x: fieldX, y: 0, w: fieldW, h: 0 }
+        : { x: fieldX, y: top + this.field.h + gap, w: fieldW, h: handH };
+      this.ownHand = compact
+        ? { x: fieldX, y: this.field.y + this.field.h + gap, w: fieldW, h: handH }
+        : { x: fieldX, y: this.oppHand.y + handH + gap, w: fieldW, h: handH };
+
+      const pileW = compact ? 40 : Math.max(46, Math.min(70, Math.floor(this.field.w * 0.08)));
+      const playableW = this.field.w - pileW * 2 - gap * 4;
+      const zoneGap = Math.max(6, Math.min(12, Math.floor(playableW * 0.016)));
+      const topInset = compact ? 40 : 44;
+      const bottomInset = compact ? 12 : 16;
+      let zoneW;
+      let zoneH;
+      let spellH;
+      if (compact) {
+        spellH = 22;
+        zoneH = Math.max(44, Math.min(64, (this.field.h - topInset - bottomInset - spellH * 2 - gap * 3) / 2));
+        zoneW = Math.max(30, Math.min(48, zoneH * 59 / 86, (playableW - zoneGap * 4) / 5));
+      } else {
+        const maxZoneByWidth = (playableW - zoneGap * 4) / 5;
+        const maxZoneByHeight = ((this.field.h - topInset - bottomInset - gap * 3) / 4) * 59 / 86;
+        zoneW = Math.max(30, Math.min(84, maxZoneByWidth, maxZoneByHeight));
+        zoneH = zoneW * 86 / 59;
+        spellH = zoneH;
+      }
+      const startX = this.field.x + (this.field.w - (zoneW * 5 + zoneGap * 4)) / 2;
+      const rowsH = compact ? spellH * 2 + zoneH * 2 + gap * 3 : zoneH * 4 + gap * 3;
+      const startY = compact
+        ? this.field.y + topInset
+        : this.field.y + Math.max(topInset, (this.field.h - rowsH) / 2);
+
+      this.oppSpells = this.zones(startX, startY, zoneW, spellH, zoneGap);
+      this.oppMonsters = this.zones(startX, startY + spellH + gap, zoneW, zoneH, zoneGap);
+      this.ownMonsters = this.zones(startX, startY + spellH + zoneH + gap * 2, zoneW, zoneH, zoneGap);
+      this.ownSpells = this.zones(startX, startY + spellH + zoneH * 2 + gap * 3, zoneW, spellH, zoneGap);
+
+      const pileH = compact ? 38 : zoneH;
+      const leftPileX = this.field.x + gap;
+      const rightPileX = this.field.x + this.field.w - gap - pileW;
+      if (compact) {
+        const topPileY = this.field.y + 42;
+        const ownPileY = this.field.y + this.field.h - pileH - 12;
+        this.piles = {
+          oppDeck: { x: rightPileX, y: topPileY, w: pileW, h: pileH },
+          oppGrave: { x: leftPileX, y: topPileY, w: pileW, h: pileH },
+          oppBanished: { x: leftPileX, y: topPileY + pileH + 6, w: pileW, h: pileH },
+          ownBanished: { x: rightPileX, y: ownPileY - pileH - 6, w: pileW, h: pileH },
+          ownGrave: { x: leftPileX, y: ownPileY, w: pileW, h: pileH },
+          ownDeck: { x: rightPileX, y: ownPileY, w: pileW, h: pileH },
+        };
+      } else {
+        this.piles = {
+          oppDeck: { x: rightPileX, y: this.oppSpells[0].y, w: pileW, h: pileH },
+          oppGrave: { x: leftPileX, y: this.oppSpells[0].y, w: pileW, h: pileH },
+          oppBanished: { x: leftPileX, y: this.oppMonsters[0].y, w: pileW, h: pileH },
+          ownBanished: { x: rightPileX, y: this.ownMonsters[0].y, w: pileW, h: pileH },
+          ownGrave: { x: leftPileX, y: this.ownSpells[0].y, w: pileW, h: pileH },
+          ownDeck: { x: rightPileX, y: this.ownSpells[0].y, w: pileW, h: pileH },
+        };
+      }
     }
 
-    zones(startX, y, w, h) {
-      return Array.from({ length: 5 }, (_, i) => ({ x: startX + i * (w + 10), y, w, h }));
+    zones(startX, y, w, h, gap) {
+      return Array.from({ length: 5 }, (_, i) => ({ x: startX + i * (w + gap), y, w, h }));
     }
 
     selectedCard() {
@@ -143,64 +212,180 @@
     }
 
     drawPreview(g) {
-      Ui.rect(g, this.preview, "rgba(12,16,20,.92)", "#303946");
+      if (this.preview.w <= 0 || this.preview.h <= 0) return;
+      this.roundRect(g, this.preview, 8, "rgba(13,17,22,.94)", "#3b4652");
       const card = this.selectedCard();
       g.fillStyle = "#f1f5f8";
-      g.font = "700 17px system-ui";
-      g.fillText("Preview", this.preview.x + 12, this.preview.y + 28);
-      const w = Math.min(this.preview.w - 48, 220);
+      g.font = "700 16px system-ui";
+      g.fillText("Selected", this.preview.x + 14, this.preview.y + 27);
+      const compact = this.preview.h < 130;
+      const w = compact ? 50 : Math.min(this.preview.w - 50, 212);
       const h = w * 86 / 59;
-      const x = this.preview.x + (this.preview.w - w) / 2;
-      const y = this.preview.y + 58;
+      const x = compact ? this.preview.x + 14 : this.preview.x + (this.preview.w - w) / 2;
+      const y = compact ? this.preview.y + 38 : this.preview.y + 54;
       Ui.cardImage(g, this.app.images, card, x, y, w, h);
       if (!card) return;
+      const textX = compact ? x + w + 12 : this.preview.x + 16;
+      const textY = compact ? this.preview.y + 52 : y + h + 30;
+      const textW = compact ? this.preview.w - (textX - this.preview.x) - 14 : this.preview.w - 32;
       g.fillStyle = "#f1f5f8";
-      g.font = "700 18px system-ui";
-      Ui.text(g, card.name, this.preview.x + 16, y + h + 32, this.preview.w - 32);
+      g.font = "700 17px system-ui";
+      Ui.text(g, card.name, textX, textY, textW);
       g.fillStyle = Ui.kindColor(card.kind);
       g.font = "14px system-ui";
-      g.fillText(Card.kindTag(card.kind), this.preview.x + 16, y + h + 56);
+      g.fillText(Card.kindTag(card.kind), textX, textY + 24);
       g.fillStyle = "#d8e0e8";
-      Ui.wrap(g, card.desc, this.preview.x + 16, y + h + 84, this.preview.w - 32, 19, 10);
-    }
-
-    drawField(g) {
-      Ui.rect(g, this.field, "rgba(12,16,20,.88)", "#303946");
-      this.label(g, "Opponent Spell/Trap", this.oppSpells[0]);
-      this.label(g, "Opponent Monsters", this.oppMonsters[0]);
-      this.label(g, "Your Monsters", this.ownMonsters[0]);
-      this.label(g, "Your Spell/Trap", this.ownSpells[0]);
-      for (let i = 0; i < 5; i += 1) {
-        this.drawZone(g, this.oppSpells[i], this.app.duel.spells[0][i], this.player === 0 && this.mode === "spell" && this.cursor === i);
-        this.drawZone(g, this.oppMonsters[i], this.app.duel.monsters[0][i], this.player === 0 && this.mode === "monster" && this.cursor === i);
-        this.drawZone(g, this.ownMonsters[i], this.app.duel.monsters[1][i], this.player === 1 && this.mode === "monster" && this.cursor === i);
-        this.drawZone(g, this.ownSpells[i], this.app.duel.spells[1][i], this.player === 1 && this.mode === "spell" && this.cursor === i);
+      if (compact) {
+        g.font = "12px system-ui";
+        g.fillText(card.kind === 0 ? `L${card.level} ${card.atk}/${card.def}` : Card.kindName(card.kind), textX, textY + 46);
+      } else {
+        Ui.wrap(g, card.desc, this.preview.x + 16, y + h + 82, this.preview.w - 32, 18, 11);
       }
     }
 
-    label(g, text, zone) {
-      g.fillStyle = "#9faab7";
-      g.font = "13px system-ui";
-      g.fillText(text, this.field.x + 16, zone.y - 8);
+    drawField(g) {
+      this.drawMat(g);
+      this.drawPlayerRail(g, 0);
+      this.drawPlayerRail(g, 1);
+      this.drawPhaseBadge(g);
+      if (!this.compact) {
+        this.drawRowLabel(g, "SPELL & TRAP", this.oppSpells, false);
+        this.drawRowLabel(g, "MONSTER ZONE", this.oppMonsters, false);
+        this.drawRowLabel(g, "MONSTER ZONE", this.ownMonsters, true);
+        this.drawRowLabel(g, "SPELL & TRAP", this.ownSpells, true);
+      }
+      this.drawPiles(g);
+      for (let i = 0; i < 5; i += 1) {
+        this.drawZone(g, this.oppSpells[i], this.app.duel.spells[0][i], this.player === 0 && this.mode === "spell" && this.cursor === i, "spell");
+        this.drawZone(g, this.oppMonsters[i], this.app.duel.monsters[0][i], this.player === 0 && this.mode === "monster" && this.cursor === i, "monster");
+        this.drawZone(g, this.ownMonsters[i], this.app.duel.monsters[1][i], this.player === 1 && this.mode === "monster" && this.cursor === i, "monster");
+        this.drawZone(g, this.ownSpells[i], this.app.duel.spells[1][i], this.player === 1 && this.mode === "spell" && this.cursor === i, "spell");
+      }
     }
 
-    drawZone(g, rect, card, selected) {
-      Ui.rect(g, rect, "rgba(18,24,30,.92)", selected ? "#f3d45b" : "#303946");
-      if (card) Ui.cardImage(g, this.app.images, card, rect.x + 4, rect.y + 4, rect.w - 8, rect.h - 8);
+    drawMat(g) {
+      const r = this.field;
+      const grd = g.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+      grd.addColorStop(0, "#12251f");
+      grd.addColorStop(0.45, "#17232a");
+      grd.addColorStop(1, "#2a1d27");
+      this.roundRect(g, r, 8, grd, "#41505b");
+      g.fillStyle = "rgba(235,220,161,.08)";
+      g.fillRect(r.x + 12, r.y + r.h / 2 - 1, r.w - 24, 2);
+      g.strokeStyle = "rgba(243,212,91,.25)";
+      g.beginPath();
+      g.moveTo(r.x + r.w / 2, r.y + 12);
+      g.lineTo(r.x + r.w / 2, r.y + r.h - 12);
+      g.stroke();
+    }
+
+    drawPlayerRail(g, player) {
+      const topSide = player === 0;
+      const d = this.app.duel;
+      const inset = this.compact ? 66 : 14;
+      const rail = {
+        x: this.field.x + inset,
+        y: topSide ? this.field.y + 12 : this.field.y + this.field.h - 38,
+        w: this.field.w - inset * 2,
+        h: 28,
+      };
+      g.fillStyle = topSide ? "rgba(132,92,196,.22)" : "rgba(67,169,117,.22)";
+      g.fillRect(rail.x, rail.y, rail.w, rail.h);
+      g.strokeStyle = topSide ? "rgba(174,139,225,.42)" : "rgba(103,211,146,.42)";
+      g.strokeRect(rail.x + 0.5, rail.y + 0.5, rail.w - 1, rail.h - 1);
+      g.fillStyle = "#f1f5f8";
+      g.font = "700 13px system-ui";
+      g.fillText(player === 0 ? "OPPONENT" : "YOU", rail.x + 10, rail.y + 19);
+      g.textAlign = "right";
+      g.fillText(`LP ${d.lp[player]}`, rail.x + rail.w - 10, rail.y + 19);
+      g.textAlign = "left";
+    }
+
+    drawPhaseBadge(g) {
+      const names = ["DRAW", "STANDBY", "MAIN 1", "BATTLE", "MAIN 2", "END"];
+      const text = names[this.app.duel.phase] || `PHASE ${this.app.duel.phase}`;
+      const w = this.compact ? 74 : Math.min(150, Math.max(104, this.field.w * 0.18));
+      const r = {
+        x: this.field.x + (this.field.w - w) / 2,
+        y: this.compact ? this.field.y + 8 : this.field.y + this.field.h / 2 - 15,
+        w,
+        h: this.compact ? 22 : 30,
+      };
+      this.roundRect(g, r, 6, "rgba(8,11,14,.78)", "#e0b854");
+      g.fillStyle = "#f2d46f";
+      g.font = this.compact ? "700 10px system-ui" : "700 12px system-ui";
+      g.textAlign = "center";
+      g.fillText(text, r.x + r.w / 2, r.y + (this.compact ? 15 : 20));
+      g.textAlign = "left";
+    }
+
+    drawRowLabel(g, text, zones, own) {
+      const first = zones[0];
+      const last = zones[zones.length - 1];
+      g.fillStyle = own ? "rgba(103,211,146,.9)" : "rgba(174,139,225,.9)";
+      g.font = "700 10px system-ui";
+      g.textAlign = "center";
+      g.fillText(text, first.x + (last.x + last.w - first.x) / 2, first.y - 7);
+      g.textAlign = "left";
+    }
+
+    drawPiles(g) {
+      const d = this.app.duel;
+      this.drawPile(g, this.piles.oppDeck, "DECK", d.deck[0].length, true);
+      this.drawPile(g, this.piles.oppGrave, "GY", d.graveCount?.[0] ?? d.grave[0].length, false);
+      this.drawPile(g, this.piles.oppBanished, "BAN", d.banishedCount?.[0] ?? d.banished[0].length, false);
+      this.drawPile(g, this.piles.ownDeck, "DECK", d.deck[1].length, true);
+      this.drawPile(g, this.piles.ownGrave, "GY", d.graveCount?.[1] ?? d.grave[1].length, false);
+      this.drawPile(g, this.piles.ownBanished, "BAN", d.banishedCount?.[1] ?? d.banished[1].length, false);
+    }
+
+    drawPile(g, rect, label, count, deck) {
+      this.roundRect(g, rect, 6, deck ? "rgba(70,43,30,.88)" : "rgba(15,20,25,.78)", deck ? "#c89b63" : "#596673");
+      g.fillStyle = deck ? "rgba(216,174,103,.18)" : "rgba(214,224,232,.08)";
+      g.fillRect(rect.x + 5, rect.y + 6, rect.w - 10, rect.h - 12);
+      g.fillStyle = "#dce5ed";
+      g.font = this.compact ? "700 9px system-ui" : "700 10px system-ui";
+      g.textAlign = "center";
+      g.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2 - 2);
+      g.font = this.compact ? "11px system-ui" : "12px system-ui";
+      g.fillText(String(count), rect.x + rect.w / 2, rect.y + rect.h / 2 + 15);
+      g.textAlign = "left";
+    }
+
+    drawZone(g, rect, card, selected, type) {
+      const stroke = selected ? "#f3d45b" : type === "monster" ? "#b65e64" : "#62b979";
+      const fill = type === "monster" ? "rgba(55,27,31,.86)" : "rgba(25,52,38,.84)";
+      this.roundRect(g, rect, 6, fill, stroke);
+      g.fillStyle = "rgba(255,255,255,.045)";
+      g.fillRect(rect.x + 5, rect.y + 5, rect.w - 10, rect.h - 10);
+      if (selected) {
+        g.strokeStyle = "#f3d45b";
+        g.lineWidth = 2;
+        g.strokeRect(rect.x - 3, rect.y - 3, rect.w + 6, rect.h + 6);
+        g.lineWidth = 1;
+      }
+      if (card) Ui.cardImage(g, this.app.images, card, rect.x + 5, rect.y + 5, rect.w - 10, rect.h - 10);
     }
 
     drawHands(g) {
-      this.drawHand(g, this.oppHand, this.app.duel.hand[0], false);
+      if (!this.compact) this.drawHand(g, this.oppHand, this.app.duel.hand[0], false);
       this.drawHand(g, this.ownHand, this.app.duel.hand[1], true);
     }
 
     drawHand(g, rect, cards, own) {
-      Ui.rect(g, rect, "rgba(12,16,20,.92)", own && this.mode === "hand" && this.player === 1 ? "#f3d45b" : "#303946");
-      const w = own ? 48 : 32;
+      this.roundRect(g, rect, 8, own ? "rgba(13,22,18,.94)" : "rgba(16,15,24,.94)", own && this.mode === "hand" && this.player === 1 ? "#f3d45b" : "#3a4651");
+      g.fillStyle = own ? "#67d392" : "#ae8be1";
+      g.font = "700 11px system-ui";
+      g.fillText(own ? "YOUR HAND" : "OPPONENT HAND", rect.x + 12, rect.y + 18);
+      const maxCards = Math.max(1, cards.length);
+      const maxByHeight = Math.max(22, (rect.h - 24) * 59 / 86);
+      const w = Math.max(22, Math.min(maxByHeight, 50, (rect.w - 34) / Math.max(8, maxCards)));
       const h = w * 86 / 59;
+      const overlap = cards.length > 1 ? Math.min(w + 8, (rect.w - w - 24) / (cards.length - 1)) : 0;
+      const startX = rect.x + 12 + Math.max(0, (rect.w - 24 - (w + overlap * (cards.length - 1))) / 2);
+      const y = rect.y + rect.h - h - 8;
       for (let i = 0; i < cards.length; i += 1) {
-        const x = rect.x + 12 + i * (own ? 56 : 38);
-        const y = rect.y + 8;
+        const x = startX + i * overlap;
         if (own && this.mode === "hand" && this.cursor === i) {
           g.strokeStyle = "#f3d45b";
           g.strokeRect(x - 3, y - 3, w + 6, h + 6);
@@ -210,33 +395,45 @@
       }
     }
 
-    drawInfo(g) {
-      const x = this.field.x + 16;
-      const y = this.field.y + 28;
-      g.fillStyle = "#f1f5f8";
-      g.font = "700 17px system-ui";
-      g.fillText(`Turn Player: P${this.app.duel.turnPlayer + 1}`, x, y);
-      g.fillStyle = "#9faab7";
-      g.font = "13px system-ui";
-      g.fillText(this.playerLine(0), x, y + 22);
-      g.fillText(this.playerLine(1), x, y + 40);
-    }
-
-    playerLine(player) {
-      const d = this.app.duel;
-      const grave = d.graveCount?.[player] ?? d.grave[player].length;
-      const banished = d.banishedCount?.[player] ?? d.banished[player].length;
-      return `P${player + 1} LP ${d.lp[player]}   Deck ${d.deck[player].length}   Hand ${d.hand[player].length}   GY ${grave}   Banished ${banished}`;
-    }
-
     hitZones(zones, x, y) {
       return zones.findIndex((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
     }
 
     hitHand(rect, cards, x, y) {
       if (x < rect.x || x > rect.x + rect.w || y < rect.y || y > rect.y + rect.h) return -1;
-      const index = Math.floor((x - rect.x - 12) / 56);
-      return index >= 0 && index < cards.length ? index : -1;
+      if (!cards.length) return -1;
+      const maxCards = Math.max(1, cards.length);
+      const maxByHeight = Math.max(22, (rect.h - 24) * 59 / 86);
+      const w = Math.max(22, Math.min(maxByHeight, 50, (rect.w - 34) / Math.max(8, maxCards)));
+      const overlap = cards.length > 1 ? Math.min(w + 8, (rect.w - w - 24) / (cards.length - 1)) : 0;
+      const startX = rect.x + 12 + Math.max(0, (rect.w - 24 - (w + overlap * (cards.length - 1))) / 2);
+      for (let i = cards.length - 1; i >= 0; i -= 1) {
+        const cx = startX + i * overlap;
+        const cy = rect.y + rect.h - (w * 86 / 59) - 8;
+        if (x >= cx && x <= cx + w && y >= cy && y <= cy + w * 86 / 59) return i;
+      }
+      return -1;
+    }
+
+    roundRect(g, r, radius, fill, stroke) {
+      const rad = Math.min(radius, r.w / 2, r.h / 2);
+      g.beginPath();
+      g.moveTo(r.x + rad, r.y);
+      g.lineTo(r.x + r.w - rad, r.y);
+      g.quadraticCurveTo(r.x + r.w, r.y, r.x + r.w, r.y + rad);
+      g.lineTo(r.x + r.w, r.y + r.h - rad);
+      g.quadraticCurveTo(r.x + r.w, r.y + r.h, r.x + r.w - rad, r.y + r.h);
+      g.lineTo(r.x + rad, r.y + r.h);
+      g.quadraticCurveTo(r.x, r.y + r.h, r.x, r.y + r.h - rad);
+      g.lineTo(r.x, r.y + rad);
+      g.quadraticCurveTo(r.x, r.y, r.x + rad, r.y);
+      g.closePath();
+      g.fillStyle = fill;
+      g.fill();
+      if (stroke) {
+        g.strokeStyle = stroke;
+        g.stroke();
+      }
     }
   }
 

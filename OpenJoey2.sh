@@ -12,6 +12,7 @@
 #   -r   Run web app with BusyBox httpd at http://localhost:8080
 #   -W   Build web/WASM, then run web app
 #   -n   Build/run root CMake release smoke target when one exists
+#   -t   Run automated browser smoke test
 #   -c   Clean root build trees
 #   -h   Show this help
 #
@@ -135,6 +136,11 @@ native_smoke() {
   echo "[smoke] no OpenJoey2 binary produced by root CMake."
 }
 
+browser_smoke() {
+  echo "[browser] automated smoke test..."
+  node "${SRC_DIR}/tools/browser-smoke.js"
+}
+
 exec_debug() {
   [[ ! -x "${BIN_DEBUG}" ]] && build_debug
   echo "[exec] ${BIN_DEBUG}"
@@ -155,7 +161,7 @@ do_clean() {
 
 [[ $# -eq 0 ]] && { help_msg; exit 0; }
 
-while getopts ":sbBxXwWrnch" opt; do
+while getopts ":sbBxXwWrntch" opt; do
   case "${opt}" in
     s) setup_debug; setup_release ;;
     b) build_debug ;;
@@ -166,6 +172,7 @@ while getopts ":sbBxXwWrnch" opt; do
     W) build_and_run_web ;;
     r) run_web ;;
     n) native_smoke ;;
+    t) browser_smoke ;;
     c) do_clean ;;
     h) help_msg ;;
     :) echo "Option -${OPTARG} requires an argument."; exit 1 ;;
