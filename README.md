@@ -163,7 +163,7 @@ OPENJOEY_PORT=9090 ./OpenJoey2.sh -r
 ```text
 src/web/
 ├── .nojekyll
-├── favicon.svg
+├── favicon.png
 ├── index.html
 ├── styles.css
 ├── cards-db.js
