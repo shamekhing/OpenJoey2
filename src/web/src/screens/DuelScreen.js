@@ -121,13 +121,13 @@
     }
 
     layout() {
-      const compact = this.app.w < 900;
+      const compact = this.app.w < 900 || this.app.h < 520;
       this.compact = compact;
       const sideW = compact ? 0 : Math.max(238, Math.min(310, Math.floor(this.app.w * 0.22)));
       const outer = 14;
-      const top = compact ? 60 : 68;
-      const bottomBar = compact ? 30 : 44;
-      const handH = compact ? 86 : 88;
+      const top = this.app.chromeTop() + (compact ? 6 : 12);
+      const bottomBar = this.app.chromeBottom() + (compact ? 8 : 14);
+      const handH = compact ? Math.max(66, Math.min(86, Math.floor(this.app.h * 0.22))) : 88;
       const gap = compact ? 6 : 14;
 
       this.preview = {
@@ -143,7 +143,7 @@
         x: fieldX,
         y: top,
         w: fieldW,
-        h: this.app.h - top - bottomBar - (compact ? handH + gap : handH * 2 + gap * 2),
+        h: Math.max(120, this.app.h - top - bottomBar - (compact ? handH + gap : handH * 2 + gap * 2)),
       };
 
       this.oppHand = compact
@@ -163,7 +163,7 @@
       let spellH;
       if (compact) {
         spellH = 22;
-        zoneH = Math.max(44, Math.min(64, (this.field.h - topInset - bottomInset - spellH * 2 - gap * 3) / 2));
+        zoneH = Math.max(34, Math.min(64, (this.field.h - topInset - bottomInset - spellH * 2 - gap * 3) / 2));
         zoneW = Math.max(30, Math.min(48, zoneH * 59 / 86, (playableW - zoneGap * 4) / 5));
       } else {
         const maxZoneByWidth = (playableW - zoneGap * 4) / 5;
@@ -303,10 +303,10 @@
       g.strokeRect(rail.x + 0.5, rail.y + 0.5, rail.w - 1, rail.h - 1);
       g.fillStyle = "#f1f5f8";
       g.font = "700 13px system-ui";
-      g.fillText(player === 0 ? "OPPONENT" : "YOU", rail.x + 10, rail.y + 19);
+      g.fillText(this.compact && player === 0 ? "OPP" : player === 0 ? "OPPONENT" : "YOU", rail.x + 10, rail.y + 19);
       if (d.turnPlayer === player) {
         g.fillStyle = topSide ? "#d8c5ff" : "#b4f0ca";
-        g.fillText("TURN", rail.x + (this.compact ? 74 : 92), rail.y + 19);
+        g.fillText("TURN", rail.x + (this.compact ? 46 : 92), rail.y + 19);
       }
       g.textAlign = "right";
       g.fillText(`LP ${d.lp[player]}`, rail.x + rail.w - 10, rail.y + 19);

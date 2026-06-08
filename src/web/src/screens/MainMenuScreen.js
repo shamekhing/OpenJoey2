@@ -30,8 +30,8 @@
     }
 
     click(x, y) {
-      const startY = this.app.h / 2;
-      const row = Math.floor((y - startY + 8) / 44);
+      const metrics = this.metrics();
+      const row = Math.floor((y - metrics.startY + metrics.rowH / 2) / metrics.rowH);
       if (row >= 0 && row < this.items.length) {
         this.cursor = row;
         const target = this.items[row][1];
@@ -39,18 +39,38 @@
       }
     }
 
+    metrics() {
+      const short = this.app.h < 460;
+      const titleSize = Math.max(34, Math.min(short ? 44 : 64, Math.floor(this.app.w * 0.15)));
+      const itemSize = Math.max(20, Math.min(short ? 24 : 28, Math.floor(this.app.w * 0.072)));
+      const rowH = Math.max(34, itemSize + 14);
+      const top = this.app.chromeTop();
+      const bottom = this.app.chromeBottom();
+      const titleY = Math.max(top + titleSize + 10, Math.floor(this.app.h * (short ? 0.27 : 0.25)));
+      const menuH = rowH * this.items.length;
+      const startY = Math.min(
+        this.app.h - bottom - menuH + rowH * 0.78,
+        Math.max(titleY + rowH * 1.35, Math.floor(this.app.h * (short ? 0.47 : 0.5))),
+      );
+      return { titleSize, itemSize, rowH, titleY, startY };
+    }
+
     draw(g) {
       this.app.drawChrome("OpenJoey", "UP/DOWN to navigate, ENTER to select");
+      const metrics = this.metrics();
       g.fillStyle = "#d7b84d";
-      g.font = "700 64px system-ui";
+      g.font = `700 ${metrics.titleSize}px system-ui`;
       g.textAlign = "center";
-      g.fillText("OpenJoey", this.app.w / 2, this.app.h / 4);
-      const startY = this.app.h / 2;
-      g.font = "28px system-ui";
+      g.fillText("OpenJoey", this.app.w / 2, metrics.titleY, this.app.w - 28);
+      g.font = `${metrics.itemSize}px system-ui`;
       for (let i = 0; i < this.items.length; i += 1) {
+        const y = metrics.startY + i * metrics.rowH;
         g.fillStyle = i === this.cursor ? "#f3d45b" : "#d7dde6";
-        g.fillText(this.items[i][0], this.app.w / 2, startY + i * 44);
-        if (i === this.cursor) g.fillText(">", this.app.w / 2 - 150, startY + i * 44);
+        g.fillText(this.items[i][0], this.app.w / 2, y);
+        if (i === this.cursor) {
+          const markerX = Math.max(24, this.app.w / 2 - Math.min(150, this.app.w * 0.36));
+          g.fillText(">", markerX, y);
+        }
       }
       g.textAlign = "left";
     }

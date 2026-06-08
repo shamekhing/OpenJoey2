@@ -13,7 +13,20 @@ const sitePort = Number(process.env.OPENJOEY_TEST_PORT || 4177);
 const cdpPort = Number(process.env.OPENJOEY_CDP_PORT || 9228);
 const url = process.env.OPENJOEY_TEST_URL || `http://127.0.0.1:${sitePort}/`;
 const outDir = process.env.OPENJOEY_TEST_OUT || path.join(root, "build", "browser-smoke");
-const screenshotPath = path.join(outDir, "duel.png");
+const testScreen = process.env.OPENJOEY_TEST_SCREEN || "duel";
+
+function parseViewport(value) {
+  if (!value) return null;
+  const match = String(value).match(/^(\d+)x(\d+)$/);
+  if (!match) throw new Error(`Invalid OPENJOEY_TEST_VIEWPORT: ${value}`);
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+const viewport = parseViewport(process.env.OPENJOEY_TEST_VIEWPORT);
+const screenshotName = viewport
+  ? `${testScreen}-${viewport.width}x${viewport.height}.png`
+  : `${testScreen}.png`;
+const screenshotPath = path.join(outDir, screenshotName);
 
 function log(message) {
   console.log(`[browser-smoke] ${message}`);
@@ -241,6 +254,38 @@ function spawnProcess(command, args, options = {}) {
   });
 }
 
+function runMatrix(name) {
+  const cases = name === "phone"
+    ? [
+        ["deck", "390x844"],
+        ["deck", "844x390"],
+        ["duel", "390x844"],
+        ["duel", "844x390"],
+      ]
+    : [];
+  if (!cases.length) throw new Error(`Unknown OPENJOEY_TEST_MATRIX: ${name}`);
+
+  for (let i = 0; i < cases.length; i += 1) {
+    const [screen, size] = cases[i];
+    log(`matrix ${i + 1}/${cases.length}: ${screen} ${size}`);
+    const env = {
+      ...process.env,
+      OPENJOEY_TEST_SCREEN: screen,
+      OPENJOEY_TEST_VIEWPORT: size,
+      OPENJOEY_TEST_PORT: String(sitePort + i + 1),
+      OPENJOEY_CDP_PORT: String(cdpPort + i + 1),
+    };
+    delete env.OPENJOEY_TEST_MATRIX;
+    const result = childProcess.spawnSync(process.execPath, [__filename], {
+      cwd: root,
+      env,
+      stdio: "inherit",
+    });
+    if (result.status !== 0) process.exit(result.status || 1);
+  }
+  log(`${name} matrix passed`);
+}
+
 function killProcess(proc) {
   if (!proc || proc.killed) return;
   try {
@@ -315,9 +360,17 @@ async function main() {
     await cdp.send("Page.enable");
     await cdp.send("Log.enable");
     await cdp.send("Network.enable");
+    if (viewport) {
+      await cdp.send("Emulation.setDeviceMetricsOverride", {
+        width: viewport.width,
+        height: viewport.height,
+        deviceScaleFactor: 1,
+        mobile: viewport.width < 700,
+      });
+    }
 
     await waitForApp(cdp);
-    await cdp.send("Runtime.evaluate", { expression: "window.openJoeyApp.goto('duel')" });
+    await cdp.send("Runtime.evaluate", { expression: `window.openJoeyApp.goto(${JSON.stringify(testScreen)})` });
     await new Promise((resolve) => setTimeout(resolve, 1800));
 
     const expression = `JSON.stringify((() => {
@@ -330,7 +383,11 @@ async function main() {
         screen: app && app.screen && app.screen.constructor.name,
         cardCount: app && app.cardDb && app.cardDb.cards.length,
         field: app && app.screen && app.screen.field,
-        ownHand: app && app.screen && app.screen.ownHand
+        ownHand: app && app.screen && app.screen.ownHand,
+        preview: app && app.screen && app.screen.preview,
+        pool: app && app.screen && app.screen.pool,
+        deck: app && app.screen && app.screen.deck,
+        layoutMode: app && app.screen && app.screen.layoutMode
       };
     })())`;
 
@@ -357,14 +414,24 @@ async function main() {
 
     if (!state.appReady) throw new Error("App did not initialize");
     if (state.backend !== "C++ WASM") throw new Error(`Expected C++ WASM backend, got ${state.backend}`);
-    if (state.screen !== "DuelScreen") throw new Error(`Expected DuelScreen, got ${state.screen}`);
+    const expectedScreen = testScreen === "deck" ? "DeckEditorScreen" : testScreen === "duel" ? "DuelScreen" : null;
+    if (expectedScreen && state.screen !== expectedScreen) throw new Error(`Expected ${expectedScreen}, got ${state.screen}`);
     if (!state.status || !state.status.includes("C++ WASM")) throw new Error(`Unexpected status: ${state.status}`);
     if (!state.cardCount || state.cardCount < 1000) throw new Error(`Unexpected card count: ${state.cardCount}`);
-    if (!state.field || state.field.h < 100) throw new Error(`Duel field is too small: ${JSON.stringify(state.field)}`);
+    if (testScreen === "duel" && (!state.field || state.field.h < 100)) {
+      throw new Error(`Duel field is too small: ${JSON.stringify(state.field)}`);
+    }
+    if (testScreen === "deck") {
+      const rects = [state.pool, state.deck].filter(Boolean);
+      for (const rect of rects) {
+        if (rect.w < 120 || rect.h < 120) throw new Error(`Deck editor panel is too small: ${JSON.stringify(state)}`);
+      }
+    }
     if (failures.length) throw new Error(`Browser errors: ${JSON.stringify(failures, null, 2)}`);
 
     log(`backend: ${state.backend}`);
     log(`screen: ${state.screen}`);
+    if (state.layoutMode) log(`layout: ${state.layoutMode}`);
     log(`cards: ${state.cardCount}`);
     log(`screenshot: ${screenshotPath}`);
     log("passed");
@@ -374,7 +441,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+const run = process.env.OPENJOEY_TEST_MATRIX
+  ? Promise.resolve().then(() => runMatrix(process.env.OPENJOEY_TEST_MATRIX))
+  : main();
+
+run.catch((error) => {
   console.error(`[browser-smoke] failed: ${error.stack || error.message || error}`);
   process.exit(1);
 });

@@ -41,18 +41,36 @@
     }
 
     layout() {
-      const top = 72;
-      const bottom = 54;
-      const h = this.app.h - top - bottom;
-      const previewW = Math.max(260, Math.floor(this.app.w * 0.25));
-      const deckW = Math.max(360, Math.floor(this.app.w * 0.32));
-      const poolW = this.app.w - previewW - deckW - 28;
-      this.preview = { x: 14, y: top, w: previewW, h };
-      this.pool = { x: 14 + previewW, y: top, w: poolW, h };
-      this.deck = { x: 14 + previewW + poolW, y: top, w: deckW, h };
+      const margin = this.app.w < 520 || this.app.h < 520 ? 8 : 14;
+      const gap = this.app.w < 520 || this.app.h < 520 ? 8 : 10;
+      const top = this.app.chromeTop() + (margin === 8 ? 8 : 16);
+      const bottom = this.app.chromeBottom() + (margin === 8 ? 8 : 14);
+      const h = Math.max(160, this.app.h - top - bottom);
+      const portrait = this.app.w <= 620 && this.app.h > this.app.w;
+      const landscapePhone = this.app.h < 560 || this.app.w < 900;
+      this.layoutMode = portrait ? "portrait" : landscapePhone ? "landscape" : "wide";
+
+      if (portrait) {
+        const w = this.app.w - margin * 2;
+        const poolH = Math.max(210, Math.floor((h - gap) * 0.56));
+        this.preview = { x: margin, y: top, w: 0, h: 0 };
+        this.pool = { x: margin, y: top, w, h: poolH };
+        this.deck = { x: margin, y: top + poolH + gap, w, h: h - poolH - gap };
+      } else {
+        const previewW = landscapePhone
+          ? Math.max(126, Math.min(178, Math.floor(this.app.w * 0.18)))
+          : Math.max(260, Math.floor(this.app.w * 0.25));
+        const deckW = landscapePhone
+          ? Math.max(218, Math.min(300, Math.floor(this.app.w * 0.32)))
+          : Math.max(360, Math.floor(this.app.w * 0.32));
+        const poolW = Math.max(190, this.app.w - margin * 2 - previewW - deckW);
+        this.preview = { x: margin, y: top, w: previewW, h };
+        this.pool = { x: margin + previewW, y: top, w: poolW, h };
+        this.deck = { x: margin + previewW + poolW, y: top, w: this.app.w - margin - (margin + previewW + poolW), h };
+      }
       this.app.searchInput.style.left = `${this.pool.x + 12}px`;
       this.app.searchInput.style.top = `${this.pool.y + 62}px`;
-      this.app.searchInput.style.width = `${this.pool.w - 24}px`;
+      this.app.searchInput.style.width = `${Math.max(120, this.pool.w - 24)}px`;
     }
 
     dispose() {
@@ -78,7 +96,7 @@
       if (event.target === this.app.searchInput && event.key !== "Enter" && event.key !== "Escape") return;
       const block = ["Tab", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "PageDown", "PageUp", "Enter", "Delete", "Backspace"];
       if (block.includes(event.key)) event.preventDefault();
-      const step = !this.focusPool && this.deckGrid ? 4 : 1;
+      const step = !this.focusPool && this.deckGrid ? this.gridCols(this.deck) : 1;
       if (event.key === "Escape") this.app.goto("menu");
       else if (event.key === "Tab") this.focusPool = !this.focusPool;
       else if (event.key === "ArrowDown") this.move(step);
@@ -199,23 +217,26 @@
     hitRows(rect, items, cursor, offset, grid, x, y) {
       if (x < rect.x || x > rect.x + rect.w || y < rect.y + offset || y > rect.y + rect.h) return -1;
       if (grid) {
-        const cols = 4;
+        const cols = this.gridCols(rect);
         const gap = 8;
         const cellW = (rect.w - gap * (cols + 1)) / cols;
         const cardH = cellW * 86 / 59;
         const cellH = cardH + 24;
-        const visible = Math.floor((rect.h - offset) / (cellH + gap)) * cols;
+        const visible = Math.max(cols, Math.floor((rect.h - offset) / (cellH + gap)) * cols);
         const start = Ui.visibleStart(items.length, cursor, visible);
         const col = Math.floor((x - rect.x - gap) / (cellW + gap));
         const row = Math.floor((y - rect.y - offset - gap) / (cellH + gap));
+        if (col < 0 || col >= cols || row < 0) return -1;
         return start + row * cols + col;
       }
-      const visible = Math.floor((rect.h - offset - 8) / 64);
+      const visible = Math.max(1, Math.floor((rect.h - offset - 8) / 64));
       return Ui.visibleStart(items.length, cursor, visible) + Math.floor((y - rect.y - offset) / 64);
     }
 
     draw(g) {
-      this.app.drawChrome("DECK EDITOR", "[TAB] switch [Arrows] navigate [ENTER] add [DEL/D] remove [O] sort [T] filter [G] grid/list [C] clear [S] save [L] load [F] duel [ESC] menu");
+      this.app.drawChrome("DECK EDITOR", this.layoutMode === "wide"
+        ? "[TAB] switch [Arrows] navigate [ENTER] add [DEL/D] remove [O] sort [T] filter [G] grid/list [C] clear [S] save [L] load [F] duel [ESC] menu"
+        : "[TAB] switch [ENTER] add [DEL/D] remove [O/T] sort/filter [G] grid [F] duel [ESC] menu");
       this.drawPreview(g);
       this.drawPool(g);
       this.drawDeck(g);
@@ -225,29 +246,36 @@
       Ui.rect(g, rect, "rgba(12,16,20,.92)", focused ? "#f3d45b" : "#303946");
       g.fillStyle = "#f1f5f8";
       g.font = "700 17px system-ui";
-      g.fillText(title, rect.x + 12, rect.y + 28);
+      Ui.text(g, title, rect.x + 12, rect.y + 28, rect.w - 24);
       g.fillStyle = "#9faab7";
       g.font = "14px system-ui";
-      g.fillText(badge, rect.x + 12, rect.y + 49);
+      Ui.text(g, badge, rect.x + 12, rect.y + 49, rect.w - 24);
     }
 
     drawPreview(g) {
+      if (this.preview.w <= 0 || this.preview.h <= 0) return;
       this.panel(g, this.preview, "Preview", "", false);
       const card = this.selected();
-      const w = Math.min(this.preview.w - 48, 240);
+      const compact = this.preview.w < 210 || this.preview.h < 420;
+      const w = compact ? Math.min(this.preview.w - 28, 94) : Math.min(this.preview.w - 48, 240);
       const h = w * 86 / 59;
       const x = this.preview.x + (this.preview.w - w) / 2;
       const y = this.preview.y + 58;
       Ui.cardImage(g, this.app.images, card, x, y, w, h);
       if (!card) return;
       g.fillStyle = "#f1f5f8";
-      g.font = "700 18px system-ui";
+      g.font = compact ? "700 13px system-ui" : "700 18px system-ui";
       Ui.text(g, card.name, this.preview.x + 16, y + h + 32, this.preview.w - 32);
       g.fillStyle = Ui.kindColor(card.kind);
-      g.font = "14px system-ui";
+      g.font = compact ? "12px system-ui" : "14px system-ui";
       g.fillText(Card.kindTag(card.kind), this.preview.x + 16, y + h + 56);
       g.fillStyle = "#d8e0e8";
-      Ui.wrap(g, card.desc, this.preview.x + 16, y + h + 84, this.preview.w - 32, 19, 12);
+      if (compact) {
+        g.font = "12px system-ui";
+        Ui.text(g, card.kind === 0 ? `L${card.level} ${card.atk}/${card.def}` : Card.kindName(card.kind), this.preview.x + 16, y + h + 76, this.preview.w - 32);
+      } else {
+        Ui.wrap(g, card.desc, this.preview.x + 16, y + h + 84, this.preview.w - 32, 19, 12);
+      }
     }
 
     drawPool(g) {
@@ -281,7 +309,7 @@
     }
 
     drawRows(g, rect, items, cursor, focused, offset) {
-      const visible = Math.floor((rect.h - offset - 8) / 64);
+      const visible = Math.max(1, Math.floor((rect.h - offset - 8) / 64));
       const start = Ui.visibleStart(items.length, cursor, visible);
       for (let i = 0; i < visible && start + i < items.length; i += 1) {
         const index = start + i;
@@ -297,7 +325,7 @@
         g.fillText(Card.kindTag(card.kind), rect.x + 58, y + 20);
         g.fillStyle = "#f1f5f8";
         g.font = "700 14px system-ui";
-        Ui.text(g, card.name, rect.x + 58, y + 39, rect.w - 120);
+        Ui.text(g, card.name, rect.x + 58, y + 39, Math.max(40, rect.w - 120));
         g.fillStyle = "#9faab7";
         g.font = "12px system-ui";
         g.fillText(card.kind === 0 ? `L${card.level} ${card.atk}/${card.def}` : Card.kindName(card.kind), rect.x + 58, y + 56);
@@ -310,12 +338,12 @@
     }
 
     drawGrid(g, rect, items, cursor, focused, offset) {
-      const cols = 4;
+      const cols = this.gridCols(rect);
       const gap = 8;
       const cellW = (rect.w - gap * (cols + 1)) / cols;
       const cardH = cellW * 86 / 59;
       const cellH = cardH + 24;
-      const visible = Math.floor((rect.h - offset) / (cellH + gap)) * cols;
+      const visible = Math.max(cols, Math.floor((rect.h - offset) / (cellH + gap)) * cols);
       const start = Ui.visibleStart(items.length, cursor, visible);
       for (let i = 0; i < visible && start + i < items.length; i += 1) {
         const index = start + i;
@@ -331,6 +359,11 @@
         g.font = "12px system-ui";
         Ui.text(g, card.name, x, y + cardH + 16, cellW);
       }
+    }
+
+    gridCols(rect) {
+      if (!rect) return 4;
+      return Math.max(2, Math.min(4, Math.floor(rect.w / 82)));
     }
   }
 
