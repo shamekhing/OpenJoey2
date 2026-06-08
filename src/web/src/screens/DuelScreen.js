@@ -34,6 +34,7 @@
       else if (event.key === "Enter") this.activate();
       else if (event.key.toLowerCase() === "d") this.drawCard();
       else if (event.key.toLowerCase() === "g") this.toGrave();
+      else if (event.key.toLowerCase() === "n") this.nextPhase();
     }
 
     move(delta) {
@@ -58,6 +59,13 @@
       this.app.status = this.app.duel.sendMonsterToGrave(this.player, this.cursor)
         ? "Sent monster to grave"
         : "No monster there";
+    }
+
+    nextPhase() {
+      const names = ["Draw", "Standby", "Main 1", "Battle", "Main 2", "End"];
+      const phase = this.app.duel.advancePhase();
+      const player = this.app.duel.turnPlayer === 1 ? "your" : "opponent";
+      this.app.status = `${player} ${names[phase] || `phase ${phase}`}`;
     }
 
     click(x, y) {
@@ -104,7 +112,7 @@
     draw(g) {
       this.app.drawChrome(
         "DUEL",
-        "[TAB] hand/monster/spell [ENTER] play own hand [D] draw own card [G] own monster to grave [ESC] menu",
+        "[TAB] hand/monster/spell [ENTER] play own hand [N] next phase [D] draw own card [G] own monster to grave [ESC] menu",
       );
       this.layout();
       this.drawField(g);
@@ -296,6 +304,10 @@
       g.fillStyle = "#f1f5f8";
       g.font = "700 13px system-ui";
       g.fillText(player === 0 ? "OPPONENT" : "YOU", rail.x + 10, rail.y + 19);
+      if (d.turnPlayer === player) {
+        g.fillStyle = topSide ? "#d8c5ff" : "#b4f0ca";
+        g.fillText("TURN", rail.x + (this.compact ? 74 : 92), rail.y + 19);
+      }
       g.textAlign = "right";
       g.fillText(`LP ${d.lp[player]}`, rail.x + rail.w - 10, rail.y + 19);
       g.textAlign = "left";

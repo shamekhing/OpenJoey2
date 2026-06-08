@@ -19,6 +19,9 @@ bool oj_game_add_deck_card(OjGame *game, int player, uint32_t id,
 bool oj_game_start(OjGame *game);
 int oj_game_hand_count(const OjGame *game, int player);
 int oj_game_deck_count(const OjGame *game, int player);
+int oj_game_phase(const OjGame *game);
+int oj_game_turn_player(const OjGame *game);
+int oj_game_advance_phase(OjGame *game);
 }
 
 int main() {
@@ -57,6 +60,16 @@ int main() {
       oj_game_hand_count(game, 1) != 5 || oj_game_deck_count(game, 0) != 35 ||
       oj_game_deck_count(game, 1) != 35) {
     std::cerr << "game API smoke check failed\n";
+    oj_game_free(game);
+    return 1;
+  }
+
+  if (oj_game_phase(game) != 0 || oj_game_turn_player(game) != 0 ||
+      oj_game_advance_phase(game) != 1 || oj_game_advance_phase(game) != 2 ||
+      oj_game_advance_phase(game) != 4 || oj_game_advance_phase(game) != 5 ||
+      oj_game_advance_phase(game) != 0 || oj_game_turn_player(game) != 1 ||
+      oj_game_hand_count(game, 1) != 6 || oj_game_deck_count(game, 1) != 34) {
+    std::cerr << "game phase API smoke check failed\n";
     oj_game_free(game);
     return 1;
   }

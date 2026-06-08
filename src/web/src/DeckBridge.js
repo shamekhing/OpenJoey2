@@ -100,6 +100,14 @@
       this.monsters[player][zone] = null;
       return true;
     }
+
+    advancePhase() {
+      const wasEnd = this.phase === 5;
+      this.phase = this.phase >= 5 ? 0 : this.phase + 1;
+      if (wasEnd) this.turnPlayer = 1 - this.turnPlayer;
+      if (this.phase === 0) this.draw(this.turnPlayer);
+      return this.phase;
+    }
   }
 
   class WasmDeckCore {
@@ -222,6 +230,12 @@
       const ok = !!this.module._oj_game_send_monster_to_grave(this.handle, player, zone);
       this.sync();
       return ok;
+    }
+
+    advancePhase() {
+      const phase = this.module._oj_game_advance_phase(this.handle);
+      this.sync();
+      return phase;
     }
 
     sync() {
