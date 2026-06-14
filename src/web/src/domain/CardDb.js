@@ -8,6 +8,44 @@
   const KIND_MONSTER = 0;
   const KIND_SPELL = 1;
   const KIND_TRAP = 2;
+  const GX_OR_EARLIER_SET_PREFIXES = [
+    "LOB",
+    "MRD",
+    "SRL",
+    "PSV",
+    "LON",
+    "LOD",
+    "PGD",
+    "MFC",
+    "DCR",
+    "AST",
+    "SOD",
+    "RDS",
+    "FET",
+    "TLM",
+    "CRV",
+    "EEN",
+    "SOI",
+    "EOJ",
+    "POTD",
+    "CDIP",
+    "STON",
+    "TAEV",
+    "GLAS",
+    "LODT",
+    "PTDN",
+  ];
+
+  const CARD_DB_FILTER_ALL = "all";
+  const CARD_DB_FILTER_GX = "gx";
+
+  function isGXOrEarlierCard(card) {
+    const sets = Array.isArray(card?.card_sets) ? card.card_sets : [];
+    return sets.some((set) => {
+      const code = set?.set_code || "";
+      return GX_OR_EARLIER_SET_PREFIXES.some((prefix) => code.startsWith(prefix));
+    });
+  }
 
   function kindTag(kind) {
     if (kind === KIND_SPELL) return "[SPL]";
@@ -44,6 +82,7 @@
       card.def || 0,
       card.level || card.rank || 0,
       card.humanReadableCardType || card.type || "",
+      isGXOrEarlierCard(card) ? 1 : 0,
     ];
   }
 
@@ -52,6 +91,11 @@
     return data
       .filter((card) => card && card.id && card.name)
       .map(rowFromYgoProDeckCard);
+  }
+
+  function rowsForFilter(rows, filter) {
+    if (filter !== CARD_DB_FILTER_GX) return rows;
+    return rows.filter((row) => Boolean(row[9]));
   }
 
   function rowsFromGeneratedText(text) {
@@ -87,6 +131,7 @@
         def: row[6],
         level: row[7],
         readableType: row[8],
+        gxOrEarlier: Boolean(row[9]),
       }));
       this.byId = new Map(this.cards.map((card) => [card.id, card]));
       this.sorted = [...this.cards];
@@ -130,5 +175,9 @@
     imageUrl,
     rowsFromText,
     rowsFromYgoProDeckJson,
+    rowsForFilter,
+    isGXOrEarlierCard,
+    CARD_DB_FILTER_ALL,
+    CARD_DB_FILTER_GX,
   };
 })();

@@ -30,6 +30,27 @@
       this.renderer.start();
     }
 
+    cardDbFilter() {
+      const { CARD_DB_FILTER_STORAGE_KEY } = window.OpenJoeyDeckConstants;
+      return localStorage.getItem(CARD_DB_FILTER_STORAGE_KEY) || window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
+    }
+
+    rebuildCardDb(rows, sourceLabel) {
+      const oldDeckIds = this.deck.cards.map((card) => card.id);
+      const filteredRows = window.OpenJoeyCardDb.rowsForFilter(rows, this.cardDbFilter());
+      this.cardDb = new window.OpenJoeyCardDb.CardDb(filteredRows);
+      this.cardDb.rebuildSort(0);
+      this.deck.clear();
+      let restored = 0;
+      for (const id of oldDeckIds) {
+        const card = this.cardDb.byId.get(id);
+        if (card && this.deck.add(card)) restored += 1;
+      }
+      window.OpenJoeyDeckStorage.save(this.deck);
+      window.OpenJoeyCardDbCache?.saveRows?.(rows);
+      this.status = `${sourceLabel}: ${this.cardDb.cards.length} cards, ${restored} deck cards kept`;
+    }
+
     resize() {
       const size = this.renderer.resize();
       this.w = size.w;
@@ -56,18 +77,13 @@
     }
 
     replaceCardDb(rows, sourceLabel) {
-      const oldDeckIds = this.deck.cards.map((card) => card.id);
-      this.cardDb = new window.OpenJoeyCardDb.CardDb(rows);
-      this.cardDb.rebuildSort(0);
-      this.deck.clear();
-      let restored = 0;
-      for (const id of oldDeckIds) {
-        const card = this.cardDb.byId.get(id);
-        if (card && this.deck.add(card)) restored += 1;
-      }
-      window.OpenJoeyDeckStorage.save(this.deck);
-      window.OpenJoeyCardDbCache?.saveRows?.(rows);
-      this.status = `${sourceLabel}: ${this.cardDb.cards.length} cards, ${restored} deck cards kept`;
+      this.baseCardRows = rows;
+      this.rebuildCardDb(rows, sourceLabel);
+    }
+
+    applyCardDbFilter(sourceLabel = "Card DB filter updated") {
+      if (!Array.isArray(this.baseCardRows)) return;
+      this.rebuildCardDb(this.baseCardRows, sourceLabel);
     }
   }
 

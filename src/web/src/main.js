@@ -42,7 +42,12 @@
   }
 
   const { rows, source } = await loadInitialRows();
-  const cardDb = new window.OpenJoeyCardDb.CardDb(rows);
+  const {
+    CARD_DB_FILTER_STORAGE_KEY,
+  } = window.OpenJoeyDeckConstants;
+  const cardDbFilter = localStorage.getItem(CARD_DB_FILTER_STORAGE_KEY) || window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
+  const filteredRows = window.OpenJoeyCardDb.rowsForFilter(rows, cardDbFilter);
+  const cardDb = new window.OpenJoeyCardDb.CardDb(filteredRows);
   const { core, duel, backend } = await window.OpenJoeyDeckBridge.createDeckCore(cardDb);
   window.openJoeyApp = new window.OpenJoeyApp.App(
     document.getElementById("app"),
@@ -52,5 +57,6 @@
     duel,
     backend,
   );
+  window.openJoeyApp.baseCardRows = rows;
   window.openJoeyApp.status = `Ready (${backend}, ${source})`;
 })();

@@ -24,6 +24,7 @@
   const DECK_FOLDER_STORAGE_KEY = "openjoey2.web.deckFolder";
   const CARD_DB_URL_STORAGE_KEY = "openjoey2.web.cardDbUrl";
   const CARD_DB_MODE_STORAGE_KEY = "openjoey2.web.cardDbMode";
+  const CARD_DB_FILTER_STORAGE_KEY = "openjoey2.web.cardDbFilter";
 
   window.OpenJoeyDeckConstants = {
     SORT_LABELS,
@@ -36,6 +37,7 @@
     DECK_FOLDER_STORAGE_KEY,
     CARD_DB_URL_STORAGE_KEY,
     CARD_DB_MODE_STORAGE_KEY,
+    CARD_DB_FILTER_STORAGE_KEY,
   };
 
   function createState() {

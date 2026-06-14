@@ -4,6 +4,7 @@
   const Storage = window.OpenJoeyDeckStorage;
   const {
     CARD_DB_MODE_STORAGE_KEY,
+    CARD_DB_FILTER_STORAGE_KEY,
     CARD_DB_URL_STORAGE_KEY,
   } = window.OpenJoeyDeckConstants;
 
@@ -16,6 +17,7 @@
       this.root.className = "settings-panel";
       const savedUrl = localStorage.getItem(CARD_DB_URL_STORAGE_KEY) || DEFAULT_CARD_DB_URL;
       const savedMode = localStorage.getItem(CARD_DB_MODE_STORAGE_KEY) || "auto";
+      const savedFilter = localStorage.getItem(CARD_DB_FILTER_STORAGE_KEY) || window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
       this.root.innerHTML = `
         <div id="card-db-drop" class="settings-drop" tabindex="0">
           <div>
@@ -41,6 +43,13 @@
           <button id="card-db-refresh" type="button">Refresh URL</button>
           <button id="card-db-clear" type="button">Clear cache</button>
         </div>
+        <div class="settings-row settings-db-row">
+          <label for="card-db-filter">Card DB era</label>
+          <select id="card-db-filter">
+            <option value="all">All cards</option>
+            <option value="gx">GX and earlier</option>
+          </select>
+        </div>
         <div id="deck-folder-drop" class="settings-drop" tabindex="0">
           <div>
             <strong>Deck folder</strong>
@@ -58,6 +67,8 @@
       this.loadUrlButton = this.root.querySelector("#card-db-load");
       this.cardMode = this.root.querySelector("#card-db-mode");
       this.cardMode.value = savedMode;
+      this.cardFilter = this.root.querySelector("#card-db-filter");
+      this.cardFilter.value = savedFilter;
       this.refreshUrlButton = this.root.querySelector("#card-db-refresh");
       this.clearCacheButton = this.root.querySelector("#card-db-clear");
       this.deckDrop = this.root.querySelector("#deck-folder-drop");
@@ -69,6 +80,7 @@
         [this.cardFile, "change", () => this.loadCardFiles([...this.cardFile.files])],
         [this.loadUrlButton, "click", () => this.loadCardUrl()],
         [this.cardMode, "change", () => this.saveCardMode()],
+        [this.cardFilter, "change", () => this.saveCardFilter()],
         [this.refreshUrlButton, "click", () => this.loadCardUrl(true)],
         [this.clearCacheButton, "click", () => this.clearCardCache()],
         [this.deckFolder, "change", () => this.loadDeckFiles([...this.deckFolder.files])],
@@ -145,6 +157,11 @@
       this.app.status = `Card DB startup: ${this.cardMode.options[this.cardMode.selectedIndex].text}`;
     }
 
+    saveCardFilter() {
+      localStorage.setItem(CARD_DB_FILTER_STORAGE_KEY, this.cardFilter.value);
+      this.app.applyCardDbFilter(`Card DB filter: ${this.cardFilter.options[this.cardFilter.selectedIndex].text}`);
+    }
+
     async clearCardCache() {
       await window.OpenJoeyCardDbCache?.clearRows?.();
       if (this.cardMode.value === "cache") {
@@ -169,7 +186,7 @@
     }
 
     draw(g) {
-      this.app.drawChrome("SETTINGS", "Upload card DB JSON/generated rows, load YGOProDeck URL, or import a deck folder. ESC back");
+      this.app.drawChrome("SETTINGS", "Upload card DB JSON/generated rows, load YGOProDeck URL, choose era filtering, or import a deck folder. ESC back");
       const x = this.app.w < 520 ? 20 : 48;
       const y = this.app.chromeTop() + 42;
       g.fillStyle = "#f1f5f8";

@@ -6,6 +6,41 @@ const input = path.join(root, "data", "cards.json");
 const output = path.join(root, "src", "web", "src", "domain", "generated", "cardRows.generated.js");
 const defaultUrl = "https://db.ygoprodeck.com/api/v7/cardinfo.php";
 const bundle = process.argv.includes("--bundle") || process.env.OPENJOEY_BUNDLE_CARD_DB === "1";
+const gxOrEarlierPrefixes = [
+  "LOB",
+  "MRD",
+  "SRL",
+  "PSV",
+  "LON",
+  "LOD",
+  "PGD",
+  "MFC",
+  "DCR",
+  "AST",
+  "SOD",
+  "RDS",
+  "FET",
+  "TLM",
+  "CRV",
+  "EEN",
+  "SOI",
+  "EOJ",
+  "POTD",
+  "CDIP",
+  "STON",
+  "TAEV",
+  "GLAS",
+  "LODT",
+  "PTDN",
+];
+
+function isGXOrEarlierCard(card) {
+  const sets = Array.isArray(card?.card_sets) ? card.card_sets : [];
+  return sets.some((set) => {
+    const code = set?.set_code || "";
+    return gxOrEarlierPrefixes.some((prefix) => code.startsWith(prefix));
+  });
+}
 
 if (!bundle) {
   fs.writeFileSync(
@@ -35,6 +70,7 @@ const cards = raw.data
       card.def || 0,
       card.level || card.rank || 0,
       card.humanReadableCardType || card.type || "",
+      isGXOrEarlierCard(card) ? 1 : 0,
     ];
   });
 
