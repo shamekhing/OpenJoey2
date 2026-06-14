@@ -18,6 +18,9 @@
       const savedUrl = localStorage.getItem(CARD_DB_URL_STORAGE_KEY) || DEFAULT_CARD_DB_URL;
       const savedMode = localStorage.getItem(CARD_DB_MODE_STORAGE_KEY) || "auto";
       const savedFilter = localStorage.getItem(CARD_DB_FILTER_STORAGE_KEY) || window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
+      const validFilter = savedFilter === window.OpenJoeyCardDb.CARD_DB_FILTER_GX
+        ? window.OpenJoeyCardDb.CARD_DB_FILTER_GX
+        : window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
       this.root.innerHTML = `
         <div id="card-db-drop" class="settings-drop" tabindex="0">
           <div>
@@ -43,12 +46,12 @@
           <button id="card-db-refresh" type="button">Refresh URL</button>
           <button id="card-db-clear" type="button">Clear cache</button>
         </div>
-        <div class="settings-row settings-db-row">
-          <label for="card-db-filter">Card DB era</label>
-          <select id="card-db-filter">
-            <option value="all">All cards</option>
-            <option value="gx">GX and earlier</option>
-          </select>
+        <div class="settings-row settings-era-row">
+          <label>Card DB era</label>
+          <div class="settings-era-buttons" role="group" aria-label="Card DB era">
+            <button id="card-db-filter-all" type="button">All cards</button>
+            <button id="card-db-filter-gx" type="button">GX and earlier</button>
+          </div>
         </div>
         <div id="deck-folder-drop" class="settings-drop" tabindex="0">
           <div>
@@ -67,12 +70,9 @@
       this.loadUrlButton = this.root.querySelector("#card-db-load");
       this.cardMode = this.root.querySelector("#card-db-mode");
       this.cardMode.value = savedMode;
-      this.cardFilter = this.root.querySelector("#card-db-filter");
-      this.cardFilter.value = savedFilter;
-      if (!this.cardFilter.value) {
-        this.cardFilter.value = window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
-        localStorage.setItem(CARD_DB_FILTER_STORAGE_KEY, this.cardFilter.value);
-      }
+      this.cardFilterAll = this.root.querySelector("#card-db-filter-all");
+      this.cardFilterGx = this.root.querySelector("#card-db-filter-gx");
+      this.cardFilterValue = validFilter;
       this.refreshUrlButton = this.root.querySelector("#card-db-refresh");
       this.clearCacheButton = this.root.querySelector("#card-db-clear");
       this.deckDrop = this.root.querySelector("#deck-folder-drop");
@@ -84,7 +84,8 @@
         [this.cardFile, "change", () => this.loadCardFiles([...this.cardFile.files])],
         [this.loadUrlButton, "click", () => this.loadCardUrl()],
         [this.cardMode, "change", () => this.saveCardMode()],
-        [this.cardFilter, "change", () => this.saveCardFilter()],
+        [this.cardFilterAll, "click", () => this.saveCardFilter(window.OpenJoeyCardDb.CARD_DB_FILTER_ALL)],
+        [this.cardFilterGx, "click", () => this.saveCardFilter(window.OpenJoeyCardDb.CARD_DB_FILTER_GX)],
         [this.refreshUrlButton, "click", () => this.loadCardUrl(true)],
         [this.clearCacheButton, "click", () => this.clearCardCache()],
         [this.deckFolder, "change", () => this.loadDeckFiles([...this.deckFolder.files])],
@@ -92,6 +93,7 @@
       for (const [node, event, handler] of this.handlers) node.addEventListener(event, handler);
       this.bindDrop(this.cardDrop, (files) => this.loadCardFiles(files));
       this.bindDrop(this.deckDrop, (files) => this.loadDeckFiles(files));
+      this.updateFilterButtons();
       this.layout();
     }
 
@@ -161,9 +163,19 @@
       this.app.status = `Card DB startup: ${this.cardMode.options[this.cardMode.selectedIndex].text}`;
     }
 
-    saveCardFilter() {
-      localStorage.setItem(CARD_DB_FILTER_STORAGE_KEY, this.cardFilter.value);
-      this.app.applyCardDbFilter(`Card DB filter: ${this.cardFilter.options[this.cardFilter.selectedIndex].text}`);
+    saveCardFilter(filter) {
+      this.cardFilterValue = filter;
+      localStorage.setItem(CARD_DB_FILTER_STORAGE_KEY, filter);
+      this.updateFilterButtons();
+      this.app.applyCardDbFilter(`Card DB filter: ${filter === window.OpenJoeyCardDb.CARD_DB_FILTER_GX ? "GX and earlier" : "All cards"}`);
+    }
+
+    updateFilterButtons() {
+      const isGx = this.cardFilterValue === window.OpenJoeyCardDb.CARD_DB_FILTER_GX;
+      this.cardFilterAll.classList.toggle("is-active", !isGx);
+      this.cardFilterAll.setAttribute("aria-pressed", isGx ? "false" : "true");
+      this.cardFilterGx.classList.toggle("is-active", isGx);
+      this.cardFilterGx.setAttribute("aria-pressed", isGx ? "true" : "false");
     }
 
     async clearCardCache() {
