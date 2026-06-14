@@ -69,6 +69,10 @@
       this.cardMode.value = savedMode;
       this.cardFilter = this.root.querySelector("#card-db-filter");
       this.cardFilter.value = savedFilter;
+      if (!this.cardFilter.value) {
+        this.cardFilter.value = window.OpenJoeyCardDb.CARD_DB_FILTER_ALL;
+        localStorage.setItem(CARD_DB_FILTER_STORAGE_KEY, this.cardFilter.value);
+      }
       this.refreshUrlButton = this.root.querySelector("#card-db-refresh");
       this.clearCacheButton = this.root.querySelector("#card-db-clear");
       this.deckDrop = this.root.querySelector("#deck-folder-drop");
