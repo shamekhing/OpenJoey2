@@ -3,7 +3,7 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..", "..");
 const input = path.join(root, "data", "cards.json");
-const output = path.join(root, "src2", "web", "cards-db.js");
+const output = path.join(root, "src", "web", "src", "domain", "generated", "cardRows.generated.js");
 
 const raw = JSON.parse(fs.readFileSync(input, "utf8"));
 const cards = raw.data

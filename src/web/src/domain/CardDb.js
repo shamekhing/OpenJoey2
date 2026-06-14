@@ -15,6 +15,13 @@
     return "Monster";
   }
 
+  function statsLine(card, isShort = false) {
+    if (!card || card.kind !== KIND_MONSTER) return "";
+    return isShort
+      ? `L${card.level} ${card.atk}/${card.def}`
+      : `Level ${card.level}  ATK ${card.atk}  DEF ${card.def}`;
+  }
+
   function imageUrl(card) {
     return `https://images.ygoprodeck.com/images/cards/${card.imageId}.jpg`;
   }
@@ -70,6 +77,7 @@
     KIND_TRAP,
     kindTag,
     kindName,
+    statsLine,
     imageUrl,
   };
 })();

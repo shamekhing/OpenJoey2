@@ -41,34 +41,15 @@ struct Card {
     return this->id != 0 && this->id == other.id;
   }
 
-  std::string const getStats(bool isShort = false) const {
-    if (this->isMonster()) {
-      auto atk = std::to_string(this->atk);
-      auto def = std::to_string(this->def);
-      auto lvl = std::to_string(this->level);
-      // build and return appropriately-formed stat line
-      return isShort ? std::string("L") + lvl + " " + atk + "/" + def
-                     : std::string("Level ") + lvl + "  ATK " + atk + "  DEF " +
-                           def;
-    }
-    return "";
-  }
-
   bool isMonster() const { return type == etypes::card::Monster; }
   bool isSpell() const { return type == etypes::card::Spell; }
   bool isTrap() const { return type == etypes::card::Trap; }
 
-  std::string getTypeTag() const {
-    return this->isMonster() ? "[MON]"
-           : this->isSpell() ? "[SPL]"
-           : this->isTrap()  ? "[TRP]"
-                             : "[UNK]";
-  }
   // Others
   std::vector<Card *> equippedCards; // non-owning equip attachments
   std::map<std::string, int> counters;
 
-  // Effect keys populated by EffectRegistry::bind() at startup — data only.
+  // Effect keys supplied by adapters/data loaders.
   std::vector<std::string> effectKeys;
 
   // Convenience queries

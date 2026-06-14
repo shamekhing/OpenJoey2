@@ -2,14 +2,40 @@
   window.OpenJoeyScreens = window.OpenJoeyScreens || {};
   const Ui = window.OpenJoeyUi;
   const Card = window.OpenJoeyCardDb;
+  const { CARD_ASPECT } = window.OpenJoeyDeckConstants;
+  const Actions = window.OpenJoeyDuelActions;
+  const Selectors = window.OpenJoeyDuelSelectors;
+  const View = window.OpenJoeyDuelView;
 
   class DuelScreen {
     constructor(app) {
       this.app = app;
-      this.cursor = 0;
-      this.mode = "hand";
-      this.player = 1;
+      this.state = window.OpenJoeyDuelState.createState();
       this.startFromDeck();
+    }
+
+    get cursor() {
+      return this.state.cursor;
+    }
+
+    set cursor(value) {
+      this.state.cursor = value;
+    }
+
+    get mode() {
+      return this.state.mode;
+    }
+
+    set mode(value) {
+      this.state.mode = value;
+    }
+
+    get player() {
+      return this.state.player;
+    }
+
+    set player(value) {
+      this.state.player = value;
     }
 
     startFromDeck() {
@@ -23,49 +49,27 @@
     }
 
     key(event) {
-      const block = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Enter", "Escape", "Tab"];
-      if (block.includes(event.key)) event.preventDefault();
-      if (event.key === "Escape") this.app.goto("menu");
-      else if (event.key === "Tab") {
-        this.mode = this.mode === "hand" ? "monster" : this.mode === "monster" ? "spell" : "hand";
-        this.cursor = 0;
-      } else if (event.key === "ArrowRight" || event.key === "ArrowDown") this.move(1);
-      else if (event.key === "ArrowLeft" || event.key === "ArrowUp") this.move(-1);
-      else if (event.key === "Enter") this.activate();
-      else if (event.key.toLowerCase() === "d") this.drawCard();
-      else if (event.key.toLowerCase() === "g") this.toGrave();
-      else if (event.key.toLowerCase() === "n") this.nextPhase();
+      Actions.key(this.app, this.state, event, { move: (delta) => this.move(delta) });
     }
 
     move(delta) {
-      const max = this.mode === "hand" ? this.app.duel.hand[this.player].length : 5;
-      this.cursor = max > 0 ? (this.cursor + delta + max) % max : 0;
+      Actions.move(this.app, this.state, delta);
     }
 
     activate() {
-      if (this.mode !== "hand") return;
-      this.app.status = this.app.duel.playHandAt(this.player, this.cursor)
-        ? "Played card from hand"
-        : "No open zone";
-      this.cursor = 0;
+      Actions.activate(this.app, this.state);
     }
 
     drawCard() {
-      this.app.status = this.app.duel.draw(this.player) ? "Drew a card" : "Deck empty";
+      Actions.drawCard(this.app, this.state);
     }
 
     toGrave() {
-      if (this.mode !== "monster") return;
-      this.app.status = this.app.duel.sendMonsterToGrave(this.player, this.cursor)
-        ? "Sent monster to grave"
-        : "No monster there";
+      Actions.toGrave(this.app, this.state);
     }
 
     nextPhase() {
-      const names = ["Draw", "Standby", "Main 1", "Battle", "Main 2", "End"];
-      const phase = this.app.duel.advancePhase();
-      const player = this.app.duel.turnPlayer === 1 ? "your" : "opponent";
-      this.app.status = `${player} ${names[phase] || `phase ${phase}`}`;
+      Actions.nextPhase(this.app);
     }
 
     click(x, y) {
@@ -110,6 +114,10 @@
     }
 
     draw(g) {
+      View.draw(this, g);
+    }
+
+    drawChromeAndBoard(g) {
       this.app.drawChrome(
         "DUEL",
         "[TAB] hand/monster/spell [ENTER] play own hand [N] next phase [D] draw own card [G] own monster to grave [ESC] menu",
@@ -164,12 +172,12 @@
       if (compact) {
         spellH = 22;
         zoneH = Math.max(34, Math.min(64, (this.field.h - topInset - bottomInset - spellH * 2 - gap * 3) / 2));
-        zoneW = Math.max(30, Math.min(48, zoneH * 59 / 86, (playableW - zoneGap * 4) / 5));
+        zoneW = Math.max(30, Math.min(48, zoneH / CARD_ASPECT, (playableW - zoneGap * 4) / 5));
       } else {
         const maxZoneByWidth = (playableW - zoneGap * 4) / 5;
-        const maxZoneByHeight = ((this.field.h - topInset - bottomInset - gap * 3) / 4) * 59 / 86;
+        const maxZoneByHeight = ((this.field.h - topInset - bottomInset - gap * 3) / 4) / CARD_ASPECT;
         zoneW = Math.max(30, Math.min(84, maxZoneByWidth, maxZoneByHeight));
-        zoneH = zoneW * 86 / 59;
+        zoneH = zoneW * CARD_ASPECT;
         spellH = zoneH;
       }
       const startX = this.field.x + (this.field.w - (zoneW * 5 + zoneGap * 4)) / 2;
@@ -214,21 +222,19 @@
     }
 
     selectedCard() {
-      if (this.mode === "hand") return this.app.duel.hand[this.player][this.cursor] || null;
-      if (this.mode === "monster") return this.app.duel.monsters[this.player][this.cursor] || null;
-      return this.app.duel.spells[this.player][this.cursor] || null;
+      return Selectors.selectedCard(this.app, this.state);
     }
 
     drawPreview(g) {
       if (this.preview.w <= 0 || this.preview.h <= 0) return;
-      this.roundRect(g, this.preview, 8, "rgba(13,17,22,.94)", "#3b4652");
+      Ui.roundRect(g, this.preview, 8, "rgba(13,17,22,.94)", "#3b4652");
       const card = this.selectedCard();
       g.fillStyle = "#f1f5f8";
       g.font = "700 16px system-ui";
       g.fillText("Selected", this.preview.x + 14, this.preview.y + 27);
       const compact = this.preview.h < 130;
       const w = compact ? 50 : Math.min(this.preview.w - 50, 212);
-      const h = w * 86 / 59;
+      const h = w * CARD_ASPECT;
       const x = compact ? this.preview.x + 14 : this.preview.x + (this.preview.w - w) / 2;
       const y = compact ? this.preview.y + 38 : this.preview.y + 54;
       Ui.cardImage(g, this.app.images, card, x, y, w, h);
@@ -245,7 +251,7 @@
       g.fillStyle = "#d8e0e8";
       if (compact) {
         g.font = "12px system-ui";
-        g.fillText(card.kind === 0 ? `L${card.level} ${card.atk}/${card.def}` : Card.kindName(card.kind), textX, textY + 46);
+        g.fillText(card.kind === 0 ? Card.statsLine(card, true) : Card.kindName(card.kind), textX, textY + 46);
       } else {
         Ui.wrap(g, card.desc, this.preview.x + 16, y + h + 82, this.preview.w - 32, 18, 11);
       }
@@ -277,7 +283,7 @@
       grd.addColorStop(0, "#12251f");
       grd.addColorStop(0.45, "#17232a");
       grd.addColorStop(1, "#2a1d27");
-      this.roundRect(g, r, 8, grd, "#41505b");
+      Ui.roundRect(g, r, 8, grd, "#41505b");
       g.fillStyle = "rgba(235,220,161,.08)";
       g.fillRect(r.x + 12, r.y + r.h / 2 - 1, r.w - 24, 2);
       g.strokeStyle = "rgba(243,212,91,.25)";
@@ -323,7 +329,7 @@
         w,
         h: this.compact ? 22 : 30,
       };
-      this.roundRect(g, r, 6, "rgba(8,11,14,.78)", "#e0b854");
+      Ui.roundRect(g, r, 6, "rgba(8,11,14,.78)", "#e0b854");
       g.fillStyle = "#f2d46f";
       g.font = this.compact ? "700 10px system-ui" : "700 12px system-ui";
       g.textAlign = "center";
@@ -352,7 +358,7 @@
     }
 
     drawPile(g, rect, label, count, deck) {
-      this.roundRect(g, rect, 6, deck ? "rgba(70,43,30,.88)" : "rgba(15,20,25,.78)", deck ? "#c89b63" : "#596673");
+      Ui.roundRect(g, rect, 6, deck ? "rgba(70,43,30,.88)" : "rgba(15,20,25,.78)", deck ? "#c89b63" : "#596673");
       g.fillStyle = deck ? "rgba(216,174,103,.18)" : "rgba(214,224,232,.08)";
       g.fillRect(rect.x + 5, rect.y + 6, rect.w - 10, rect.h - 12);
       g.fillStyle = "#dce5ed";
@@ -367,7 +373,7 @@
     drawZone(g, rect, card, selected, type) {
       const stroke = selected ? "#f3d45b" : type === "monster" ? "#b65e64" : "#62b979";
       const fill = type === "monster" ? "rgba(55,27,31,.86)" : "rgba(25,52,38,.84)";
-      this.roundRect(g, rect, 6, fill, stroke);
+      Ui.roundRect(g, rect, 6, fill, stroke);
       g.fillStyle = "rgba(255,255,255,.045)";
       g.fillRect(rect.x + 5, rect.y + 5, rect.w - 10, rect.h - 10);
       if (selected) {
@@ -385,14 +391,14 @@
     }
 
     drawHand(g, rect, cards, own) {
-      this.roundRect(g, rect, 8, own ? "rgba(13,22,18,.94)" : "rgba(16,15,24,.94)", own && this.mode === "hand" && this.player === 1 ? "#f3d45b" : "#3a4651");
+      Ui.roundRect(g, rect, 8, own ? "rgba(13,22,18,.94)" : "rgba(16,15,24,.94)", own && this.mode === "hand" && this.player === 1 ? "#f3d45b" : "#3a4651");
       g.fillStyle = own ? "#67d392" : "#ae8be1";
       g.font = "700 11px system-ui";
       g.fillText(own ? "YOUR HAND" : "OPPONENT HAND", rect.x + 12, rect.y + 18);
       const maxCards = Math.max(1, cards.length);
-      const maxByHeight = Math.max(22, (rect.h - 24) * 59 / 86);
+      const maxByHeight = Math.max(22, (rect.h - 24) / CARD_ASPECT);
       const w = Math.max(22, Math.min(maxByHeight, 50, (rect.w - 34) / Math.max(8, maxCards)));
-      const h = w * 86 / 59;
+      const h = w * CARD_ASPECT;
       const overlap = cards.length > 1 ? Math.min(w + 8, (rect.w - w - 24) / (cards.length - 1)) : 0;
       const startX = rect.x + 12 + Math.max(0, (rect.w - 24 - (w + overlap * (cards.length - 1))) / 2);
       const y = rect.y + rect.h - h - 8;
@@ -415,38 +421,18 @@
       if (x < rect.x || x > rect.x + rect.w || y < rect.y || y > rect.y + rect.h) return -1;
       if (!cards.length) return -1;
       const maxCards = Math.max(1, cards.length);
-      const maxByHeight = Math.max(22, (rect.h - 24) * 59 / 86);
+      const maxByHeight = Math.max(22, (rect.h - 24) / CARD_ASPECT);
       const w = Math.max(22, Math.min(maxByHeight, 50, (rect.w - 34) / Math.max(8, maxCards)));
       const overlap = cards.length > 1 ? Math.min(w + 8, (rect.w - w - 24) / (cards.length - 1)) : 0;
       const startX = rect.x + 12 + Math.max(0, (rect.w - 24 - (w + overlap * (cards.length - 1))) / 2);
       for (let i = cards.length - 1; i >= 0; i -= 1) {
         const cx = startX + i * overlap;
-        const cy = rect.y + rect.h - (w * 86 / 59) - 8;
-        if (x >= cx && x <= cx + w && y >= cy && y <= cy + w * 86 / 59) return i;
+        const cy = rect.y + rect.h - (w * CARD_ASPECT) - 8;
+        if (x >= cx && x <= cx + w && y >= cy && y <= cy + w * CARD_ASPECT) return i;
       }
       return -1;
     }
 
-    roundRect(g, r, radius, fill, stroke) {
-      const rad = Math.min(radius, r.w / 2, r.h / 2);
-      g.beginPath();
-      g.moveTo(r.x + rad, r.y);
-      g.lineTo(r.x + r.w - rad, r.y);
-      g.quadraticCurveTo(r.x + r.w, r.y, r.x + r.w, r.y + rad);
-      g.lineTo(r.x + r.w, r.y + r.h - rad);
-      g.quadraticCurveTo(r.x + r.w, r.y + r.h, r.x + r.w - rad, r.y + r.h);
-      g.lineTo(r.x + rad, r.y + r.h);
-      g.quadraticCurveTo(r.x, r.y + r.h, r.x, r.y + r.h - rad);
-      g.lineTo(r.x, r.y + rad);
-      g.quadraticCurveTo(r.x, r.y, r.x + rad, r.y);
-      g.closePath();
-      g.fillStyle = fill;
-      g.fill();
-      if (stroke) {
-        g.strokeStyle = stroke;
-        g.stroke();
-      }
-    }
   }
 
   window.OpenJoeyScreens.DuelScreen = DuelScreen;

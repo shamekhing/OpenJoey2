@@ -1,7 +1,5 @@
 (function () {
-  window.OpenJoeyScreens = window.OpenJoeyScreens || {};
-
-  class TextScreen {
+  class PlaceholderScreen {
     constructor(app, name) {
       this.app = app;
       this.name = name;
@@ -28,5 +26,23 @@
     }
   }
 
-  window.OpenJoeyScreens.TextScreen = TextScreen;
+  class Router {
+    constructor(app) {
+      this.app = app;
+      this.screen = null;
+    }
+
+    goto(name) {
+      this.screen?.dispose?.();
+      this.app.searchInput.style.display = "none";
+      if (name === "menu") this.screen = new window.OpenJoeyScreens.MainMenuScreen(this.app);
+      else if (name === "deck") this.screen = new window.OpenJoeyScreens.DeckEditorScreen(this.app);
+      else if (name === "duel") this.screen = new window.OpenJoeyScreens.DuelScreen(this.app);
+      else this.screen = new PlaceholderScreen(this.app, name);
+      this.screen.layout?.();
+      return this.screen;
+    }
+  }
+
+  window.OpenJoeyRouter = { Router };
 })();

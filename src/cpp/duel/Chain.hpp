@@ -108,7 +108,7 @@ public:
     negateNext_ = false;
   }
 
-  // Read access for UI inspection.
+  // Read access for external inspection.
   const ChainLink &linkAt(int i) const { return links_[i]; }
 
 private:

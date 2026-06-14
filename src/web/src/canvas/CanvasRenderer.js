@@ -30,5 +30,31 @@
     }
   }
 
+  class CanvasRenderer {
+    constructor(canvas, app) {
+      this.canvas = canvas;
+      this.app = app;
+      this.ctx = canvas.getContext("2d", { alpha: false });
+    }
+
+    resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.canvas.width = Math.floor(window.innerWidth * dpr);
+      this.canvas.height = Math.floor(window.innerHeight * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { w: window.innerWidth, h: window.innerHeight };
+    }
+
+    start() {
+      requestAnimationFrame(() => this.frame());
+    }
+
+    frame() {
+      this.app.screen?.draw?.(this.ctx);
+      requestAnimationFrame(() => this.frame());
+    }
+  }
+
+  window.OpenJoeyCanvasRenderer = { CanvasRenderer };
   window.OpenJoeyImageCache = { ImageCache };
 })();

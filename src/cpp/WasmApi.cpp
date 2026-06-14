@@ -64,7 +64,6 @@ openjoey::Card makeNativeCard(uint32_t id, uint32_t imageId, int kind, int atk,
   card.atk = atk;
   card.def = def;
   card.level = level;
-  card.name = "Card " + std::to_string(id);
   card.location = openjoey::etypes::location::Deck;
   return card;
 }
@@ -74,7 +73,7 @@ struct OjGame {
   openjoey::game::DuelCore duel;
   std::array<std::vector<openjoey::Card>, 2> stagedDecks;
 
-  OjGame() : factory(), duel(nullptr, &factory) {}
+  OjGame() : factory(), duel(&factory) {}
 };
 
 bool validPlayer(int player) { return player >= 0 && player < 2; }
@@ -175,7 +174,7 @@ bool oj_game_add_deck_card(OjGame *game, int player, uint32_t id,
 bool oj_game_start(OjGame *game) {
   if (!game)
     return false;
-  game->duel = openjoey::game::DuelCore(nullptr, &game->factory);
+  game->duel = openjoey::game::DuelCore(&game->factory);
   game->duel.loadDeckFromCards(0, game->stagedDecks[0]);
   game->duel.loadDeckFromCards(1, game->stagedDecks[1]);
   game->duel.startDuel();

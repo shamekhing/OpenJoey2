@@ -12,7 +12,6 @@ add_library(openjoey_core STATIC
 
 target_include_directories(openjoey_core PUBLIC
   src/cpp
-  src/cpp/third_party
 )
 
 add_executable(OpenJoey2

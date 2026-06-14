@@ -62,5 +62,26 @@
     return "#d06062";
   }
 
-  window.OpenJoeyUi = { rect, text, wrap, visibleStart, cardImage, kindColor };
+  function roundRect(ctx, r, radius, fill, stroke) {
+    const rad = Math.min(radius, r.w / 2, r.h / 2);
+    ctx.beginPath();
+    ctx.moveTo(r.x + rad, r.y);
+    ctx.lineTo(r.x + r.w - rad, r.y);
+    ctx.quadraticCurveTo(r.x + r.w, r.y, r.x + r.w, r.y + rad);
+    ctx.lineTo(r.x + r.w, r.y + r.h - rad);
+    ctx.quadraticCurveTo(r.x + r.w, r.y + r.h, r.x + r.w - rad, r.y + r.h);
+    ctx.lineTo(r.x + rad, r.y + r.h);
+    ctx.quadraticCurveTo(r.x, r.y + r.h, r.x, r.y + r.h - rad);
+    ctx.lineTo(r.x, r.y + rad);
+    ctx.quadraticCurveTo(r.x, r.y, r.x + rad, r.y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+    }
+  }
+
+  window.OpenJoeyUi = { rect, text, wrap, visibleStart, cardImage, kindColor, roundRect };
 })();

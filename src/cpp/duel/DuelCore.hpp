@@ -1,5 +1,4 @@
 #pragma once
-#include "card/ICardRepository.hpp"
 #include "effect/Effect.hpp"
 #include "effect/EffectFactory.hpp"
 #include "effect/IDuelContext.hpp"
@@ -26,32 +25,13 @@ class DuelCore : public openjoey::IDuelContext {
 public:
   // ── Setup ────────────────────────────────────────────────────────────────
 
-  explicit DuelCore(ICardRepository *repo = nullptr,
-                    EffectFactory   *factory = nullptr)
-      : repo_(repo), factory_(factory) {
+  explicit DuelCore(EffectFactory *factory = nullptr) : factory_(factory) {
     pool_[0].reserve(60);
     pool_[1].reserve(60);
     normalSummoned_[0] = normalSummoned_[1] = false;
   }
 
-  // Load a deck for player p from the repository by card ID list.
-  // Call before startDuel().
-  void loadDeck(int player, const std::vector<uint32_t> &ids) {
-    if (player < 0 || player > 1) return;
-    for (uint32_t id : ids) {
-      if (!repo_) break;
-      const Card *tmpl = repo_->getById(id);
-      if (!tmpl) continue;
-      if (pool_[player].size() >= 60) break;
-      pool_[player].push_back(*tmpl);
-      Card &c = pool_[player].back();
-      c.owner      = player;
-      c.controller = player;
-      c.location   = etypes::location::Deck;
-    }
-  }
-
-  // Load a deck directly from a card vector (e.g. from DeckEditorScreen).
+  // Load a deck from cards already parsed by the caller.
   void loadDeckFromCards(int player, const std::vector<openjoey::Card> &cards) {
     if (player < 0 || player > 1) return;
     pool_[player].clear();
@@ -229,7 +209,7 @@ public:
 
   const Chain &chain() const { return chain_; }
 
-  // Read-only access to the raw card pools (for UI test helpers).
+  // Read-only access to the raw card pools (for tests and adapters).
   const std::array<std::vector<openjoey::Card>, 2> &pools() const { return pool_; }
 
 private:
@@ -238,8 +218,7 @@ private:
   PhaseManager       phase_;
   ZoneEffectManager  zem_;
 
-  ICardRepository *repo_    = nullptr;
-  EffectFactory   *factory_ = nullptr;
+  EffectFactory *factory_ = nullptr;
 
   std::array<std::vector<Card>, 2> pool_; // owns all card instances
   int  winner_             = -2; // -2=ongoing, -1=draw, 0/1=player index

@@ -8,7 +8,7 @@
 #   -B   Build native release
 #   -x   Execute native debug
 #   -X   Execute native release
-#   -w   Build web/WASM bundle into src/web/openjoey_core.js
+#   -w   Build web/WASM bundle into src/web/src/domain/generated/openJoeyCore.generated.js
 #   -r   Run web app with BusyBox httpd at http://localhost:8080
 #   -W   Build web/WASM, then run web app
 #   -n   Build/run root CMake release smoke target when one exists
@@ -39,7 +39,7 @@ RELEASE_DIR="${ROOT_DIR}/build/release"
 WEB_BUILD_DIR="${ROOT_DIR}/build/web-native"
 DEPS_DIR="${ROOT_DIR}/../build/_deps"
 SRC_DIR="${ROOT_DIR}/src"
-WEB_OUT="${SRC_DIR}/web/openjoey_core.js"
+WEB_OUT="${SRC_DIR}/web/src/domain/generated/openJoeyCore.generated.js"
 WEB_DIR="${SRC_DIR}/web"
 WEB_PORT="${OPENJOEY_PORT:-8080}"
 
@@ -89,7 +89,6 @@ build_web() {
   emcc \
     "${SRC_DIR}/cpp/WasmApi.cpp" \
     -I"${SRC_DIR}/cpp" \
-    -I"${SRC_DIR}/cpp/third_party" \
     -std=c++17 \
     -O3 \
     -s MODULARIZE=1 \
