@@ -89,12 +89,17 @@ body {
   grid-template-columns: minmax(120px, 150px) minmax(0, 1fr) auto;
 }
 
+.settings-db-row {
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr) auto auto;
+}
+
 .settings-row label {
   color: #9faab7;
   font-weight: 700;
 }
 
 .settings-row input,
+.settings-row select,
 .settings-row button,
 .settings-drop button {
   box-sizing: border-box;
@@ -117,7 +122,8 @@ body {
 
 @media (max-width: 620px) {
   .settings-row,
-  .settings-url-row {
+  .settings-url-row,
+  .settings-db-row {
     grid-template-columns: 1fr;
   }
 

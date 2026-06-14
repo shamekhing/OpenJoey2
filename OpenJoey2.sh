@@ -13,6 +13,9 @@
 #   -W   Build web/WASM, then run web app
 #   -n   Build/run root CMake release smoke target when one exists
 #   -t   Run automated browser smoke test
+#   -m   Measure src/web deploy size and gzip estimates
+#   -d   Generate small remote/cached card DB bootstrap
+#   -D   Generate large bundled card DB rows for offline/dev
 #   -c   Clean root build trees
 #   -h   Show this help
 #
@@ -42,6 +45,7 @@ SRC_DIR="${ROOT_DIR}/src"
 WEB_OUT="${SRC_DIR}/web/src/domain/generated/openJoeyCore.generated.js"
 WEB_DIR="${SRC_DIR}/web"
 WEB_PORT="${OPENJOEY_PORT:-8080}"
+CARD_DB_GENERATOR="${SRC_DIR}/tools/generate-card-db.js"
 
 BIN_DEBUG="${DEBUG_DIR}/OpenJoey2"
 BIN_RELEASE="${RELEASE_DIR}/OpenJoey2"
@@ -139,6 +143,55 @@ browser_smoke() {
   node "${SRC_DIR}/tools/browser-smoke.js"
 }
 
+generate_card_db_bootstrap() {
+  echo "[web] generating small remote/cached card DB bootstrap..."
+  node "${CARD_DB_GENERATOR}"
+}
+
+generate_card_db_bundle() {
+  echo "[web] generating large bundled card DB rows..."
+  node "${CARD_DB_GENERATOR}" --bundle
+}
+
+format_bytes() {
+  if command -v numfmt >/dev/null 2>&1; then
+    numfmt --to=iec --suffix=B "$1"
+  else
+    printf "%sB" "$1"
+  fi
+}
+
+measure_web_size() {
+  echo "[size] deploy folder"
+  du -sh "${WEB_DIR}"
+  echo
+  echo "[size] largest files"
+  find "${WEB_DIR}" -type f -printf '%s\t%p\n' |
+    sort -nr |
+    head -20 |
+    while IFS=$'\t' read -r bytes path; do
+      printf "%10s  %s\n" "$(format_bytes "${bytes}")" "${path#${ROOT_DIR}/}"
+    done
+  echo
+  echo "[size] gzip estimates for shipped text/wasm assets"
+  find "${WEB_DIR}" -type f \( \
+      -name '*.html' -o \
+      -name '*.css' -o \
+      -name '*.js' -o \
+      -name '*.svg' -o \
+      -name '*.wasm' \
+    \) -print |
+    while read -r path; do
+      raw="$(wc -c < "${path}")"
+      gzip_bytes="$(gzip -c "${path}" | wc -c)"
+      printf "%10s raw  %10s gzip  %s\n" \
+        "$(format_bytes "${raw}")" \
+        "$(format_bytes "${gzip_bytes}")" \
+        "${path#${ROOT_DIR}/}"
+    done |
+    sort -hr
+}
+
 exec_debug() {
   [[ ! -x "${BIN_DEBUG}" ]] && build_debug
   echo "[exec] ${BIN_DEBUG}"
@@ -159,7 +212,7 @@ do_clean() {
 
 [[ $# -eq 0 ]] && { help_msg; exit 0; }
 
-while getopts ":sbBxXwWrntch" opt; do
+while getopts ":sbBxXwWrntmdDch" opt; do
   case "${opt}" in
     s) setup_debug; setup_release ;;
     b) build_debug ;;
@@ -171,6 +224,9 @@ while getopts ":sbBxXwWrntch" opt; do
     r) run_web ;;
     n) native_smoke ;;
     t) browser_smoke ;;
+    m) measure_web_size ;;
+    d) generate_card_db_bootstrap ;;
+    D) generate_card_db_bundle ;;
     c) do_clean ;;
     h) help_msg ;;
     :) echo "Option -${OPTARG} requires an argument."; exit 1 ;;

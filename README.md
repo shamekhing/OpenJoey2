@@ -140,6 +140,7 @@ JavaScript owns:
 - Card JSON parsing and generated card rows
 - Card search, sorting, display labels, and stat text
 - Deck storage
+- Card DB source settings, remote loading, and IndexedDB caching
 - Canvas rendering, input, layout, routing, and screen actions
 - Forwarding card fields into WASM through `DeckBridge.js`
 
@@ -177,8 +178,20 @@ Run the native smoke build:
 ./OpenJoey2.sh -n
 ```
 
-Regenerate card rows from `data/cards.json`:
+Measure deploy size:
 
 ```bash
-node src/tools/generate-card-db.js
+./OpenJoey2.sh -m
+```
+
+Generate the small production card DB bootstrap:
+
+```bash
+./OpenJoey2.sh -d
+```
+
+Generate the large offline/dev bundled card DB:
+
+```bash
+./OpenJoey2.sh -D
 ```

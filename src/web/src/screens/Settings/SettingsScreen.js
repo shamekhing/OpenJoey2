@@ -2,7 +2,10 @@
   window.OpenJoeyScreens = window.OpenJoeyScreens || {};
   const CardDb = window.OpenJoeyCardDb;
   const Storage = window.OpenJoeyDeckStorage;
-  const { CARD_DB_URL_STORAGE_KEY } = window.OpenJoeyDeckConstants;
+  const {
+    CARD_DB_MODE_STORAGE_KEY,
+    CARD_DB_URL_STORAGE_KEY,
+  } = window.OpenJoeyDeckConstants;
 
   const DEFAULT_CARD_DB_URL = "https://db.ygoprodeck.com/api/v7/cardinfo.php";
 
@@ -12,6 +15,7 @@
       this.root = document.createElement("section");
       this.root.className = "settings-panel";
       const savedUrl = localStorage.getItem(CARD_DB_URL_STORAGE_KEY) || DEFAULT_CARD_DB_URL;
+      const savedMode = localStorage.getItem(CARD_DB_MODE_STORAGE_KEY) || "auto";
       this.root.innerHTML = `
         <div id="card-db-drop" class="settings-drop" tabindex="0">
           <div>
@@ -25,6 +29,17 @@
           <label for="card-db-url">Card DB URL</label>
           <input id="card-db-url" type="url" value="${savedUrl}" spellcheck="false">
           <button id="card-db-load" type="button">Load</button>
+        </div>
+        <div class="settings-row settings-db-row">
+          <label for="card-db-mode">Card DB startup</label>
+          <select id="card-db-mode">
+            <option value="auto">Auto: bundled, cache, then URL</option>
+            <option value="cache">Cache only</option>
+            <option value="remote">URL every startup</option>
+            <option value="manual">Manual upload only</option>
+          </select>
+          <button id="card-db-refresh" type="button">Refresh URL</button>
+          <button id="card-db-clear" type="button">Clear cache</button>
         </div>
         <div id="deck-folder-drop" class="settings-drop" tabindex="0">
           <div>
@@ -41,6 +56,10 @@
       this.cardFile = this.root.querySelector("#card-db-file");
       this.cardUrl = this.root.querySelector("#card-db-url");
       this.loadUrlButton = this.root.querySelector("#card-db-load");
+      this.cardMode = this.root.querySelector("#card-db-mode");
+      this.cardMode.value = savedMode;
+      this.refreshUrlButton = this.root.querySelector("#card-db-refresh");
+      this.clearCacheButton = this.root.querySelector("#card-db-clear");
       this.deckDrop = this.root.querySelector("#deck-folder-drop");
       this.deckPick = this.root.querySelector("#deck-folder-pick");
       this.deckFolder = this.root.querySelector("#deck-folder");
@@ -49,6 +68,9 @@
         [this.deckPick, "click", () => this.deckFolder.click()],
         [this.cardFile, "change", () => this.loadCardFiles([...this.cardFile.files])],
         [this.loadUrlButton, "click", () => this.loadCardUrl()],
+        [this.cardMode, "change", () => this.saveCardMode()],
+        [this.refreshUrlButton, "click", () => this.loadCardUrl(true)],
+        [this.clearCacheButton, "click", () => this.clearCardCache()],
         [this.deckFolder, "change", () => this.loadDeckFiles([...this.deckFolder.files])],
       ];
       for (const [node, event, handler] of this.handlers) node.addEventListener(event, handler);
@@ -110,9 +132,25 @@
         const rows = CardDb.rowsFromYgoProDeckJson(await response.json());
         if (!rows.length) throw new Error("No cards found");
         localStorage.setItem(CARD_DB_URL_STORAGE_KEY, this.cardUrl.value.trim());
+        localStorage.setItem(CARD_DB_MODE_STORAGE_KEY, "cache");
+        this.cardMode.value = "cache";
         this.app.replaceCardDb(rows, "Loaded card DB URL");
       } catch (error) {
         this.app.status = `Card DB URL failed: ${error.message}`;
+      }
+    }
+
+    saveCardMode() {
+      localStorage.setItem(CARD_DB_MODE_STORAGE_KEY, this.cardMode.value);
+      this.app.status = `Card DB startup: ${this.cardMode.options[this.cardMode.selectedIndex].text}`;
+    }
+
+    async clearCardCache() {
+      await window.OpenJoeyCardDbCache?.clearRows?.();
+      if (this.cardMode.value === "cache") {
+        this.app.replaceCardDb([], "Cleared card DB cache");
+      } else {
+        this.app.status = "Card DB cache cleared";
       }
     }
 
@@ -140,6 +178,7 @@
       g.fillStyle = "#9faab7";
       g.font = "14px system-ui";
       g.fillText(`Active card DB: ${this.app.cardDb.cards.length} cards`, x, y + 26, this.app.w - x * 2);
+      g.fillText(`Startup source: ${this.cardMode?.value || "auto"}`, x, y + 46, this.app.w - x * 2);
     }
   }
 

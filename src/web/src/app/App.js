@@ -66,6 +66,7 @@
         if (card && this.deck.add(card)) restored += 1;
       }
       window.OpenJoeyDeckStorage.save(this.deck);
+      window.OpenJoeyCardDbCache?.saveRows?.(rows);
       this.status = `${sourceLabel}: ${this.cardDb.cards.length} cards, ${restored} deck cards kept`;
     }
   }
