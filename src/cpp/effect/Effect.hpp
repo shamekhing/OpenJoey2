@@ -4,18 +4,14 @@
 
 namespace openjoey {
 
-// ─── Effect ───────────────────────────────────────────────────────────────────
-// Abstract base for every game effect.
-//
-// Lifecycle per activation:
-//   condition(ctx) — may this effect be offered right now?
-//   cost(ctx)      — pay costs (LP, tributes, discards); called only if condition passes
-//   activate(ctx)  — place on chain; may push a TargetRequest
-//   resolve(ctx)   — called by Chain::resolveNext() in LIFO order
-//
-// DuelCore::activateEffect() runs condition → cost → chain.push(this) → activate.
-// Chain::resolveAll() runs resolve() for each link in reverse push order.
-
+/**
+ * Abstract base for every game effect.
+ *
+ * Activation lifecycle:
+ * condition(ctx) -> cost(ctx) -> chain push -> activate(ctx) -> resolve(ctx).
+ * `activate` may request targets; `resolve` is called later by Chain in LIFO
+ * order.
+ */
 class Effect {
 public:
   virtual ~Effect() = default;

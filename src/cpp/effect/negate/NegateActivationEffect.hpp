@@ -6,12 +6,9 @@ namespace openjoey {
 // Forward declaration — Chain is in Layer 4; we access it through IDuelContext.
 // IDuelContext exposes negateTopChainLink() for this effect.
 
-// ─── NegateActivationEffect ───────────────────────────────────────────────────
-// Counter-trap (spell speed 3). Negates the activation of the top chain link
-// and sends the negated card to the graveyard.
-// Can only be added to a chain whose top link has spell speed >= 1
-// (the Chain::canAdd() spell-speed rule enforces speed-3 restriction).
-
+/**
+ * Counter-speed effect that marks the next resolving chain link as negated.
+ */
 class NegateActivationEffect : public Effect {
 public:
   NegateActivationEffect() { spellSpeed = 3; }

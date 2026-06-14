@@ -1,6 +1,8 @@
 #include <cstdint>
 #include <iostream>
 
+// Native executable smoke-checks the same C ABI that the browser uses through
+// Emscripten. Keep this file independent from internal C++ headers on purpose.
 struct DeckCore;
 struct OjGame;
 
@@ -25,6 +27,7 @@ int oj_game_advance_phase(OjGame *game);
 }
 
 int main() {
+  // Deck editor surface: add one card and verify the count.
   DeckCore *deck = oj_deck_new();
   if (!deck) {
     std::cerr << "deck allocation failed\n";
@@ -46,6 +49,7 @@ int main() {
   }
 
   for (int player = 0; player < 2; ++player) {
+    // Stage simple JS-like card payloads: id, image id, kind, atk, def, level.
     for (int i = 0; i < 40; ++i) {
       const uint32_t id = static_cast<uint32_t>(10000000 + player * 100 + i);
       if (!oj_game_add_deck_card(game, player, id, id, 0, 1000 + i, 1000, 4)) {

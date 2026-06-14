@@ -7,6 +7,13 @@
   const Selectors = window.OpenJoeyDuelSelectors;
   const View = window.OpenJoeyDuelView;
 
+  /**
+   * Duel screen.
+   *
+   * This screen still owns most duel layout and drawing code directly. Keep
+   * helper methods grouped by responsibility so they can move into layout/view
+   * modules cleanly as the duel UI grows.
+   */
   class DuelScreen {
     constructor(app) {
       this.app = app;
@@ -39,6 +46,7 @@
     }
 
     startFromDeck() {
+      // Player 1 is the local user; player 0 is a simple generated opponent.
       const own = this.app.deck.cards.length
         ? this.app.deck.cards
         : [...this.app.cardDb.cards].slice(0, 40);
@@ -162,6 +170,8 @@
         : { x: fieldX, y: this.oppHand.y + handH + gap, w: fieldW, h: handH };
 
       const pileW = compact ? 40 : Math.max(46, Math.min(70, Math.floor(this.field.w * 0.08)));
+      // Zone rows are centered between deck/GY piles so the mat remains stable
+      // across compact and desktop layouts.
       const playableW = this.field.w - pileW * 2 - gap * 4;
       const zoneGap = Math.max(6, Math.min(12, Math.floor(playableW * 0.016)));
       const topInset = compact ? 40 : 44;
@@ -195,6 +205,7 @@
       const leftPileX = this.field.x + gap;
       const rightPileX = this.field.x + this.field.w - gap - pileW;
       if (compact) {
+        // Compact mode folds opponent hand away and stacks piles near edges.
         const topPileY = this.field.y + 42;
         const ownPileY = this.field.y + this.field.h - pileH - 12;
         this.piles = {
@@ -425,6 +436,7 @@
       const w = Math.max(22, Math.min(maxByHeight, 50, (rect.w - 34) / Math.max(8, maxCards)));
       const overlap = cards.length > 1 ? Math.min(w + 8, (rect.w - w - 24) / (cards.length - 1)) : 0;
       const startX = rect.x + 12 + Math.max(0, (rect.w - 24 - (w + overlap * (cards.length - 1))) / 2);
+      // Walk backwards so overlapping cards select the topmost visible card.
       for (let i = cards.length - 1; i >= 0; i -= 1) {
         const cx = startX + i * overlap;
         const cy = rect.y + rect.h - (w * CARD_ASPECT) - 8;

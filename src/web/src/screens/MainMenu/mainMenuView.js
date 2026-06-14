@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * View-only helpers for the main menu.
+   */
   function metrics(app, itemCount) {
     const short = app.h < 460;
     const titleSize = Math.max(34, Math.min(short ? 44 : 64, Math.floor(app.w * 0.15)));

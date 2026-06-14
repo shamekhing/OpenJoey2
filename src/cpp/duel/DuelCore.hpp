@@ -13,14 +13,17 @@
 
 namespace openjoey::game {
 
-// ─── DuelCore ─────────────────────────────────────────────────────────────────
-// Central duel state. Owns the field, card pools, chain, phase manager, and
-// zone-effect manager. Implements IDuelContext so effects can call back into it.
-//
-// Card ownership rule: pool_[p] holds all cards for player p by value.
-// Zone::put() receives raw pointers into the pool — the pool is reserved
-// before dealing so it never reallocates (stable Card* for the whole duel).
-
+/**
+ * Central duel state.
+ *
+ * Owns the field, card pools, chain, phase manager, and persistent effect
+ * manager. Implements IDuelContext so effects can mutate duel state without
+ * depending on the concrete DuelCore type.
+ *
+ * Card ownership rule: pool_[p] holds all cards by value. Zones store raw
+ * pointers into those pools, so pools are reserved before cards are dealt and
+ * must not reallocate during a duel.
+ */
 class DuelCore : public openjoey::IDuelContext {
 public:
   // ── Setup ────────────────────────────────────────────────────────────────
@@ -31,7 +34,12 @@ public:
     normalSummoned_[0] = normalSummoned_[1] = false;
   }
 
-  // Load a deck from cards already parsed by the caller.
+  /**
+   * Load cards already parsed by the caller.
+   *
+   * This is the card-data boundary: JS/native adapters create Card values and
+   * C++ takes over only after parsing is complete.
+   */
   void loadDeckFromCards(int player, const std::vector<openjoey::Card> &cards) {
     if (player < 0 || player > 1) return;
     pool_[player].clear();

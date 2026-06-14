@@ -5,6 +5,10 @@
   const Chrome = window.OpenJoeyChromeLayout;
   const { Store } = window.OpenJoeyStore;
 
+  /**
+   * Owns process-wide browser state: renderer, input, route, card database,
+   * and the active deck/duel backend.
+   */
   class App {
     constructor(canvas, searchInput, cardDb, deck, duel, backend) {
       this.canvas = canvas;
@@ -30,6 +34,7 @@
       const size = this.renderer.resize();
       this.w = size.w;
       this.h = size.h;
+      // Screens cache layout rectangles, so recompute after every canvas resize.
       this.screen?.layout?.();
     }
 

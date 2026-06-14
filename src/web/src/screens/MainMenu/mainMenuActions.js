@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Input handlers for the main menu.
+   */
   function select(app, target) {
     if (target === "quit") app.status = "Quit is native-only in browser";
     else app.goto(target);

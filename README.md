@@ -45,7 +45,8 @@ deck and duel mechanics only; JavaScript forwards compact card fields into WASM.
             │   ├── DeckStorage.js
             │   └── generated/
             │       ├── cardRows.generated.js
-            │       └── openJoeyCore.generated.js
+            │       ├── openJoeyCore.generated.js
+            │       └── openJoeyCore.generated.wasm
             ├── canvas/
             │   ├── CanvasRenderer.js
             │   ├── primitives.js

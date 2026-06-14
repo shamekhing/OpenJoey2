@@ -10,9 +10,9 @@
 
 namespace openjoey::zone {
 
-// ─── Zone
-// ───────────────────────────────────────────────────────────────────── A
-// single-card slot: monster zone, spell/trap zone, field zone, EMZ.
+/**
+ * Single-card zone slot: monster zone, spell/trap zone, field zone, or EMZ.
+ */
 class ZoneCell : public IZone {
 public:
   ZoneCell() : card_(nullptr) { isStack_ = false; };
@@ -59,7 +59,7 @@ public:
   bool changeVisibility(etypes::visibility v) {
     return isEmpty() && v != visibility_ ? false : (visibility_ = v, true);
   }
-  // Flip summon: face-down defense → face-up attack or defense.
+  // Flip summon: face-down defense -> face-up attack or defense.
   bool flip() {
     if (orientation_ == etypes::orientation::Vertical &&
         visibility_ == etypes::visibility::Limited) {

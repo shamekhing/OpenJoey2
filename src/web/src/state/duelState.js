@@ -1,4 +1,10 @@
 (function () {
+  /**
+   * Cursor state for the duel screen.
+   *
+   * `mode` selects the active area, `player` selects owner perspective, and
+   * `cursor` selects an index inside that area.
+   */
   function createState() {
     return {
       cursor: 0,

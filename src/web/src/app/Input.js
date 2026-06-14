@@ -1,4 +1,10 @@
 (function () {
+  /**
+   * Normalizes DOM events into screen-level input calls.
+   *
+   * Screens receive canvas-space coordinates and keyboard events; they do not
+   * subscribe to DOM events directly.
+   */
   class Input {
     constructor(app) {
       this.app = app;

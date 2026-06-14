@@ -2,6 +2,9 @@
   const DuelState = window.OpenJoeyDuelState;
   const Selectors = window.OpenJoeyDuelSelectors;
 
+  /**
+   * Mutating operations for duel input.
+   */
   function key(app, state, event, api) {
     const block = ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Enter", "Escape", "Tab"];
     if (block.includes(event.key)) event.preventDefault();
@@ -18,6 +21,7 @@
   }
 
   function move(app, state, delta) {
+    // Hands have dynamic length; field zones always have five slots.
     const max = state.mode === "hand" ? app.duel.hand[state.player].length : 5;
     DuelState.move(state, max, delta);
   }

@@ -9,9 +9,12 @@
 
 namespace openjoey::zone {
 
-// ─── ZoneStack
-
-// Top = back of vector, bottom = front.
+/**
+ * Ordered multi-card zone.
+ *
+ * Top is the back of the vector, bottom is the front. Deck, hand, graveyard,
+ * banished, extra deck, and side deck are all stack-like zones.
+ */
 class ZoneStack : public IZone {
 public:
   ZoneStack() {

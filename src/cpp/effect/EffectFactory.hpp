@@ -16,15 +16,12 @@
 
 namespace openjoey {
 
-// ─── EffectFactory ────────────────────────────────────────────────────────────
-// Creates a fresh Effect instance for each activation (no singletons).
-// The chain owns the returned unique_ptr and frees it after resolve().
-//
-// To add a new effect:
-//   1. Create its .hpp in the appropriate src/effect/<category>/ folder.
-//   2. #include it above.
-//   3. Add one line to the table_ initialiser below.
-
+/**
+ * Creates a fresh Effect instance for each activation.
+ *
+ * Effects are not singletons because each activation can hold source card,
+ * target, and parameter state. Chain owns the returned unique_ptr.
+ */
 class EffectFactory {
 public:
   using Creator = std::function<std::unique_ptr<Effect>()>;

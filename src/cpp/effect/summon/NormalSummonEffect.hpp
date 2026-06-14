@@ -4,13 +4,11 @@
 
 namespace openjoey {
 
-// ─── NormalSummonEffect ───────────────────────────────────────────────────────
-// Moves a level 1–4 monster from the turn player's hand to an empty monster
-// zone. Once per turn; only legal in Main Phase 1 or 2.
-//
-// handIndex and destZone are set by the action invoker before calling
-// DuelCore::activateEffect().
-
+/**
+ * Normal summons a level 1-4 monster from hand to an empty monster zone.
+ *
+ * handIndex and destZone are set by the action invoker before activation.
+ */
 class NormalSummonEffect : public Effect {
 public:
   int handIndex = 0;  // index into turn player's hand zone

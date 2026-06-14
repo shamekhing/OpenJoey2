@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Read-only derived values for duel screens and status text.
+   */
   function selectedCard(app, state) {
     if (state.mode === "hand") return app.duel.hand[state.player][state.cursor] || null;
     if (state.mode === "monster") return app.duel.monsters[state.player][state.cursor] || null;

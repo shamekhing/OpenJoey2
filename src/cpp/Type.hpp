@@ -3,6 +3,9 @@
 
 namespace openjoey::etypes {
 
+// Shared enum vocabulary for cards, zones, effects, and phases.
+// Numeric phase values are exposed through the C ABI, so keep them stable.
+
 // ── Card ─────────────────────────────────────────────────────────────────────
 
 enum class card : uint8_t { Monster, Spell, Trap };

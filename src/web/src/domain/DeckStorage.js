@@ -1,6 +1,9 @@
 (function () {
   const { DECK_STORAGE_KEY } = window.OpenJoeyDeckConstants;
 
+  /**
+   * Persist decks by passcode only; card metadata is rehydrated from CardDb.
+   */
   function deckIds(deck) {
     return deck.cards.map((card) => card.id);
   }

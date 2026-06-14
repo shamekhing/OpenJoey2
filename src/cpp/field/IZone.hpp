@@ -7,9 +7,12 @@
 #include <vector>
 
 namespace openjoey::zone {
-// ─── IZone
-// base for all zone types. A zone owns no cards — it holds raw pointers.
-// Ownership is managed by the game engine.
+/**
+ * Base interface for all zones.
+ *
+ * A zone never owns cards; it stores raw pointers to Card values owned by
+ * DuelCore. Failed move operations roll cards back to their source zone.
+ */
 class IZone {
 public:
   virtual ~IZone() = default;

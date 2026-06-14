@@ -4,10 +4,12 @@
 
 namespace openjoey {
 
-// ─── TargetRequest ────────────────────────────────────────────────────────────
-// An Effect::activate() may push one of these into the DuelCore to request a
-// player selection. The chain does not advance until fulfilled == true.
-
+/**
+ * Pending player choice requested by an effect.
+ *
+ * The chain pauses while fulfilled == false; UI/adapters can fill in the
+ * resolved fields before DuelCore continues resolution.
+ */
 struct TargetRequest {
   enum class Kind {
     None,
@@ -31,11 +33,12 @@ struct TargetRequest {
   bool fulfilled      = false;
 };
 
-// ─── IDuelContext ─────────────────────────────────────────────────────────────
-// Minimal interface that Effects call into. Implemented by DuelCore (Layer 4).
-// Defined here (Layer 3) to break the circular include between Effect and
-// DuelCore — effects depend on IDuelContext only, not on the full DuelCore.
-
+/**
+ * Minimal interface that effects call into.
+ *
+ * Effects depend on this abstraction instead of DuelCore directly, which keeps
+ * effect headers independent from the full duel implementation.
+ */
 class IDuelContext {
 public:
   virtual ~IDuelContext() = default;

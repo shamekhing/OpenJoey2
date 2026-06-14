@@ -1,4 +1,10 @@
 (function () {
+  /**
+   * Bridge between browser card objects and the active deck/duel backend.
+   *
+   * The WASM backend receives only primitive card fields. If the generated WASM
+   * module cannot initialize, equivalent JS shims keep the UI usable.
+   */
   class JsDeckCore {
     constructor() {
       this.cards = [];
@@ -124,6 +130,7 @@
     }
 
     add(card) {
+      // Forward compact runtime fields. Presentation data remains in CardDb.
       const ok = !!this.module._oj_deck_add(
         this.handle,
         card.id,
@@ -192,6 +199,7 @@
       const decks = [[...p0].slice(0, 60), [...p1].slice(0, 60)];
       for (let player = 0; player < 2; player += 1) {
         for (const card of decks[player]) {
+          // JS parses card data; C++ receives typed fields through the ABI.
           this.module._oj_game_add_deck_card(
             this.handle,
             player,
@@ -239,6 +247,8 @@
     }
 
     sync() {
+      // WASM exposes card ids and counts. Rehydrate ids back to CardDb objects
+      // so views never need to know which backend is active.
       this.turnPlayer = this.module._oj_game_turn_player(this.handle);
       this.phase = this.module._oj_game_phase(this.handle);
       for (let player = 0; player < 2; player += 1) {

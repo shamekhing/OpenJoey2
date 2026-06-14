@@ -4,6 +4,9 @@
   const Storage = window.OpenJoeyDeckStorage;
   const { SORT_LABELS, TYPE_LABELS, MIN_DECK_SIZE, MAX_DECK_SIZE } = window.OpenJoeyDeckConstants;
 
+  /**
+   * Mutating operations for the deck editor.
+   */
   const BLOCKED_KEYS = [
     "Tab",
     "ArrowDown",
@@ -25,6 +28,7 @@
   }
 
   function key(app, state, layout, event) {
+    // Let text editing keys through while the search input is active.
     if (event.target === app.searchInput && event.key !== "Enter" && event.key !== "Escape") return;
     if (BLOCKED_KEYS.includes(event.key)) event.preventDefault();
     const step = !state.focusPool && state.deckGrid ? Layout.gridCols(layout.deck) : 1;

@@ -4,10 +4,9 @@
 
 namespace openjoey {
 
-// ─── DestroyEffect ────────────────────────────────────────────────────────────
-// Requests a target zone from the player, then sends that card to the
-// owner's graveyard on resolution.
-
+/**
+ * Requests a target zone and sends the selected card to its owner's graveyard.
+ */
 class DestroyEffect : public Effect {
 public:
   enum class Scope {
@@ -73,6 +72,7 @@ public:
     const int    tp  = ctx.turnPlayerIdx();
     const int    opp = ctx.opponentIdx();
 
+    // Resolve target coordinates into the actual zone at resolution time.
     zone::IZone *srcZone = nullptr;
 
     if (req.kind == TargetRequest::Kind::OppMonsterZone ||

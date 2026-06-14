@@ -6,6 +6,9 @@
     MAX_DECK_SIZE,
   } = window.OpenJoeyDeckConstants;
 
+  /**
+   * Read-only derived values for the deck editor view.
+   */
   function selectedCard(state, deck) {
     if (state.focusPool) return state.filtered[state.poolCursor] || null;
     return deck.cards[state.deckCursor] || null;

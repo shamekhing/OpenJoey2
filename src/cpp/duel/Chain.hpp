@@ -7,8 +7,12 @@
 
 namespace openjoey::game {
 
-// ─── ChainLink ────────────────────────────────────────────────────────────────
-
+/**
+ * One pending effect activation on the chain.
+ *
+ * The chain owns `effect`; `sourceCard` is a non-owning pointer into DuelCore's
+ * card pools.
+ */
 struct ChainLink {
   std::unique_ptr<Effect> effect;
   int                     player     = -1;
@@ -16,17 +20,13 @@ struct ChainLink {
   bool                    negated    = false; // set by NegateActivationEffect
 };
 
-// ─── Chain ────────────────────────────────────────────────────────────────────
-// Activation chain with LIFO resolution and YGO spell-speed rules.
-//
-// Spell-speed rules enforced in canAdd():
-//   • Each new link must have spellSpeed >= the current top link's spellSpeed.
-//   • A speed-3 link (counter-trap) can only respond to speed >= 1.
-//     (Chain::canAdd enforces: new spellSpeed >= top spellSpeed.)
-//   • Speed-1 effects cannot be added to a non-empty chain.
-//
-// Resolution: resolveNext() walks from back (most recent) to front (oldest).
-
+/**
+ * Activation chain with LIFO resolution and spell-speed gating.
+ *
+ * Resolution walks from newest link to oldest. The current implementation
+ * enforces monotonic spell speed against the top link; richer timing windows
+ * can layer on top of canAdd().
+ */
 class Chain {
 public:
   // Returns false if spell-speed rules are violated or effect is null.

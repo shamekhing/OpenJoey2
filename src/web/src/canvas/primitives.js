@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Shared canvas primitives used by screens.
+   */
   function rect(ctx, r, fill, stroke) {
     ctx.fillStyle = fill;
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -10,6 +13,7 @@
 
   function text(ctx, value, x, y, maxWidth) {
     let s = String(value || "");
+    // Canvas has no built-in ellipsis, so trim to fit the available width.
     while (s.length && ctx.measureText(s).width > maxWidth) s = s.slice(0, -1);
     if (s.length < String(value || "").length) s = `${s.slice(0, -1)}~`;
     ctx.fillText(s, x, y);
@@ -34,6 +38,7 @@
   }
 
   function visibleStart(total, cursor, max) {
+    // Center the cursor in a virtual list window when possible.
     if (total <= max) return 0;
     return Math.max(0, Math.min(cursor - Math.floor(max / 2), total - max));
   }

@@ -3,6 +3,9 @@
   const Actions = window.OpenJoeyMainMenuActions;
   const View = window.OpenJoeyMainMenuView;
 
+  /**
+   * Main menu screen shell. Delegates input mutations to Actions and drawing to View.
+   */
   class MainMenuScreen {
     constructor(app) {
       this.app = app;

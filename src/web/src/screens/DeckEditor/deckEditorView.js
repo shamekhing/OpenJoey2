@@ -5,6 +5,9 @@
   const Selectors = window.OpenJoeyDeckEditorSelectors;
   const { CARD_ASPECT, MAX_COPIES } = window.OpenJoeyDeckConstants;
 
+  /**
+   * Canvas rendering for the deck editor.
+   */
   function draw(g, app, state, layout) {
     app.drawChrome("DECK EDITOR", Selectors.helpText(layout.mode));
     drawPreview(g, app, state, layout.preview);
@@ -78,6 +81,7 @@
   }
 
   function drawRows(g, app, rect, items, cursor, focused, offset) {
+    // Lists are virtualized around the cursor to keep drawing bounded.
     const visible = Layout.visibleRows(rect, offset);
     const start = Ui.visibleStart(items.length, cursor, visible);
     for (let i = 0; i < visible && start + i < items.length; i += 1) {
@@ -86,6 +90,7 @@
   }
 
   function drawGrid(g, app, rect, items, cursor, focused, offset) {
+    // Grid uses the same cursor-centered window as row lists.
     const cols = Layout.gridCols(rect);
     const metrics = Layout.gridMetrics(rect, offset, cols);
     const start = Ui.visibleStart(items.length, cursor, metrics.visible);

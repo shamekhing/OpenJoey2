@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Minimal placeholder for routes whose real screen has not been implemented.
+   */
   class PlaceholderScreen {
     constructor(app, name) {
       this.app = app;
@@ -22,10 +25,13 @@
       g.fillText(title, x, y, this.app.w - x * 2);
       g.fillStyle = "#9faab7";
       g.font = this.app.w < 520 ? "14px system-ui" : "16px system-ui";
-      g.fillText("Screen shell is wired in src2. Add settings/test widgets here.", x, y + 34, this.app.w - x * 2);
+      g.fillText("Screen shell is wired. Add settings/test widgets here.", x, y + 34, this.app.w - x * 2);
     }
   }
 
+  /**
+   * Creates and disposes screens when the route changes.
+   */
   class Router {
     constructor(app) {
       this.app = app;
@@ -34,6 +40,7 @@
 
     goto(name) {
       this.screen?.dispose?.();
+      // Screens opt into the search input; hide it at every route boundary.
       this.app.searchInput.style.display = "none";
       if (name === "menu") this.screen = new window.OpenJoeyScreens.MainMenuScreen(this.app);
       else if (name === "deck") this.screen = new window.OpenJoeyScreens.DeckEditorScreen(this.app);

@@ -1,4 +1,10 @@
 (function () {
+  /**
+   * JavaScript-owned card database helpers.
+   *
+   * C++ receives compact runtime fields only; names, descriptions, labels, and
+   * image URLs stay in the browser layer.
+   */
   const KIND_MONSTER = 0;
   const KIND_SPELL = 1;
   const KIND_TRAP = 2;
@@ -26,6 +32,9 @@
     return `https://images.ygoprodeck.com/images/cards/${card.imageId}.jpg`;
   }
 
+  /**
+   * Wraps generated row data with searchable/sortable card objects.
+   */
   class CardDb {
     constructor(rows) {
       this.cards = rows.map((row, index) => ({
@@ -45,6 +54,7 @@
     }
 
     rebuildSort(mode) {
+      // Keep sorters table-driven so keyboard sort cycling stays simple.
       const byName = (a, b) => a.name.localeCompare(b.name);
       const sorters = [
         (a, b) => a.kind - b.kind || byName(a, b),

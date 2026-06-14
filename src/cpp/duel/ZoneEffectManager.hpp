@@ -7,14 +7,12 @@
 
 namespace openjoey::game {
 
-// ─── ZoneEffectManager ────────────────────────────────────────────────────────
-// Tracks persistent effects (Continuous, Equip, Field) that stay active as
-// long as their source card remains in its source zone.
-//
-// No callbacks into Zone.hpp are needed — we poll source zone occupancy on
-// each tick(). Entries whose source card has left the zone are removed and
-// the effect's cleanup() is called (if overridden by the subclass).
-
+/**
+ * Tracks persistent effects tied to a source card in a source zone.
+ *
+ * Zones do not emit events. Instead, DuelCore calls tick() at phase/chain
+ * boundaries and stale entries fall out when their source card leaves.
+ */
 class ZoneEffectManager {
 public:
   struct Entry {

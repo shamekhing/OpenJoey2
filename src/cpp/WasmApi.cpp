@@ -10,6 +10,8 @@
 
 namespace {
 
+// Compact card data passed over the JS/WASM boundary.
+// Browser code owns names, descriptions, images, and search/display metadata.
 struct DeckCard {
   uint32_t id = 0;
   uint32_t imageId = 0;
@@ -19,6 +21,8 @@ struct DeckCard {
   int level = 0;
 };
 
+// Lightweight deck editor model exposed to JavaScript.
+// DuelCore uses full Card values; this model only enforces deck construction.
 struct DeckCore {
   std::vector<DeckCard> cards;
 
@@ -55,6 +59,7 @@ openjoey::etypes::card toNativeKind(int kind) {
   return openjoey::etypes::card::Monster;
 }
 
+// Convert JS-parsed card fields into the runtime Card model used by DuelCore.
 openjoey::Card makeNativeCard(uint32_t id, uint32_t imageId, int kind, int atk,
                               int def, int level) {
   openjoey::Card card;
@@ -68,6 +73,8 @@ openjoey::Card makeNativeCard(uint32_t id, uint32_t imageId, int kind, int atk,
   return card;
 }
 
+// Per-duel WASM handle. JavaScript stages deck vectors first, then oj_game_start
+// copies them into DuelCore so zone pointers remain stable for the duel.
 struct OjGame {
   openjoey::EffectFactory factory;
   openjoey::game::DuelCore duel;
@@ -81,6 +88,8 @@ bool validPlayer(int player) { return player >= 0 && player < 2; }
 } // namespace
 
 extern "C" {
+
+// Deck editor API -------------------------------------------------------------
 
 DeckCore *oj_deck_new() { return new DeckCore(); }
 
@@ -148,6 +157,8 @@ int oj_deck_stats_traps(const DeckCore *deck) {
               : 0;
 }
 
+// Duel API --------------------------------------------------------------------
+
 OjGame *oj_game_new() { return new OjGame(); }
 
 void oj_game_free(OjGame *game) { delete game; }
@@ -175,6 +186,7 @@ bool oj_game_start(OjGame *game) {
   if (!game)
     return false;
   game->duel = openjoey::game::DuelCore(&game->factory);
+  // Load parsed card data supplied by JS. C++ does not parse card JSON.
   game->duel.loadDeckFromCards(0, game->stagedDecks[0]);
   game->duel.loadDeckFromCards(1, game->stagedDecks[1]);
   game->duel.startDuel();

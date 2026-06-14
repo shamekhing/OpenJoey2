@@ -4,15 +4,12 @@
 
 namespace openjoey {
 
-// ─── ContinuousEffect ────────────────────────────────────────────────────────
-// Base for effects that persist on the field (Continuous spells/traps,
-// field spells, equip spells). Subclass and override applyTick() for the
-// per-tick passive behaviour.
-//
-// On activate(), registers itself with ZoneEffectManager via IDuelContext.
-// ZoneEffectManager calls applyTick() each tick while the source card
-// remains in the source zone; auto-removes the entry when it leaves.
-
+/**
+ * Base for field-persistent effects.
+ *
+ * Subclasses override applyTick(). ZoneEffectManager keeps calling it while the
+ * source card remains in sourceZone.
+ */
 class ContinuousEffect : public Effect {
 public:
   ContinuousEffect() { spellSpeed = 1; }

@@ -7,12 +7,13 @@
 
 namespace openjoey {
 
-// ─── Card ────────────────────────────────────────────────────────────────────
-
-// The one-and-only card class. A card's identity comes entirely from which
-// Effects it subscribes to. No subclasses, ever.
-// Filename stem in assets/cards. See download_card_images.py
-
+/**
+ * Runtime card state used by the rules engine.
+ *
+ * JavaScript owns database parsing and presentation fields. C++ only keeps the
+ * fields required to enforce duel/deck mechanics and expose state back through
+ * the C ABI.
+ */
 struct Card {
 
   // Identity
@@ -45,7 +46,7 @@ struct Card {
   bool isSpell() const { return type == etypes::card::Spell; }
   bool isTrap() const { return type == etypes::card::Trap; }
 
-  // Others
+  // Attachments/counters are non-owning runtime relationships.
   std::vector<Card *> equippedCards; // non-owning equip attachments
   std::map<std::string, int> counters;
 

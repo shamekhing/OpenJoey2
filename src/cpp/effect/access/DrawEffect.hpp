@@ -4,10 +4,9 @@
 
 namespace openjoey {
 
-// ─── DrawEffect ───────────────────────────────────────────────────────────────
-// Draws `count` cards from the turn player's deck to their hand.
-// Ends the duel immediately if the deck runs out during the draw.
-
+/**
+ * Draws `count` cards from the turn player's deck to their hand.
+ */
 class DrawEffect : public Effect {
 public:
   explicit DrawEffect(int count = 1) : count_(count) { spellSpeed = 1; }

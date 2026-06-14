@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Shared hit-testing helpers for canvas layout rectangles.
+   */
   function pointInRect(rect, x, y) {
     return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
   }

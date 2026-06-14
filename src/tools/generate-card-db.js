@@ -25,6 +25,6 @@ const cards = raw.data
 
 fs.writeFileSync(
   output,
-  `window.OPENJOEY_CARD_ROWS=${JSON.stringify(cards)};\n`,
+  `window.OPENJOEY_CARD_ROWS = ${JSON.stringify(cards, null, 2)};\n`,
 );
 console.log(`wrote ${cards.length} cards to ${output}`);

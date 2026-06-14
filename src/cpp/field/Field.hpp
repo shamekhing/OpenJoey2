@@ -5,22 +5,12 @@
 
 namespace openjoey::zone {
 
-// ─── Field
-// ──────────────────────────────────────────────────────────────────── The
-// physical playing field: all zones for both players.
-//
-//   monsterZones[p][0..4]      — 5 main monster zones per player
-//   spellTrapZones[p][0..4]    — 5 spell/trap zones; [p][0] and [p][4] are
-//                                also Pendulum Zones
-//   fieldZones[p]              — 1 field spell zone per player
-//   extraMonsterZones[0..1]    — 2 EMZs shared on the mat
-//   handZones[p]               — player hand
-//   deckZones[p]               — player main deck
-//   extraDeckZones[p]          — player extra deck
-//   graveyardZones[p]          — player graveyard
-//   banishedZones[p]           — player banished pile
-//   sideDeckZones[p]           — player side deck
-
+/**
+ * Physical playing field: all zones for both players.
+ *
+ * The field owns zone containers, not cards. Cards live in DuelCore pools and
+ * zones store pointers to them.
+ */
 class Field {
 public:
   Field() { clearField(); }

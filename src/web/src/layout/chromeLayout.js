@@ -1,4 +1,7 @@
 (function () {
+  /**
+   * Shared chrome metrics and drawing for all screens.
+   */
   function top(app) {
     if (app.h < 430 || app.w < 430) return 48;
     return 56;

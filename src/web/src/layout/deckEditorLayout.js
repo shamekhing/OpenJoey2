@@ -2,6 +2,9 @@
   const Ui = window.OpenJoeyUi;
   const { CARD_ASPECT } = window.OpenJoeyDeckConstants;
 
+  /**
+   * Pure layout calculations for the deck editor.
+   */
   function compute(app) {
     const margin = app.w < 520 || app.h < 520 ? 8 : 14;
     const gap = app.w < 520 || app.h < 520 ? 8 : 10;
@@ -48,6 +51,7 @@
   }
 
   function hitList(rect, items, cursor, offset, grid, x, y) {
+    // Map canvas coordinates back into the virtual list/grid index.
     if (x < rect.x || x > rect.x + rect.w || y < rect.y + offset || y > rect.y + rect.h) return -1;
     if (!grid) {
       const visible = visibleRows(rect, offset);

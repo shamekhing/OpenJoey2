@@ -3,11 +3,9 @@
 
 namespace openjoey::game {
 
-// ─── PhaseManager ─────────────────────────────────────────────────────────────
-// Tracks the current phase and turn within a duel.
-// advance() steps through the phase sequence for the active player.
-// After End Phase the turn flips and the sequence restarts at Draw.
-
+/**
+ * Tracks current phase, turn player, and first-turn battle skipping.
+ */
 class PhaseManager {
 public:
   etypes::phase phase = etypes::phase::Draw;
