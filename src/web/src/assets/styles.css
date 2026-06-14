@@ -30,3 +30,98 @@ body {
   font: 16px system-ui, sans-serif;
   outline: none;
 }
+
+.settings-panel {
+  position: fixed;
+  z-index: 2;
+  box-sizing: border-box;
+  display: grid;
+  gap: 16px;
+  color: #eef3f7;
+  font: 14px system-ui, sans-serif;
+}
+
+.settings-drop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 84px;
+  border: 1px dashed #6f7f91;
+  border-radius: 8px;
+  background: rgba(17, 22, 28, .92);
+  padding: 16px;
+}
+
+.settings-drop.is-dragging {
+  border-color: #f3d45b;
+  background: rgba(43, 38, 20, .95);
+}
+
+.settings-drop strong,
+.settings-drop span {
+  display: block;
+}
+
+.settings-drop strong {
+  color: #f1f5f8;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.settings-drop span {
+  color: #9faab7;
+  line-height: 1.35;
+}
+
+.settings-drop input[type="file"] {
+  display: none;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-url-row {
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr) auto;
+}
+
+.settings-row label {
+  color: #9faab7;
+  font-weight: 700;
+}
+
+.settings-row input,
+.settings-row button,
+.settings-drop button {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid #d9e2ee;
+  border-radius: 5px;
+  background: #171d24;
+  color: #eef3f7;
+  padding: 0 10px;
+  font: 14px system-ui, sans-serif;
+}
+
+.settings-row button,
+.settings-drop button {
+  cursor: pointer;
+  background: #25313c;
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .settings-row,
+  .settings-url-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-drop {
+    grid-template-columns: 1fr;
+  }
+}

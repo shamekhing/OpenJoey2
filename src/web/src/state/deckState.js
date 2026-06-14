@@ -21,6 +21,8 @@
   const MAX_COPIES = 3;
   const CARD_ASPECT = 86 / 59;
   const DECK_STORAGE_KEY = "openjoey2.web.deck";
+  const DECK_FOLDER_STORAGE_KEY = "openjoey2.web.deckFolder";
+  const CARD_DB_URL_STORAGE_KEY = "openjoey2.web.cardDbUrl";
 
   window.OpenJoeyDeckConstants = {
     SORT_LABELS,
@@ -30,6 +32,8 @@
     MAX_COPIES,
     CARD_ASPECT,
     DECK_STORAGE_KEY,
+    DECK_FOLDER_STORAGE_KEY,
+    CARD_DB_URL_STORAGE_KEY,
   };
 
   function createState() {

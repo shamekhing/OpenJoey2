@@ -45,6 +45,7 @@
       if (name === "menu") this.screen = new window.OpenJoeyScreens.MainMenuScreen(this.app);
       else if (name === "deck") this.screen = new window.OpenJoeyScreens.DeckEditorScreen(this.app);
       else if (name === "duel") this.screen = new window.OpenJoeyScreens.DuelScreen(this.app);
+      else if (name === "settings") this.screen = new window.OpenJoeyScreens.SettingsScreen(this.app);
       else this.screen = new PlaceholderScreen(this.app, name);
       this.screen.layout?.();
       return this.screen;

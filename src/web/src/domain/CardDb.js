@@ -32,6 +32,45 @@
     return `https://images.ygoprodeck.com/images/cards/${card.imageId}.jpg`;
   }
 
+  function rowFromYgoProDeckCard(card) {
+    const kind = card.frameType === "spell" ? KIND_SPELL : card.frameType === "trap" ? KIND_TRAP : KIND_MONSTER;
+    return [
+      card.id,
+      card.card_images?.[0]?.id || card.id,
+      kind,
+      card.name,
+      card.desc || "",
+      card.atk || 0,
+      card.def || 0,
+      card.level || card.rank || 0,
+      card.humanReadableCardType || card.type || "",
+    ];
+  }
+
+  function rowsFromYgoProDeckJson(json) {
+    const data = Array.isArray(json?.data) ? json.data : [];
+    return data
+      .filter((card) => card && card.id && card.name)
+      .map(rowFromYgoProDeckCard);
+  }
+
+  function rowsFromGeneratedText(text) {
+    const start = text.indexOf("[");
+    const end = text.lastIndexOf("]");
+    if (start < 0 || end <= start) return [];
+    const rows = JSON.parse(text.slice(start, end + 1));
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function rowsFromText(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("window.OPENJOEY_CARD_ROWS")) return rowsFromGeneratedText(trimmed);
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed;
+    return rowsFromYgoProDeckJson(parsed);
+  }
+
   /**
    * Wraps generated row data with searchable/sortable card objects.
    */
@@ -89,5 +128,7 @@
     kindName,
     statsLine,
     imageUrl,
+    rowsFromText,
+    rowsFromYgoProDeckJson,
   };
 })();

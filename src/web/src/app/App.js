@@ -54,6 +54,20 @@
     drawChrome(title, help) {
       Chrome.draw(this, title, help);
     }
+
+    replaceCardDb(rows, sourceLabel) {
+      const oldDeckIds = this.deck.cards.map((card) => card.id);
+      this.cardDb = new window.OpenJoeyCardDb.CardDb(rows);
+      this.cardDb.rebuildSort(0);
+      this.deck.clear();
+      let restored = 0;
+      for (const id of oldDeckIds) {
+        const card = this.cardDb.byId.get(id);
+        if (card && this.deck.add(card)) restored += 1;
+      }
+      window.OpenJoeyDeckStorage.save(this.deck);
+      this.status = `${sourceLabel}: ${this.cardDb.cards.length} cards, ${restored} deck cards kept`;
+    }
   }
 
   window.OpenJoeyApp = { App };
