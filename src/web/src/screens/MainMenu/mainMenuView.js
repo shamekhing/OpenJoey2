@@ -19,12 +19,12 @@
   }
 
   function draw(g, app, state, items) {
-    app.drawChrome("OpenJoey", "UP/DOWN to navigate, ENTER to select");
+    app.drawChrome("OpenJoey 2", "UP/DOWN to navigate, ENTER to select");
     const m = metrics(app, items.length);
     g.fillStyle = "#d7b84d";
     g.font = `700 ${m.titleSize}px system-ui`;
     g.textAlign = "center";
-    g.fillText("OpenJoey", app.w / 2, m.titleY, app.w - 28);
+    g.fillText("OpenJoey2", app.w / 2, m.titleY, app.w - 28);
     g.font = `${m.itemSize}px system-ui`;
     for (let i = 0; i < items.length; i += 1) {
       const y = m.startY + i * m.rowH;

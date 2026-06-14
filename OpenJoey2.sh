@@ -16,6 +16,7 @@
 #   -m   Measure src/web deploy size and gzip estimates
 #   -d   Generate small remote/cached card DB bootstrap
 #   -D   Generate large bundled card DB rows for offline/dev
+#   -k   Kill the app listening on OPENJOEY_PORT
 #   -c   Clean root build trees
 #   -h   Show this help
 #
@@ -28,6 +29,7 @@
 #
 # Web server port:
 #   OPENJOEY_PORT=9090 ./OpenJoey2.sh -r
+#   OPENJOEY_PORT=9090 ./OpenJoey2.sh -k
 #
 # Build and run entry points live here at the repo root. Do not add .sh or
 # CMake entry points under src/.
@@ -153,6 +155,31 @@ generate_card_db_bundle() {
   node "${CARD_DB_GENERATOR}" --bundle
 }
 
+kill_web_port() {
+  echo "[kill] stopping listeners on port ${WEB_PORT}..."
+  if command -v fuser >/dev/null 2>&1; then
+    if fuser -n tcp "${WEB_PORT}" >/dev/null 2>&1; then
+      fuser -k -n tcp "${WEB_PORT}"
+    else
+      echo "[kill] no process is listening on port ${WEB_PORT}."
+    fi
+    return
+  fi
+
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(lsof -tiTCP:"${WEB_PORT}" -sTCP:LISTEN || true)"
+    if [[ -n "${pids}" ]]; then
+      printf '%s\n' "${pids}" | xargs kill
+    else
+      echo "[kill] no process is listening on port ${WEB_PORT}."
+    fi
+    return
+  fi
+
+  echo "[kill] neither fuser nor lsof is available." >&2
+  exit 1
+}
+
 format_bytes() {
   if command -v numfmt >/dev/null 2>&1; then
     numfmt --to=iec --suffix=B "$1"
@@ -212,7 +239,7 @@ do_clean() {
 
 [[ $# -eq 0 ]] && { help_msg; exit 0; }
 
-while getopts ":sbBxXwWrntmdDch" opt; do
+while getopts ":sbBxXwWrntmdDckh" opt; do
   case "${opt}" in
     s) setup_debug; setup_release ;;
     b) build_debug ;;
@@ -227,6 +254,7 @@ while getopts ":sbBxXwWrntmdDch" opt; do
     m) measure_web_size ;;
     d) generate_card_db_bootstrap ;;
     D) generate_card_db_bundle ;;
+    k) kill_web_port ;;
     c) do_clean ;;
     h) help_msg ;;
     :) echo "Option -${OPTARG} requires an argument."; exit 1 ;;
