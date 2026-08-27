@@ -2,6 +2,7 @@
 #include "card/Card.hpp"
 #include "card/CardDatabase.hpp"
 #include "ui/CardImageCache.hpp"
+#include "ui/platform/Settings.hpp"
 #include <vector>
 
 namespace openjoey::ui {
@@ -12,6 +13,7 @@ struct AppContext {
     openjoey::CardDatabase&      cardDb;
     std::vector<openjoey::Card>& selectedDeck;
     CardImageCache&              imageCache;
+    Settings&                    settings;
 };
 
 } // namespace openjoey::ui

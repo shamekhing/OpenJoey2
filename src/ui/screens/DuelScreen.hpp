@@ -7,6 +7,7 @@
 #include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
+#include "ui/widgets/display/CardPreview.hpp"
 #include "ui/widgets/duel/FieldGrid.hpp"
 #include "ui/widgets/duel/ZoneInfoPanel.hpp"
 #include <filesystem>
@@ -81,7 +82,7 @@ private:
     std::vector<std::string>  actionLabels_;
     int                       actionCursor_ = 0;
     std::string               lastResult_;
-    int                       previewScrollLines_ = 0;
+    mutable CardPreview       preview_;
     std::string               numBuf_;
 
     // ── Setup
@@ -138,7 +139,7 @@ private:
     ScreenEvent handleInput() {
         float wheel = GetMouseWheelMove();
         if (wheel != 0.f) {
-            previewScrollLines_ = std::max(0, previewScrollLines_ - (int)wheel);
+            preview_.scroll((int)wheel);
             return ScreenEvent::none();
         }
 
@@ -202,7 +203,6 @@ private:
             numBuf_.clear();
             fieldGrid_.moveCursor(dr, dc, field_);
             rebuildActions();
-            previewScrollLines_ = 0;
         }
         return ScreenEvent::none();
     }
@@ -210,7 +210,6 @@ private:
     void handleEnter() {
         IZone* z = fieldGrid_.cursorZone(field_);
         if (!z) return;
-        previewScrollLines_ = 0;
 
         if (!fieldGrid_.selectedZone()) {
             if (!z->isEmpty()) {
@@ -405,24 +404,10 @@ private:
         }
     }
 
+        // Delegates to the shared CardPreview widget (ui/widgets/display/CardPreview)
+    // instead of duplicating the portrait/name/stat/wrap-scroll layout here.
     void drawPreviewPanel(int x, int y, int w, int h) const {
-        DrawRectangle(x, y, w, h, COLOR_BG_MAIN);
-        DrawLine(x + w - 1, y, x + w - 1, y + h, COLOR_DIVIDER_LINE);
-
-        int pad = PREVIEW_PAD_X;
-        int cy  = y + pad;
-        DrawText("Preview", x + pad, cy, FONT_PANEL_TITLE, COLOR_STAT_TEXT);
-        cy += FONT_PANEL_TITLE + pad / 2;
-
-        float aspect = 59.f / 86.f;
-        int cardW = w - pad * 2;
-        int cardH = (int)(cardW / aspect);
-        if (cardH > h * 48 / 100) {
-            cardH = h * 48 / 100;
-            cardW = (int)(cardH * aspect);
-        }
-        int cardX = x + (w - cardW) / 2;
-        Rectangle cardR = {(float)cardX, (float)cy, (float)cardW, (float)cardH};
+        preview_.SetCardBack(cardBack_.id ? &cardBack_ : nullptr);
 
         IZone* z   = fieldGrid_.cursorZone(const_cast<Field&>(field_));
         Card*  top = nullptr;
@@ -437,88 +422,8 @@ private:
                 top = zn->peek();
             }
         }
-
-        const Texture2D* cb = cardBack_.id ? &cardBack_ : nullptr;
-        if (fd) {
-            if (cb)
-                DrawTexturePro(*cb, {0, 0, (float)cb->width, (float)cb->height},
-                               cardR, {0, 0}, 0.f, WHITE);
-            else
-                DrawRectangleRec(cardR, COLOR_CARD_BACK_FG);
-            DrawRectangleLinesEx(cardR, 1.5f, Color{210, 170, 40, 255});
-        } else if (top) {
-            const Texture2D* tex = ctx_.imageCache.Get(*top);
-            if (tex && tex->id) {
-                DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                               cardR, {0, 0}, 0.f, WHITE);
-            } else {
-                Color fc = top->isMonster() ? COLOR_MONSTER_STAT
-                           : top->isSpell() ? COLOR_SPELL_STAT
-                                            : COLOR_TRAP_STAT;
-                DrawRectangleRec(cardR, Fade(fc, 0.4f));
-            }
-            DrawRectangleLinesEx(cardR, 1.2f, Color{200, 180, 100, 255});
-        } else {
-            DrawRectangleRec(cardR, COLOR_BG_MAIN);
-            DrawRectangleLinesEx(cardR, 1.f, COLOR_DIVIDER_LINE);
-        }
-        cy += cardH + pad;
-
-        if (top && !fd) {
-            DrawText(top->name.c_str(), x + pad, cy, FONT_CARD_NAME, WHITE);
-            cy += FONT_CARD_NAME + 3;
-            DrawText(top->cardTypeTag().c_str(), x + pad, cy, FONT_CARD_STAT,
-                     top->isMonster() ? COLOR_MONSTER_STAT
-                     : top->isSpell() ? COLOR_SPELL_STAT
-                                      : COLOR_TRAP_STAT);
-            cy += FONT_CARD_STAT + 3;
-            if (top->isMonster()) {
-                DrawText(top->statLine().c_str(), x + pad, cy, FONT_CARD_STAT, COLOR_STAT_TEXT);
-                cy += FONT_CARD_STAT + 4;
-            }
-
-            const std::string& desc = top->description;
-            int lineFs = FONT_HELP_TEXT;
-            int lineH2 = lineFs + 3;
-            int maxPx  = w - pad * 2;
-
-            std::vector<std::string> lines;
-            size_t pos = 0;
-            while (pos < desc.size()) {
-                size_t end = pos;
-                std::string line;
-                while (end < desc.size()) {
-                    size_t nxt = desc.find(' ', end + 1);
-                    if (nxt == std::string::npos) nxt = desc.size();
-                    std::string trial = desc.substr(pos, nxt - pos);
-                    if (MeasureText(trial.c_str(), lineFs) > maxPx) break;
-                    line = trial;
-                    end  = nxt;
-                }
-                if (end == pos) { end = pos + 1; line = desc.substr(pos, 1); }
-                lines.push_back(line);
-                pos = (end < desc.size() && desc[end] == ' ') ? end + 1 : end;
-            }
-
-            int maxScroll = std::max(0, (int)lines.size() - 1);
-            int scroll    = std::min(previewScrollLines_, maxScroll);
-
-            for (int i = scroll; i < (int)lines.size(); ++i) {
-                if (cy + lineH2 > y + h - pad) break;
-                DrawText(lines[i].c_str(), x + pad, cy, lineFs, COLOR_DESC_TEXT);
-                cy += lineH2;
-            }
-
-            if ((int)lines.size() > 1) {
-                int barX   = x + w - pad / 2 - 2;
-                int barTop = y + cardH + pad * 3;
-                int barH   = y + h - pad - barTop;
-                DrawRectangle(barX, barTop, 2, barH, COLOR_SCROLLBAR_BG);
-                int thumbH = std::max(barH / (int)lines.size(), int(0.01f * h));
-                int thumbY = barTop + (barH - thumbH) * scroll / std::max(maxScroll, 1);
-                DrawRectangle(barX, thumbY, 2, thumbH, COLOR_SCROLLBAR_THUMB);
-            }
-        }
+        preview_.SetCard(top, fd);
+        preview_.Draw({(float)x, (float)y, (float)w, (float)h}, ctx_.imageCache);
     }
 };
 

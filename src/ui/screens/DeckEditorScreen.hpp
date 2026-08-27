@@ -5,13 +5,12 @@
 #include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
-#include "ui/screens/widgets/DeckStats.hpp"
-#include "ui/screens/widgets/Grid.hpp"
-#include "ui/screens/widgets/Header.hpp"
-#include "ui/screens/widgets/List.hpp"
-#include "ui/screens/widgets/ListItem.hpp"
-#include "ui/screens/widgets/TextInput.hpp"
+#include "ui/widgets/display/CardGrid.hpp"
+#include "ui/widgets/display/CardList.hpp"
+#include "ui/widgets/display/DeckStats.hpp"
+#include "ui/widgets/layout/Panel.hpp"
 #include "ui/widgets/input/KeyboardNav.hpp"
+#include "ui/widgets/input/TextInput.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -164,7 +163,7 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
             focusPool_ = false;
 
     } else {
-        const int step = deckGridView_ ? Grid::ColCount() : 1;
+                const int step = deckGridView_ ? CardGrid::ColCount() : 1;
         deckNav_.setCount(deckSz);
 
         if (IsKeyPressed(KEY_DOWN))      deckNav_.clampNext(step);
@@ -254,16 +253,17 @@ inline void DeckEditorScreen::drawPoolPanel(
     std::string badge = std::string(sortModeLabel(sortMode_)) + "  [" +
                         typeFilterLabel(typeFilter_) + "]  " +
                         std::to_string(fp.size()) + " cards";
-    Header::Draw("Card Pool", badge, x, y, w, h, focusPool_);
+        Panel::Draw("Card Pool", badge.empty() ? nullptr : badge.c_str(),
+                x, y, w, h, focusPool_);
 
     int searchY = y + SEARCH_BAR_Y_OFFSET;
     searchInput_.Draw(x + THUMBNAIL_PAD, searchY,
                       w - THUMBNAIL_PAD * 2, SEARCH_BAR_HEIGHT(h));
 
     int listY = searchY + LIST_Y_OFFSET;
-    List::Draw(fp, ctx_.imageCache, x, listY, w, y + h - listY,
-               poolNav_.cursor, focusPool_, kMaxCopies,
-               [this](uint32_t id) { return countInDeck(id); });
+        CardList::Draw(fp, ctx_.imageCache, x, listY, w, y + h - listY,
+                   poolNav_.cursor, focusPool_, kMaxCopies,
+                   [this](uint32_t id) { return countInDeck(id); });
 }
 
 inline void DeckEditorScreen::drawPreviewPanel(
@@ -279,7 +279,7 @@ inline void DeckEditorScreen::drawPreviewPanel(
         card = &deck_[deckNav_.cursor];
     if (!card) return;
 
-    Color col  = ListItem::cardTypeColor(*card);
+        Color col  = CardList::cardTypeColor(*card);
     int artX   = x + PREVIEW_PAD_X;
     int artY   = y + PREVIEW_ART_Y_OFFSET;
     int artW   = w - PREVIEW_ART_SIDE_PAD;
@@ -349,12 +349,12 @@ inline void DeckEditorScreen::drawDeckPanel(int x, int y, int w, int h) const {
     int listH = y + h - listY;
 
     if (deckGridView_) {
-        Grid::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
-                   deckNav_.cursor, !focusPool_);
+                CardGrid::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
+                       deckNav_.cursor, !focusPool_);
     } else {
-        List::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
-                   deckNav_.cursor, !focusPool_, kMaxCopies,
-                   [this](uint32_t id) { return countInDeck(id); });
+                CardList::Draw(deckPtrs, ctx_.imageCache, x, listY, w, listH,
+                       deckNav_.cursor, !focusPool_, kMaxCopies,
+                       [this](uint32_t id) { return countInDeck(id); });
     }
 }
 

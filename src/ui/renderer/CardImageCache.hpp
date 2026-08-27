@@ -1,4 +1,5 @@
 #pragma once
+#include "ContentPaths.hpp"
 #include "card/Card.hpp"
 #include <atomic>
 #include <condition_variable>
@@ -141,7 +142,7 @@ private:
         return false;
     }
 
-    std::filesystem::path            imgDir_ = std::filesystem::current_path() / "data" / "images";
+    std::filesystem::path            imgDir_ = openjoey::ContentPaths::cardImgDir();
     std::unordered_map<uint32_t, Texture2D> textures_;
     std::queue<Job>                  jobQueue_;
     std::vector<uint32_t>            completed_;

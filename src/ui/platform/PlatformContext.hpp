@@ -7,7 +7,8 @@ namespace openjoey::ui {
 class PlatformContext {
 public:
   explicit PlatformContext(const AppConfig &config) : config_(config) {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_VSYNC_HINT |
+                   (config_.fullscreen ? FLAG_FULLSCREEN_MODE : 0));
     InitWindow(config_.screenWidth, config_.screenHeight, config_.windowTitle);
     SetExitKey(KEY_NULL);
     SetTargetFPS(config_.targetFps);

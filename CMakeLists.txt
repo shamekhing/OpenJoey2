@@ -41,3 +41,11 @@ add_custom_command(TARGET OpenJoey2 POST_BUILD
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_options(OpenJoey2 PRIVATE -g -O0 -Wall -Wextra)
 endif()
+
+# --- Tests --------------------------------------------------------
+# Core logic tests (card DB, sorting, zones, field). These deliberately do
+# NOT link raylib -- card/ and game/zone are header-only & raylib-free.
+enable_testing()
+add_executable(OpenJoey2_tests tests/tests.cpp)
+target_include_directories(OpenJoey2_tests PRIVATE src src/third_party tests/catch2)
+add_test(NAME OpenJoey2_tests COMMAND OpenJoey2_tests)

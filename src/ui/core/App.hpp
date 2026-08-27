@@ -7,9 +7,12 @@
 #include "ui/core/ScreenManager.hpp"
 #include "ui/platform/AppConfig.hpp"
 #include "ui/platform/PlatformContext.hpp"
+#include "ui/platform/Settings.hpp"
 #include "ui/screens/DeckEditorScreen.hpp"
 #include "ui/screens/DuelScreen.hpp"
 #include "ui/screens/MainMenuScreen.hpp"
+#include "ui/screens/SettingsScreen.hpp"
+#include "ui/screens/TestingScreen.hpp"
 #include <iostream>
 #include <memory>
 #include <raylib.h>
@@ -19,8 +22,10 @@ namespace openjoey::ui {
 
 class App {
 public:
-    App() : appConfig_{}, platform_(appConfig_),
-            ctx_{cardDb_, selectedDeck_, imageCache_} {}
+    App() : settings_(Settings::Load()),
+            appConfig_(makeConfig(settings_)),
+            platform_(appConfig_),
+            ctx_{cardDb_, selectedDeck_, imageCache_, settings_} {}
     ~App() = default;
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -28,21 +33,34 @@ public:
     void Run();
 
 private:
+    static AppConfig           makeConfig(const Settings& s);
     void LoadCards();
     std::unique_ptr<IScreen> makeScreen(AppScreen s);
     void handleEvent(const ScreenEvent& ev);
 
-    // Declaration order matters: ctx_ must come after the three fields it references.
+    // Declaration order matters: ctx_ must come after the fields it references
+    // (settings_ must precede appConfig_ and ctx_).
+    Settings                     settings_;
     AppConfig                    appConfig_;
     PlatformContext              platform_;
     openjoey::CardDatabase       cardDb_;
     std::vector<openjoey::Card>  selectedDeck_;
     CardImageCache               imageCache_;
-    AppContext                   ctx_;          // references cardDb_, selectedDeck_, imageCache_
+    AppContext                   ctx_;          // references the above + settings_
     ScreenManager                screenManager_;
 };
 
 } // namespace openjoey::ui
+
+inline openjoey::ui::AppConfig
+openjoey::ui::App::makeConfig(const Settings& s) {
+    AppConfig cfg;
+    cfg.screenWidth  = s.screenWidth;
+    cfg.screenHeight = s.screenHeight;
+    cfg.targetFps    = s.targetFps;
+    cfg.fullscreen   = s.fullscreen;
+    return cfg;
+}
 
 inline void openjoey::ui::App::LoadCards() {
     const std::string path = openjoey::ContentPaths::cardsJson().string();
@@ -56,6 +74,8 @@ openjoey::ui::App::makeScreen(AppScreen s) {
     case AppScreen::MainMenu:   return std::make_unique<MainMenuScreen>(ctx_);
     case AppScreen::DeckEditor: return std::make_unique<DeckEditorScreen>(ctx_);
     case AppScreen::Duel:       return std::make_unique<DuelScreen>(ctx_);
+    case AppScreen::Testing:    return std::make_unique<TestingScreen>(ctx_);
+    case AppScreen::Settings:   return std::make_unique<SettingsScreen>(ctx_);
     default:                    return std::make_unique<MainMenuScreen>(ctx_);
     }
 }
