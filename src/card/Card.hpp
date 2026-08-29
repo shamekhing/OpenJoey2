@@ -1,4 +1,5 @@
 #pragma once
+#include "card/CardEffect.hpp"
 #include <cstdint>
 #include <map>
 #include <string>
@@ -31,7 +32,7 @@ enum class Location : uint8_t {
 struct Card {
   // Identity
   std::string name;
-  uint32_t cardNumber = 0; // ygoproId, 0 = use cardNumber only
+  uint32_t cardId = 0; // ygoproId, 0 = use cardId only
   uint32_t imageId = 0;
   std::string description;
 
@@ -39,7 +40,7 @@ struct Card {
   CardType type = CardType::Monster;
 
   bool operator==(const Card &other) const {
-    return this->cardNumber != 0 && this->cardNumber == other.cardNumber;
+    return this->cardId != 0 && this->cardId == other.cardId;
   }
 
   // Stats
@@ -77,6 +78,11 @@ struct Card {
   bool placedThisTurn = false;
 
   // Others
+    // A Card's identity comes from the EffectIDs it subscribes to (see the comment
+    // at the top of this struct).  CardEffect lives in card/ (layer 1), so this
+    // keeps Card.hpp in layer 1 with no dependency on a later layer.
+        std::vector<CardEffect> effects;
+
   std::vector<Card *> equippedCards; // non-owning equip attachments
   std::map<std::string, int> counters;
 
@@ -99,7 +105,7 @@ struct Card {
     return a.name < b.name;
   };
   static bool sortById(const openjoey::Card &a, const openjoey::Card &b) {
-    return a.cardNumber < b.cardNumber;
+    return a.cardId < b.cardId;
   }
   static bool sortByLevel(const openjoey::Card &a, const openjoey::Card &b) {
     return a.level != b.level ? a.level < b.level : a.name < b.name;

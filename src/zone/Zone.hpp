@@ -253,10 +253,52 @@ public:
 
 // Banished Zone — cards can be banished face-up or face-down.
 // Face-down banished cards are not revealed and generally cannot be interacted
-// with.
+// with (Rulebook p.49).  Such cards live in faceDownCards_ and are tracked by
+// the overrides below so they still count / can be found / removed.
 class ZoneStack_Banished : public ZoneStack {
 public:
   ZoneType type() const override { return ZoneType::Banished; }
+
+  bool isEmpty() const override {
+    return cards_.empty() && faceDownCards_.empty();
+  }
+  int count() const override {
+    return static_cast<int>(cards_.size() + faceDownCards_.size());
+  }
+    bool contains(const Card *c) const override {
+    return ZoneStack::contains(c) ||
+           std::find(faceDownCards_.begin(), faceDownCards_.end(), c) !=
+               faceDownCards_.end();
+  }
+
+  // nullptr -> remove top visible card; c -> remove that specific card
+  // (searches both face-up and face-down piles).
+  Card *remove(Card *c = nullptr) override {
+    Card *r = ZoneStack::remove(c);
+    if (r)
+      return r;
+    if (!c) {
+      if (faceDownCards_.empty())
+        return nullptr;
+      Card *top = faceDownCards_.back();
+      faceDownCards_.pop_back();
+      return top;
+    }
+    auto it = std::find(faceDownCards_.begin(), faceDownCards_.end(), c);
+    if (it == faceDownCards_.end())
+      return nullptr;
+    Card *out = *it;
+    faceDownCards_.erase(it);
+    return out;
+  }
+
+  // Face-down banish (e.g. cost that removes a card hidden).
+  Card *putFaceDown(Card *c) {
+    if (!c)
+      return nullptr;
+    faceDownCards_.push_back(c);
+    return c;
+  }
 
 private:
   std::vector<Card *> faceDownCards_;

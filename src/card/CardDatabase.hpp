@@ -74,7 +74,7 @@ bool openjoey::CardDatabase::LoadFromFile(const std::string &path) {
   byName_.reserve(cards_.size());
 
   for (Card &c : cards_) {
-    byId_[c.cardNumber] = &c;
+    byId_[c.cardId] = &c;
     if (byName_.find(c.name) == byName_.end())
       byName_[c.name] = &c;
   }

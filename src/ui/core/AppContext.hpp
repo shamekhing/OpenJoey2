@@ -1,7 +1,7 @@
 #pragma once
 #include "card/Card.hpp"
 #include "card/CardDatabase.hpp"
-#include "ui/CardImageCache.hpp"
+#include "card/ui/CardImageCache.hpp"
 #include "ui/platform/Settings.hpp"
 #include <vector>
 

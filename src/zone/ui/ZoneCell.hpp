@@ -1,7 +1,7 @@
 #pragma once
 #include "card/Card.hpp"
-#include "game/zone/Zone.hpp"
-#include "ui/renderer/CardImageCache.hpp"
+#include "zone/Zone.hpp"
+#include "card/ui/CardImageCache.hpp"
 #include <algorithm>
 #include <raylib.h>
 #include <string>

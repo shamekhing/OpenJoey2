@@ -1,9 +1,9 @@
 #pragma once
 #include "card/Card.hpp"
 #include "ui/StyleSheet.hpp"
-#include "ui/renderer/CardImageCache.hpp"
-#include "ui/widgets/display/CardList.hpp"
-#include "ui/widgets/display/Thumbnail.hpp"
+#include "card/ui/CardImageCache.hpp"
+#include "card/ui/CardList.hpp"
+#include "card/ui/Thumbnail.hpp"
 #include <algorithm>
 #include <raylib.h>
 #include <string>

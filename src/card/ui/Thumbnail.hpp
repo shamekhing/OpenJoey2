@@ -1,6 +1,6 @@
 #pragma once
 #include "card/Card.hpp"
-#include "ui/renderer/CardImageCache.hpp"
+#include "card/ui/CardImageCache.hpp"
 #include "ui/StyleSheet.hpp"
 #include <raylib.h>
 

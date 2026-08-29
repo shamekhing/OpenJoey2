@@ -5,9 +5,9 @@
 #include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
-#include "ui/widgets/display/CardGrid.hpp"
-#include "ui/widgets/display/CardList.hpp"
-#include "ui/widgets/display/DeckStats.hpp"
+#include "card/ui/CardGrid.hpp"
+#include "card/ui/CardList.hpp"
+#include "card/ui/DeckStats.hpp"
 #include "ui/widgets/layout/Panel.hpp"
 #include "ui/widgets/input/KeyboardNav.hpp"
 #include "ui/widgets/input/TextInput.hpp"
@@ -150,10 +150,10 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
         if (IsKeyPressed(KEY_ENTER) && poolSz > 0) {
             const auto& card = *fp[poolNav_.cursor];
             if ((int)deck_.size() < kMaxDeckSize &&
-                countInDeck(card.cardNumber) < kMaxCopies) {
+                countInDeck(card.cardId) < kMaxCopies) {
                 deck_.push_back(card);
                 statusMsg_ = "Added: " + card.name;
-            } else if (countInDeck(card.cardNumber) >= kMaxCopies) {
+            } else if (countInDeck(card.cardId) >= kMaxCopies) {
                 statusMsg_ = "Max 3 copies of " + card.name;
             } else {
                 statusMsg_ = "Deck full (60 cards max)";
@@ -242,7 +242,7 @@ DeckEditorScreen::filteredPool() const {
 inline int DeckEditorScreen::countInDeck(uint32_t id) const {
     int n = 0;
     for (const auto& c : deck_)
-        if (c.cardNumber == id) ++n;
+        if (c.cardId == id) ++n;
     return n;
 }
 
@@ -307,7 +307,7 @@ inline void DeckEditorScreen::drawPreviewPanel(
     DrawText(card->statLine().c_str(), x + PREVIEW_PAD_X, infoY, FONT_CARD_TYPE, LIGHTGRAY);
     infoY += FONT_CARD_TYPE + PREVIEW_INFO_GAP;
 
-    int copies = countInDeck(card->cardNumber);
+    int copies = countInDeck(card->cardId);
     Color cpCol = (copies >= kMaxCopies) ? RED : (copies > 0 ? GREEN : GRAY);
     DrawText(TextFormat("In deck: %d / %d", copies, kMaxCopies),
              x + PREVIEW_PAD_X, infoY, FONT_CARD_STAT, cpCol);
@@ -402,7 +402,7 @@ inline bool DeckEditorScreen::SaveDeck(const std::string& name) const {
     std::ofstream f(dir / (name + ".txt"));
     if (!f.is_open()) return false;
     for (const auto& c : deck_)
-        f << c.cardNumber << "\n";
+        f << c.cardId << "\n";
     return true;
 }
 

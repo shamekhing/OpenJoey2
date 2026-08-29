@@ -75,3 +75,5 @@ data/images/
 data/user_settings.json
 # stray temp files from CardImageCache downloads
 *.tmp
+
+src2/

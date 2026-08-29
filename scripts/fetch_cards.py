@@ -9,7 +9,7 @@ naive "curl every id" loop:
     authoritative ``image_url`` / ``image_url_small`` from the response. The
     filename stem always matches what the C++ engine expects:
 
-        openjoey::Card::imageId  (== cardNumber == YGOProDeck ``id``)
+        openjoey::Card::imageId  (== cardId == YGOProDeck ``id``)
 
     and the on-disk path is ``data/images/<imageId>.jpg`` -- exactly where
     ``CardImageCache`` looks (via ``ContentPaths::cardImgDir()``).

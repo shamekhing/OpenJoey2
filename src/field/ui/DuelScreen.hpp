@@ -1,15 +1,15 @@
 #pragma once
-#include "ContentPaths.hpp"
+#include "field/EffectResolver.hpp"
 #include "card/Card.hpp"
-#include "game/zone/Field.hpp"
-#include "game/zone/Zone.hpp"
+#include "field/Field.hpp"
+#include "zone/Zone.hpp"
 #include "ui/AppScreen.hpp"
 #include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
-#include "ui/widgets/display/CardPreview.hpp"
-#include "ui/widgets/duel/FieldGrid.hpp"
-#include "ui/widgets/duel/ZoneInfoPanel.hpp"
+#include "card/ui/CardPreview.hpp"
+#include "field/ui/FieldGrid.hpp"
+#include "zone/ui/ZoneInfoPanel.hpp"
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -86,8 +86,8 @@ private:
     std::string               numBuf_;
 
     // ── Setup
-    void loadCardBack() {
-        auto path = ContentPaths::cardBackImg();
+        void loadCardBack() {
+        const auto& path = ctx_.settings.paths.cardBackImg;
         if (std::filesystem::exists(path))
             cardBack_ = LoadTexture(path.c_str());
         if (!cardBack_.id)
@@ -99,7 +99,7 @@ private:
                                    int atk, int def, int lvl) {
         openjoey::Card c;
         c.name        = name;
-        c.cardNumber  = num;
+        c.cardId  = num;
         c.description = desc;
         c.type        = t;
         c.atk         = atk;
@@ -230,6 +230,21 @@ private:
         }
     }
 
+        // ── Helpers ────────────────────────────────────────────────────────────
+    // Which player index owns a per-player zone (else -1, e.g. the shared EMZ).
+    int ownerOf(IZone* z) const {
+        for (int p = 0; p < 2; ++p) {
+            if (z == &field_.deckZones[p]     || z == &field_.extraDeckZones[p] ||
+                z == &field_.handZones[p]     || z == &field_.graveyardZones[p] ||
+                z == &field_.banishedZones[p] || z == &field_.sideDeckZones[p]    ||
+                z == &field_.fieldZones[p]) return p;
+            for (int i = 0; i < 5; ++i)
+                if (z == &field_.monsterZones[p][i] || z == &field_.spellTrapZones[p][i])
+                    return p;
+        }
+        return -1;
+    }
+
     // ── Actions
     void rebuildActions() {
         actions_.clear();
@@ -267,7 +282,19 @@ private:
             });
             push("vis: Restricted (FD)", [zm] {
                 return zm->changeVisibility(Visibility::Restricted) ? "Restricted OK." : "changeVisibility → false.";
-            });
+                        });
+            if (Card* mc = zm->peek()) {
+                push("destroy->GY", [this, mc]() -> std::string {
+                    EffectResolver r(field_);
+                    return r.apply(EffectID::Move_DestroyToGY, 1,
+                                   EffectArgs{1, false, 1, mc});
+                });
+                push("banish", [this, mc]() -> std::string {
+                    EffectResolver r(field_);
+                    return r.apply(EffectID::Move_Banish, 1,
+                                   EffectArgs{1, false, 1, mc});
+                });
+            }
             push("flip()", [zm] {
                 return zm->flip() ? "flip OK." : "flip → false (need Vertical+Limited).";
             });
@@ -288,13 +315,30 @@ private:
             return z->moveTo(field_.graveyardZones[0]) ? "moveTo OK." : "moveTo failed.";
         });
 
-        if (auto* deck = dynamic_cast<ZoneStack_Deck*>(z)) {
-            push("draw()→P1 hand", [this, deck] {
-                return deck->draw(field_.handZones[1]) ? "draw OK." : "draw failed.";
+                if (auto* deck = dynamic_cast<ZoneStack_Deck*>(z)) {
+            // Draw / mill are card effects — funnel through EffectResolver so the
+            // zone move is the single auditable path (field/EffectsBuiltIn.hpp).
+            int owner = ownerOf(z);
+            if (owner < 0) owner = 0;
+            push("draw(1)→own hand", [this, owner]() -> std::string {
+                EffectResolver r(field_);
+                return r.apply(EffectID::Move_Draw, owner);
             });
-            push("mill(1)→P1 GY", [this, deck] {
-                return deck->mill(1, field_.graveyardZones[1]) ? "mill OK." : "mill failed.";
+            push("mill(1)→own GY", [this, owner]() -> std::string {
+                EffectResolver r(field_);
+                return r.apply(EffectID::Move_MillToGY, owner);
             });
+        }
+
+        if (auto* hand = dynamic_cast<ZoneStack*>(z)) {
+            if (z->type() == ZoneType::Hand && !hand->isEmpty()) {
+                int owner = ownerOf(z);
+                if (owner < 0) owner = 0;
+                push("discard(1)→own GY", [this, owner]() -> std::string {
+                    EffectResolver r(field_);
+                    return r.apply(EffectID::Move_DiscardToGY, owner);
+                });
+            }
         }
 
         if (auto* zs = dynamic_cast<ZoneStack*>(z)) {

@@ -1,9 +1,9 @@
 #pragma once
-#include "game/zone/Field.hpp"
-#include "game/zone/Zone.hpp"
-#include "ui/renderer/CardImageCache.hpp"
+#include "field/Field.hpp"
+#include "zone/Zone.hpp"
+#include "card/ui/CardImageCache.hpp"
 #include "ui/StyleSheet.hpp"
-#include "ui/widgets/duel/ZoneCell.hpp"
+#include "zone/ui/ZoneCell.hpp"
 #include <algorithm>
 #include <raylib.h>
 

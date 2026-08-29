@@ -1,5 +1,4 @@
 #pragma once
-#include "ContentPaths.hpp"
 #include "card/Card.hpp"
 #include <atomic>
 #include <condition_variable>
@@ -23,7 +22,14 @@ namespace openjoey::ui {
 // Single instance lives in AppContext and is shared across all screens.
 class CardImageCache {
 public:
-    CardImageCache() { worker_ = std::thread(&CardImageCache::workerLoop, this); }
+        CardImageCache(std::filesystem::path imgDir,
+                   std::string ygoprodeckUrl = "https://images.ygoprodeck.com/images/cards/",
+                   std::string ygoprodeckUrlSmall = "https://images.ygoprodeck.com/images/cards_small/")
+        : imgDir_(std::move(imgDir)),
+          baseUrl_(std::move(ygoprodeckUrl)),
+          baseUrlSmall_(std::move(ygoprodeckUrlSmall)) {
+        worker_ = std::thread(&CardImageCache::workerLoop, this);
+    }
 
     ~CardImageCache() {
         {
@@ -48,7 +54,7 @@ public:
     // Main-thread only. Returns texture if ready, nullptr otherwise.
     // Automatically queues a download if the image is not on disk yet.
     const Texture2D* Get(const openjoey::Card& card) {
-        uint32_t id = card.imageId ? card.imageId : card.cardNumber;
+        uint32_t id = card.imageId ? card.imageId : card.cardId;
         if (id == 0) return nullptr;
 
         auto it = textures_.find(id);
@@ -111,13 +117,9 @@ private:
                 job = std::move(jobQueue_.front());
                 jobQueue_.pop();
             }
-            bool ok = curlDownload(
-                "https://images.ygoprodeck.com/images/cards/" +
-                std::to_string(job.id) + ".jpg", job.dest);
+                        bool ok = curlDownload(baseUrl_ + std::to_string(job.id) + ".jpg", job.dest);
             if (!ok)
-                ok = curlDownload(
-                    "https://images.ygoprodeck.com/images/cards_small/" +
-                    std::to_string(job.id) + ".jpg", job.dest);
+                ok = curlDownload(baseUrlSmall_ + std::to_string(job.id) + ".jpg", job.dest);
             if (ok) {
                 std::lock_guard<std::mutex> lk(mtx_);
                 completed_.push_back(job.id);
@@ -142,7 +144,9 @@ private:
         return false;
     }
 
-    std::filesystem::path            imgDir_ = openjoey::ContentPaths::cardImgDir();
+        std::filesystem::path            imgDir_;
+    std::string                      baseUrl_;
+    std::string                      baseUrlSmall_;
     std::unordered_map<uint32_t, Texture2D> textures_;
     std::queue<Job>                  jobQueue_;
     std::vector<uint32_t>            completed_;

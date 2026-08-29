@@ -68,10 +68,10 @@ static uint32_t optCardId(const nlohmann::json &j) {
 
 static Card cardFromYgoProDeckJson(const nlohmann::json &j) {
   Card c;
-  c.cardNumber = optCardId(j);
+  c.cardId = optCardId(j);
   c.name = optStringMember(j, "name");
   c.description = optStringMember(j, "desc");
-  c.imageId = c.cardNumber;
+  c.imageId = c.cardId;
 
   const std::string frame = optStringMember(j, "frameType");
 
@@ -105,11 +105,11 @@ static bool tryLoadYgoProDeckJson(const std::string &content,
         continue;
       try {
         Card card = cardFromYgoProDeckJson(item);
-        if (card.cardNumber == 0)
+        if (card.cardId == 0)
           continue;
         if (card.name.empty())
-          card.name = "Card " + std::to_string(card.cardNumber);
-        if (!seenIds.insert(card.cardNumber).second)
+          card.name = "Card " + std::to_string(card.cardId);
+        if (!seenIds.insert(card.cardId).second)
           continue;
         out->push_back(std::move(card));
       } catch (const std::exception &) {

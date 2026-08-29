@@ -43,9 +43,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # --- Tests --------------------------------------------------------
-# Core logic tests (card DB, sorting, zones, field). These deliberately do
-# NOT link raylib -- card/ and game/zone are header-only & raylib-free.
+# Core logic tests (card DB, sorting, zones, field, effects, duel engine).
+# These deliberately do NOT link raylib -- card/, zone/, field/ and duel/ are
+# header-only & raylib-free, so tests run fast with no GL context.
 enable_testing()
 add_executable(OpenJoey2_tests tests/tests.cpp)
 target_include_directories(OpenJoey2_tests PRIVATE src src/third_party tests/catch2)
+target_compile_options(OpenJoey2_tests PRIVATE -Wall -Wextra)
 add_test(NAME OpenJoey2_tests COMMAND OpenJoey2_tests)

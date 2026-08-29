@@ -1,7 +1,8 @@
 #pragma once
-#include "Zone.hpp"
+#include "zone/Zone.hpp"
 #include "card/Card.hpp"
 #include <array>
+#include <utility>
 
 namespace openjoey::zone {
 
@@ -55,8 +56,16 @@ public:
   // Count monsters on field (main zones + EMZ controlled by player).
   int countMonsters(int player) const;
 
-  // Return the first available Extra Monster Zone index (0 or 1), or -1.
+    // Return the first available Extra Monster Zone index (0 or 1), or -1.
   int firstEmptyExtraMonsterZone() const;
+
+  // ── Location lookup ────────────────────────────────────────────────────
+  // Find which zone (and which player index) currently holds `c`.
+  // Returns {nullptr, -1} if the card is in no zone on the field.
+  // Query-only: never mutates a zone.  Layer 3 (field) owns this because it
+  // must iterate the whole mat; layer 2 (zone) only knows its own contents.
+    std::pair<IZone*, int> findCard(Card* c);
+  std::pair<const IZone*, int> findCard(const Card* c) const;
 };
 
 inline void Field::clearField() {
@@ -108,6 +117,33 @@ inline int Field::firstEmptyExtraMonsterZone() const {
     if (extraMonsterZones[z].isEmpty())
       return z;
   return -1;
+}
+
+// ── findCard ───────────────────────────────────────────────────────────────
+inline std::pair<IZone*, int> Field::findCard(Card *c) {
+  if (!c) return {nullptr, -1};
+  for (int p = 0; p < PLAYERS; ++p) {
+    for (int i = 0; i < MONSTER_ZONES; ++i)
+      if (monsterZones[p][i].contains(c))   return {static_cast<IZone*>(&monsterZones[p][i]), p};
+    for (int i = 0; i < ST_ZONES; ++i)
+      if (spellTrapZones[p][i].contains(c)) return {static_cast<IZone*>(&spellTrapZones[p][i]), p};
+    if (fieldZones[p].contains(c))     return {static_cast<IZone*>(&fieldZones[p]), p};
+    if (handZones[p].contains(c))      return {static_cast<IZone*>(&handZones[p]), p};
+    if (deckZones[p].contains(c))      return {static_cast<IZone*>(&deckZones[p]), p};
+    if (extraDeckZones[p].contains(c)) return {static_cast<IZone*>(&extraDeckZones[p]), p};
+    if (graveyardZones[p].contains(c)) return {static_cast<IZone*>(&graveyardZones[p]), p};
+    if (banishedZones[p].contains(c))  return {static_cast<IZone*>(&banishedZones[p]), p};
+    if (sideDeckZones[p].contains(c))  return {static_cast<IZone*>(&sideDeckZones[p]), p};
+  }
+  for (int z = 0; z < EMZ_COUNT; ++z)
+    if (extraMonsterZones[z].contains(c)) return {static_cast<IZone*>(&extraMonsterZones[z]), -1};
+  return {nullptr, -1};
+}
+
+inline std::pair<const IZone*, int> Field::findCard(const Card *c) const {
+  // Reuse the non-const overload via const_cast: the lookup is read-only.
+  auto [z, p] = findCard(const_cast<Card*>(c));
+  return {z, p};
 }
 
 } // namespace openjoey::zone

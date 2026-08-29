@@ -3,7 +3,7 @@
 #include "ui/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
-#include "ui/widgets/display/CardPreview.hpp"
+#include "card/ui/CardPreview.hpp"
 
 #include <raylib.h>
 #include <vector>
@@ -45,7 +45,7 @@ public:
         const openjoey::Card& c = cards_[idx_];
         DrawText("TESTING — image cache", HEADER_TITLE_X, HEADER_TITLE_Y, FONT_SCREEN_TITLE, WHITE);
         DrawText(TextFormat("%s  #%u  [L/R] next  [ESC] back",
-                            c.name.c_str(), c.cardNumber),
+                            c.name.c_str(), c.cardId),
                  HEADER_TITLE_X, HEADER_TITLE_Y + FONT_SCREEN_TITLE + 6,
                  FONT_CARD_STAT, LIGHTGRAY);
 

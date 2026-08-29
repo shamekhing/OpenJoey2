@@ -1,8 +1,8 @@
 #pragma once
 #include "card/Card.hpp"
 #include "ui/StyleSheet.hpp"
-#include "ui/renderer/CardImageCache.hpp"
-#include "ui/widgets/display/Thumbnail.hpp"
+#include "card/ui/CardImageCache.hpp"
+#include "card/ui/Thumbnail.hpp"
 #include <functional>
 #include <raylib.h>
 #include <string>
@@ -70,7 +70,7 @@ struct CardList {
         for (int i = 0; i < maxVis && scroll + i < (int)cards.size(); ++i) {
             int idx = scroll + i;
             DrawItem(*cards[idx], cache, x, y + i * itemH, w,
-                     focused && idx == cursor, countFn(cards[idx]->cardNumber), maxCopies);
+                     focused && idx == cursor, countFn(cards[idx]->cardId), maxCopies);
         }
 
         if ((int)cards.size() > maxVis) {
