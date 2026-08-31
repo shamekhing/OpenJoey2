@@ -1,16 +1,16 @@
-# OpenJoey2 — umbrella repo
+# [OpenJoey2](https://github.com/shamekhing/OpenJoey2) — umbrella repo
 
 This repository is now a thin umbrella. All code and content live in six
 independent repositories that sit side-by-side with it on disk:
 
-| Repo | Owns |
-|---|---|
-| `openjoey-core` | Shared contracts (`EffectID`, `AppConfig`, `Settings`) + nlohmann/json |
-| `openjoey-uikit` | Shared raylib rendering toolkit (StyleSheet, DrawUtils, widgets) |
-| `openjoey-cards` | Card domain: definitions, parsing, database, card widgets |
-| `openjoey-gameplay` | Duel rules: zone, field, duel logic + per-repo test suite |
-| `openjoey-app` | App shell, screens, duel presentation, entry point, superbuild |
-| `openjoey-content` | Data, asset-generation + fetch scripts, rulebook |
+| Repo | Owns | Docs |
+|---|---|---|
+| [`openjoey-core`](https://github.com/shamekhing/openjoey-core) | Shared contracts (`EffectID`, `AppConfig`, `Settings`) + nlohmann/json | [API](https://github.com/shamekhing/openjoey-core/blob/main/docs/API.md) |
+| [`openjoey-uikit`](https://github.com/shamekhing/openjoey-uikit) | Shared raylib rendering toolkit (StyleSheet, DrawUtils, widgets) | [API](https://github.com/shamekhing/openjoey-uikit/blob/main/docs/API.md) |
+| [`openjoey-cards`](https://github.com/shamekhing/openjoey-cards) | Card domain: definitions, parsing, database, card widgets | [API](https://github.com/shamekhing/openjoey-cards/blob/main/docs/API.md) |
+| [`openjoey-gameplay`](https://github.com/shamekhing/openjoey-gameplay) | Duel rules: zone, field, duel logic + per-repo test suite | [API](https://github.com/shamekhing/openjoey-gameplay/blob/main/docs/API.md) |
+| [`openjoey-app`](https://github.com/shamekhing/openjoey-app) | App shell, screens, duel presentation, entry point, superbuild | [API](https://github.com/shamekhing/openjoey-app/blob/main/docs/API.md) |
+| [`openjoey-content`](https://github.com/shamekhing/openjoey-content) | Data, asset-generation + fetch scripts, rulebook | [DATA](https://github.com/shamekhing/openjoey-content/blob/main/docs/DATA.md) |
 
 Dependency chain: `core -> uikit -> cards -> gameplay -> app` (content is data-only).
 
