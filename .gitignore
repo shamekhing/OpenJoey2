@@ -12,3 +12,6 @@ openjoey-*/
 *.swp
 *.tmp
 *.log
+
+# Third-party rulebook PDF: local reference only, never distributed
+*.pdf

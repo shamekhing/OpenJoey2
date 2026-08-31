@@ -20,10 +20,17 @@ Clone the repos side-by-side, then build from `openjoey-app` (it is the
 superbuild and pulls in the siblings automatically):
 
 ```sh
-cmake -S openjoey-app -B openjoey-app/build
-cmake --build openjoey-app/build -j"$(nproc)"
-ctest --test-dir openjoey-app/build --output-on-failure   # per-repo tests
-./openjoey-app/build/OpenJoey2
+cmake -S openjoey-app -B openjoey-app/build/release -DCMAKE_BUILD_TYPE=Release
+cmake --build openjoey-app/build/release -j"$(nproc)"
+ctest --test-dir openjoey-app/build/release --output-on-failure
+./openjoey-app/build/release/OpenJoey2
+```
+
+```sh
+cmake -S openjoey-app -B openjoey-app/build/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build openjoey-app/build/debug -j"$(nproc)"
+ctest --test-dir openjoey-app/build/debug --output-on-failure
+./openjoey-app/build/debug/OpenJoey2
 ```
 
 Every repo also configures and tests standalone (each bootstraps its own
