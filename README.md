@@ -45,4 +45,9 @@ release from the `openjoey-content` repository.
 Testing is per repo — `openjoey-gameplay` owns the engine test suite
 (`ctest`), each other repo owns its own checks. This umbrella repo has none.
 
-Licensed under the GNU GPL-3.0 (see `LICENSE`).
+## License
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — free for
+personal, educational, research, and other noncommercial use. Any commercial
+use requires a paid license from the copyright holder (see `LICENSE`; contact:
+shamekhing@gmail.com).
