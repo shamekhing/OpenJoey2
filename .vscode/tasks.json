@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "cmake -S openjoey-app -B openjoey-app/build/debug -DCMAKE_BUILD_TYPE=Debug && cmake --build openjoey-app/build/debug -j$(nproc)",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
