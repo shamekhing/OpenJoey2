@@ -1,0 +1,12 @@
+{
+    // The sibling repos are gitignored from the umbrella (openjoey-*), which
+    // hides them from VS Code's repo auto-scan. List them explicitly so the
+    // Source Control view shows one entry per repo.
+    "git.scanRepositories": [
+        "openjoey-foundation",
+        "openjoey-cards",
+        "openjoey-engine",
+        "openjoey-app"
+    ],
+    "git.repositoryScanMaxDepth": 2
+}
