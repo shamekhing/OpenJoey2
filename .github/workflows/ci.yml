@@ -1,0 +1,106 @@
+name: CI
+
+# Central CI for the whole project. Modules are sibling repos; the headless
+# chain (foundation <- cards <- gameplay) builds/tests on all three OSes, the
+# app superbuild gates on ubuntu, and clang-format enforces the shared config.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  headless:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # Sibling dependency checkouts (OPENJOEY_DEPS_DIR defaults to the parent
+      # dir). If repos are private, pass a PAT:
+      #   token: ${{ secrets.OPENJOEY_CI_PAT }}
+      - name: Check out openjoey-foundation
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-foundation
+          path: openjoey-foundation
+      - name: Check out openjoey-cards
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-cards
+          path: openjoey-cards
+      - name: Check out openjoey-gameplay
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-gameplay
+          path: openjoey-gameplay
+      - name: Configure + build + test (cards)
+        run: |
+          cmake -S openjoey-cards -B openjoey-cards/build
+          cmake --build openjoey-cards/build --config Release --parallel 4
+          ctest --test-dir openjoey-cards/build --output-on-failure -C Release
+      - name: Configure + build + test (gameplay)
+        run: |
+          cmake -S openjoey-gameplay -B openjoey-gameplay/build
+          cmake --build openjoey-gameplay/build --config Release --parallel 4
+          ctest --test-dir openjoey-gameplay/build --output-on-failure -C Release
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out modules (sources live in the sibling repos)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-foundation
+          path: openjoey-foundation
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-cards
+          path: openjoey-cards
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-gameplay
+          path: openjoey-gameplay
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-app
+          path: openjoey-app
+      - name: clang-format check (shared .clang-format)
+        run: |
+          find openjoey-foundation/include openjoey-foundation/tests \
+               openjoey-cards/include openjoey-cards/tests \
+               openjoey-gameplay/include openjoey-gameplay/tests \
+               openjoey-app/include openjoey-app/src \(
+               -name '*.hpp' -o -name '*.cpp' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out openjoey-foundation
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-foundation
+          path: openjoey-foundation
+      - name: Check out openjoey-uikit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-uikit
+          path: openjoey-uikit
+      - name: Check out openjoey-cards
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-cards
+          path: openjoey-cards
+      - name: Check out openjoey-gameplay
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-gameplay
+          path: openjoey-gameplay
+      - name: Superbuild (Debug)
+        run: |
+          cmake -S openjoey-app -B openjoey-app/build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build openjoey-app/build --config Debug --parallel 4

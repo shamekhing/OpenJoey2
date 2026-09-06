@@ -1,0 +1,46 @@
+name: fetch-content
+
+# Regenerates the fetchable/generated content and publishes it as release
+# assets. Nothing oversized is ever committed: cards.json (28MB), the card
+# images (2.3GB) and the generated PNGs live outside git by design.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 1 * *" # monthly, 06:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out openjoey-foundation (data + scripts)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/openjoey-foundation
+          path: openjoey-foundation
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pillow (make_assets dependency)
+        run: python -m pip install --quiet pillow
+      - name: Generate card back + menu background
+        working-directory: openjoey-foundation
+        run: python3 scripts/make_assets.py
+      - name: Fetch card database
+        working-directory: openjoey-foundation
+        run: python3 scripts/fetch_cards.py
+      - name: Publish content-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete content-latest --yes --cleanup-tag || true
+          gh release create content-latest \
+            openjoey-foundation/data/cards.json \
+            openjoey-foundation/data/card_back.png \
+            openjoey-foundation/data/assets/backgrounds/menu_background.png \
+            --title "OpenJoey content (auto-fetched)" \
+            --notes "cards.json + generated assets from $(date -u +%Y-%m-%d)."

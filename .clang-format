@@ -1,0 +1,6 @@
+# openjoey-cards formatting: Google-based, tuned for this repo.
+# DerivePointerAlignment keeps each file's existing * / & placement.
+BasedOnStyle: Google
+ColumnLimit: 100
+IndentWidth: 4
+DerivePointerAlignment: true

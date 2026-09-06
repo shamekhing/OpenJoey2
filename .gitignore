@@ -15,3 +15,4 @@ openjoey-*/
 
 # Third-party rulebook PDF: local reference only, never distributed
 *.pdf
+*.pdf
