@@ -30,11 +30,11 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/openjoey-cards
           path: openjoey-cards
-      - name: Check out openjoey-gameplay
+      - name: Check out openjoey-engine
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/openjoey-gameplay
-          path: openjoey-gameplay
+          repository: ${{ github.repository_owner }}/openjoey-engine
+          path: openjoey-engine
       - name: Configure + build + test (cards)
         run: |
           cmake -S openjoey-cards -B openjoey-cards/build
@@ -42,9 +42,9 @@ jobs:
           ctest --test-dir openjoey-cards/build --output-on-failure -C Release
       - name: Configure + build + test (gameplay)
         run: |
-          cmake -S openjoey-gameplay -B openjoey-gameplay/build
-          cmake --build openjoey-gameplay/build --config Release --parallel 4
-          ctest --test-dir openjoey-gameplay/build --output-on-failure -C Release
+          cmake -S openjoey-engine -B openjoey-engine/build
+          cmake --build openjoey-engine/build --config Release --parallel 4
+          ctest --test-dir openjoey-engine/build --output-on-failure -C Release
 
   format:
     runs-on: ubuntu-latest
@@ -61,8 +61,8 @@ jobs:
           path: openjoey-cards
       - uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/openjoey-gameplay
-          path: openjoey-gameplay
+          repository: ${{ github.repository_owner }}/openjoey-engine
+          path: openjoey-engine
       - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/openjoey-app
@@ -71,7 +71,7 @@ jobs:
         run: |
           find openjoey-foundation/include openjoey-foundation/tests \
                openjoey-cards/include openjoey-cards/tests \
-               openjoey-gameplay/include openjoey-gameplay/tests \
+               openjoey-engine/include openjoey-engine/tests \
                openjoey-app/include openjoey-app/src \(
                -name '*.hpp' -o -name '*.cpp' \) -print0 \
             | xargs -0 clang-format --dry-run --Werror
@@ -95,11 +95,11 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/openjoey-cards
           path: openjoey-cards
-      - name: Check out openjoey-gameplay
+      - name: Check out openjoey-engine
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/openjoey-gameplay
-          path: openjoey-gameplay
+          repository: ${{ github.repository_owner }}/openjoey-engine
+          path: openjoey-engine
       - name: Superbuild (Debug)
         run: |
           cmake -S openjoey-app -B openjoey-app/build -DCMAKE_BUILD_TYPE=Debug
