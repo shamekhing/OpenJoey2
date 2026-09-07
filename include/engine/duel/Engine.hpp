@@ -3,16 +3,17 @@
 // A thin, stateless wrapper over one external Duel: every method delegates to
 // the action:: free functions. The app owns the Duel; the Engine only points
 // at it (re-match = `duel_ = Duel{}` keeps the reference valid).
-#include "engine/duel/Duel.hpp"
-#include "engine/duel/Undo.hpp"
+#include <string>
+#include <vector>
+
 #include "action/ActionArgs.hpp"
 #include "engine/action/Battle.hpp"
 #include "engine/action/Chains.hpp"
 #include "engine/action/State.hpp"
 #include "engine/action/Summons.hpp"
 #include "engine/action/Turn.hpp"
-#include <string>
-#include <vector>
+#include "engine/duel/Duel.hpp"
+#include "engine/duel/Undo.hpp"
 
 namespace openjoey::engine {
 
@@ -21,7 +22,7 @@ namespace openjoey::engine {
 using namespace action;
 
 class Engine {
-public:
+   public:
     explicit Engine(Duel &d) : duel(d) {}
 
     Duel &duel;
@@ -71,7 +72,10 @@ public:
 
     // ── turn flow ────────────────────────────────────────────────────────────
     std::string startTurn() { return action::StartTurn(duel); }
-    std::string endTurn() { checkpoint(); return action::EndTurn(duel); }
+    std::string endTurn() {
+        checkpoint();
+        return action::EndTurn(duel);
+    }
     std::string toMain1() { return action::ToMain1S(duel); }
     std::string toMain2() { return action::ToMain2S(duel); }
     std::string toBattle() { return action::ToBattleS(duel); }
@@ -89,19 +93,34 @@ public:
     }
     bool confirmAttack() { return action::ConfirmAttack(duel); }
     void cancelAttack() { action::CancelAttack(duel); }
-    std::string resolveDamage() { checkpoint(); return action::ResolveDamage(duel); }
+    std::string resolveDamage() {
+        checkpoint();
+        return action::ResolveDamage(duel);
+    }
 
     // ── summons / positions ──────────────────────────────────────────────────
     bool canNormalSummon() { return action::CanNormalSummon(duel); }
     static int tributesRequired(const Card *c) { return action::TributesRequired(c); }
-    std::string normalSummon(Card *c) { checkpoint(); return action::SummonNormal(duel, c); }
-    std::string normalSet(Card *c) { checkpoint(); return action::SummonSet(duel, c); }
+    std::string normalSummon(Card *c) {
+        checkpoint();
+        return action::SummonNormal(duel, c);
+    }
+    std::string normalSet(Card *c) {
+        checkpoint();
+        return action::SummonSet(duel, c);
+    }
     std::string tributeSummon(Card *c, const std::vector<Card *> &tributes) {
         checkpoint();
         return action::SummonTribute(duel, c, tributes, /*faceDown=*/false);
     }
-    std::string flipSummon(Card *c) { checkpoint(); return action::FlipSummon(duel, c); }
-    std::string changePosition(Card *c) { checkpoint(); return action::ChangePosition(duel, c); }
+    std::string flipSummon(Card *c) {
+        checkpoint();
+        return action::FlipSummon(duel, c);
+    }
+    std::string changePosition(Card *c) {
+        checkpoint();
+        return action::ChangePosition(duel, c);
+    }
     std::string fusionSummon(Card *f, const std::vector<Card *> &materials) {
         checkpoint();
         return action::FusionSummon(duel, f, materials);
@@ -119,7 +138,10 @@ public:
     }
     std::string passResponse(int player) { return action::PassResponse(duel, player); }
     bool chainWaiting() const { return action::ChainWaiting(duel); }
-    std::string resolveChain() { checkpoint(); return action::ResolveChain(duel); }
+    std::string resolveChain() {
+        checkpoint();
+        return action::ResolveChain(duel);
+    }
 
     // ── readouts ─────────────────────────────────────────────────────────────
     int lp(int player) const { return duel.lp[player]; }
@@ -140,8 +162,8 @@ public:
     }
     void clearUndo() { undo_.clear(); }
 
-private:
+   private:
     std::vector<DuelSnapshot> undo_;
 };
 
-} // namespace openjoey::engine
+}  // namespace openjoey::engine

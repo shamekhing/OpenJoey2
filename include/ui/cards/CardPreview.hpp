@@ -1,12 +1,14 @@
 #pragma once
-#include "cards/Card.hpp"
-#include "ui/widgets/StyleSheet.hpp"
-#include <ui/cards/CardImageCache.hpp>
-#include "ui/widgets/DrawUtils.hpp"
-#include <algorithm>
 #include <raylib.h>
+
+#include <algorithm>
 #include <string>
+#include <ui/cards/CardImageCache.hpp>
 #include <vector>
+
+#include "cards/Card.hpp"
+#include "ui/widgets/DrawUtils.hpp"
+#include "ui/widgets/StyleSheet.hpp"
 
 // Stateful card preview panel (openjoey::ui). Shows portrait image, type/stat
 // line, and a scrollable description. Used by DuelScreen and TestingScreen.
@@ -16,10 +18,10 @@ using cards::Card;
 using cards::CardDatabase;
 
 class CardPreview {
-public:
+   public:
     void SetCard(const openjoey::cards::Card* card, bool faceDown = false) {
-        if (card != card_) scrollLines_ = 0; // reset scroll on card change
-        card_     = card;
+        if (card != card_) scrollLines_ = 0;  // reset scroll on card change
+        card_ = card;
         faceDown_ = faceDown;
     }
 
@@ -31,10 +33,10 @@ public:
 
     // Draw the preview panel into bounds. cache must be the shared AppContext cache.
     void Draw(Rectangle bounds, CardImageCache& cache) const {
-        int x   = (int)bounds.x, y = (int)bounds.y;
-        int w   = (int)bounds.width, h = (int)bounds.height;
+        int x = (int)bounds.x, y = (int)bounds.y;
+        int w = (int)bounds.width, h = (int)bounds.height;
         int pad = PREVIEW_PAD_X;
-        int cy  = y + pad;
+        int cy = y + pad;
 
         DrawRectangle(x, y, w, h, COLOR_BG_MAIN);
         DrawLine(x + w - 1, y, x + w - 1, y + h, COLOR_DIVIDER_LINE);
@@ -68,7 +70,7 @@ public:
             } else {
                 Color fc = card_->isMonster() ? COLOR_MONSTER_STAT
                            : card_->isSpell() ? COLOR_SPELL_STAT
-                                             : COLOR_TRAP_STAT;
+                                              : COLOR_TRAP_STAT;
                 DrawRectangleRec(cardR, Fade(fc, 0.4f));
             }
             DrawRectangleLinesEx(cardR, 1.2f, Color{200, 180, 100, 255});
@@ -96,17 +98,17 @@ public:
         // ── Scrollable description (cached: wrapText is O(n^2) in MeasureText
         // calls — too costly to run every frame)
         int lineFs = FONT_HELP_TEXT;
-        int lineH  = lineFs + 3;
-        int maxPx  = w - pad * 2;
+        int lineH = lineFs + 3;
+        int maxPx = w - pad * 2;
         if (card_ != wrappedFor_ || maxPx != wrappedWidth_) {
             wrappedLines_ = DrawUtils::wrapText(card_->description, maxPx, lineFs);
-            wrappedFor_   = card_;
+            wrappedFor_ = card_;
             wrappedWidth_ = maxPx;
         }
-        const auto &lines = wrappedLines_;
+        const auto& lines = wrappedLines_;
 
         int maxScroll = std::max(0, (int)lines.size() - 1);
-        int scroll    = std::min(scrollLines_, maxScroll);
+        int scroll = std::min(scrollLines_, maxScroll);
 
         for (int i = scroll; i < (int)lines.size(); ++i) {
             if (cy + lineH > y + h - pad) break;
@@ -115,9 +117,9 @@ public:
         }
 
         if ((int)lines.size() > 1) {
-            int barX   = x + w - pad / 2 - 2;
+            int barX = x + w - pad / 2 - 2;
             int barTop = y + cardH + pad * 3;
-            int barH   = y + h - pad - barTop;
+            int barH = y + h - pad - barTop;
             DrawRectangle(barX, barTop, 2, barH, COLOR_SCROLLBAR_BG);
             int thumbH = std::max(barH / (int)lines.size(), int(0.01f * h));
             int thumbY = barTop + (barH - thumbH) * scroll / std::max(maxScroll, 1);
@@ -125,16 +127,16 @@ public:
         }
     }
 
-private:
-    const openjoey::cards::Card* card_     = nullptr;
-    bool                  faceDown_ = false;
-    const Texture2D*      cardBack_ = nullptr;
-    int                   scrollLines_ = 0;
+   private:
+    const openjoey::cards::Card* card_ = nullptr;
+    bool faceDown_ = false;
+    const Texture2D* cardBack_ = nullptr;
+    int scrollLines_ = 0;
 
     // Description wrap cache (Draw() is const; the UI runs single-threaded).
-    mutable const openjoey::cards::Card*    wrappedFor_   = nullptr;
-    mutable int                      wrappedWidth_ = -1;
+    mutable const openjoey::cards::Card* wrappedFor_ = nullptr;
+    mutable int wrappedWidth_ = -1;
     mutable std::vector<std::string> wrappedLines_;
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

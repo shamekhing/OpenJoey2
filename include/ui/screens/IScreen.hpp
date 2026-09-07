@@ -4,7 +4,7 @@
 namespace openjoey::ui {
 
 class IScreen {
-public:
+   public:
     virtual ~IScreen() = default;
 
     // Handle input and update state. Returns a ScreenEvent signalling
@@ -16,4 +16,4 @@ public:
     virtual void Draw() const = 0;
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

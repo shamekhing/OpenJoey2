@@ -34,7 +34,7 @@ TEST_CASE("Engine Normal Set: face-down DEF, limited visibility (p.24)", "[engin
 
     REQUIRE(action::SummonSet(d, &m).find("sets") != std::string::npos);
     REQUIRE(d.field.monsterZones[0][0].contains(&m));
-    REQUIRE_FALSE(d.field.monsterZones[0][0].isVisible()); // face-down
+    REQUIRE_FALSE(d.field.monsterZones[0][0].isVisible());  // face-down
     REQUIRE(d.field.monsterZones[0][0].position() == Orientation::Horizontal);
     REQUIRE(m.state.setThisTurn);
 }
@@ -52,7 +52,7 @@ TEST_CASE("Engine Tribute Summon: level→tribute count, tributes to GY (p.23)",
     REQUIRE(action::TributesRequired(&lv5) == 1);
     REQUIRE(action::TributesRequired(&lv7) == 2);
 
-    d.field.handZones[0].put(&lv7); // tributeSummon summons from the hand
+    d.field.handZones[0].put(&lv7);  // tributeSummon summons from the hand
     d.turn.phase = Phase::Main1;
     // Wrong tribute count is rejected and does NOT consume the summon.
     REQUIRE(action::SummonTribute(d, &lv7, {}, false).find("exactly 2") != std::string::npos);
@@ -64,7 +64,7 @@ TEST_CASE("Engine Tribute Summon: level→tribute count, tributes to GY (p.23)",
     REQUIRE(d.field.findCard(&t1).first == &d.field.graveyardZones[0]);
     REQUIRE(d.field.findCard(&t2).first == &d.field.graveyardZones[0]);
     REQUIRE(d.field.monsterZones[0][0].contains(&lv7));
-    REQUIRE_FALSE(action::CanNormalSummon(d)); // consumed
+    REQUIRE_FALSE(action::CanNormalSummon(d));  // consumed
 }
 
 TEST_CASE("Engine Flip Summon: not the Set turn, becomes face-up ATK (p.25)",
@@ -84,7 +84,7 @@ TEST_CASE("Engine Flip Summon: not the Set turn, becomes face-up ATK (p.25)",
     REQUIRE(action::EndTurn(d).find("hand limit OK") != std::string::npos);
     REQUIRE(action::EndTurn(d).find("hand limit OK") != std::string::npos);
     REQUIRE(d.turnPlayer == 0);
-    d.turn.phase = Phase::Main1; // endTurn() leaves the Draw phase set
+    d.turn.phase = Phase::Main1;  // endTurn() leaves the Draw phase set
     std::string msg = action::FlipSummon(d, &m);
     REQUIRE(msg.find("Flip Summons") != std::string::npos);
     REQUIRE(d.field.monsterZones[0][0].isVisible());
@@ -98,13 +98,13 @@ TEST_CASE("Engine Flip effect: trigger is announced (p.25)", "[engine][summon]")
     Duel d;
     Card m;
     mkMon(&m, 431, 4, 1200, 1000);
-    m.name = "Man-Eater Bug"; // flip effect resolves from the classic catalog
+    m.name = "Man-Eater Bug";  // flip effect resolves from the classic catalog
     d.field.handZones[0].put(&m);
     d.turn.phase = Phase::Main1;
     action::SummonSet(d, &m);
     action::EndTurn(d);
     action::EndTurn(d);
-    d.turn.phase = Phase::Main1; // endTurn() leaves the Draw phase set
+    d.turn.phase = Phase::Main1;  // endTurn() leaves the Draw phase set
     REQUIRE(action::FlipSummon(d, &m).find("Flip effect triggers") != std::string::npos);
 }
 
@@ -116,7 +116,7 @@ TEST_CASE("Engine position change: once per turn, not on arrival turn (p.26)",
     fieldMonster(d, &m, 0, 0);
     d.turn.phase = Phase::Main1;
 
-    m.state.placedThisTurn = true; // simulate: summoned this turn
+    m.state.placedThisTurn = true;  // simulate: summoned this turn
     REQUIRE(action::ChangePosition(d, &m).find("the turn it arrived") != std::string::npos);
     m.state.placedThisTurn = false;
 
@@ -132,7 +132,6 @@ TEST_CASE("Engine position change: once per turn, not on arrival turn (p.26)",
 }
 
 // ── Battle Phase (p.34–38) ───────────────────────────────────────────────────
-
 
 // ── from tests.cpp lines 687,705 ──
 TEST_CASE("Special Summon may choose face-up DEF (p.25)", "[engine][summon]") {
@@ -153,7 +152,6 @@ TEST_CASE("Special Summon may choose face-up DEF (p.25)", "[engine][summon]") {
     d.turn.phase = Phase::Battle;
     REQUIRE_FALSE(action::CanAttack(d, &m));
 }
-
 
 // ── from tests.cpp lines 1000,1193 ──
 TEST_CASE("Resolver: position changes and effect flips (classic zone ops)",
@@ -239,11 +237,11 @@ TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)",
         d.turn.phase = Phase::Main1;
         CHECK(action::FusionSummon(d, &fu, {&mat1})
                   .find("at least 2 material") != std::string::npos);
-        CHECK(d.field.extraDeckZones[0].contains(&fu)); // untouched
+        CHECK(d.field.extraDeckZones[0].contains(&fu));  // untouched
     }
     SECTION("materials must be your own monsters (field or hand, p.22)") {
         Duel d;
-        fieldMonster(d, &mat1, 1, 0); // opponent-controlled material
+        fieldMonster(d, &mat1, 1, 0);  // opponent-controlled material
         fu.state.owner = fu.state.controller = 0;
         d.field.extraDeckZones[0].put(&fu);
         action::StartTurn(d);
@@ -257,14 +255,14 @@ TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)",
         fieldMonster(d, &mat1, 0, 0);
         fu.state.owner = fu.state.controller = 0;
         d.field.extraDeckZones[0].put(&fu);
-        d.field.handZones[0].put(&mat2); // second material in hand
+        d.field.handZones[0].put(&mat2);  // second material in hand
         mat2.state.owner = mat2.state.controller = 0;
         action::StartTurn(d);
         d.turn.phase = Phase::Main1;
         CHECK(action::FusionSummon(d, &fu, {&mat1, &mat2})
                   .find("Fusion Summons") != std::string::npos);
-        CHECK(!d.field.extraDeckZones[0].contains(&fu));   // summoned to EMZ
-        CHECK(!d.field.handZones[0].contains(&mat2));      // material -> GY
+        CHECK(!d.field.extraDeckZones[0].contains(&fu));  // summoned to EMZ
+        CHECK(!d.field.handZones[0].contains(&mat2));     // material -> GY
         CHECK(d.field.graveyardZones[0].contains(&mat2));
     }
     SECTION("material in a non-monster zone is rejected") {
@@ -272,7 +270,7 @@ TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)",
         fieldMonster(d, &mat1, 0, 0);
         fu.state.owner = fu.state.controller = 0;
         d.field.extraDeckZones[0].put(&fu);
-        d.field.graveyardZones[0].put(&mat2); // GY is not a valid source
+        d.field.graveyardZones[0].put(&mat2);  // GY is not a valid source
         action::StartTurn(d);
         d.turn.phase = Phase::Main1;
         CHECK(action::FusionSummon(d, &fu, {&mat1, &mat2})
@@ -307,7 +305,7 @@ TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)",
         action::StartTurn(d);
         d.turn.phase = Phase::Main1;
 
-        std::string msg = action::RitualSummon(d, &rm, {&mat1, &mat2}); // 4+4 >= 7
+        std::string msg = action::RitualSummon(d, &rm, {&mat1, &mat2});  // 4+4 >= 7
         CHECK(msg.find("Ritual Summons") != std::string::npos);
         CHECK(d.field.handZones[0].isEmpty());
         CHECK(d.field.monsterZones[0][2].contains(&rm));
@@ -319,14 +317,14 @@ TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)",
     }
     SECTION("tribute levels below the ritual level are rejected") {
         Duel d;
-        fieldMonster(d, &mat3, 0, 0); // level 2 < 7
+        fieldMonster(d, &mat3, 0, 0);  // level 2 < 7
         rm.state.owner = rm.state.controller = 0;
         d.field.handZones[0].put(&rm);
         action::StartTurn(d);
         d.turn.phase = Phase::Main1;
         CHECK(action::RitualSummon(d, &rm, {&mat3})
                   .find("below level") != std::string::npos);
-        CHECK(d.field.handZones[0].contains(&rm)); // untouched
+        CHECK(d.field.handZones[0].contains(&rm));  // untouched
     }
     SECTION("no tributes at all is rejected") {
         Duel d;
@@ -349,5 +347,3 @@ TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)",
                   .find("in your hand") != std::string::npos);
     }
 }
-
-

@@ -1,23 +1,25 @@
 #pragma once
+#include <raylib.h>
+
+#include <algorithm>
+#include <string>
+#include <ui/cards/CardImageCache.hpp>
+
 #include "cards/Card.hpp"
 #include "engine/field/zone/Zones.hpp"
-#include <ui/cards/CardImageCache.hpp>
 #include "ui/widgets/DrawUtils.hpp"
-#include <algorithm>
-#include <raylib.h>
-#include <string>
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
 using cards::Card;
 using cards::CardDatabase;
 using zone::IZone;
+using zone::Orientation;
+using zone::Visibility;
 using zone::Zone;
 using zone::Zone_Monster;
 using zone::ZoneStack;
 using zone::ZoneType;
-using zone::Orientation;
-using zone::Visibility;
 
 // Draws a single zone slot (card face, border, label). All sizes are derived
 // from the caller-supplied rect — no fixed pixel values.
@@ -27,8 +29,9 @@ struct ZoneCell {
                      CardImageCache& cache, const Texture2D* cardBack) {
         DrawRectangleRec(r, zoneBg(zone->type()));
 
-        float thick  = isCursor     ? r.height * 0.022f
-                       : isSelected ? r.height * 0.018f : 1.0f;
+        float thick = isCursor     ? r.height * 0.022f
+                      : isSelected ? r.height * 0.018f
+                                   : 1.0f;
         Color border = isCursor     ? Color{255, 220, 0, 255}
                        : isSelected ? Color{60, 220, 80, 255}
                                     : Color{55, 55, 80, 140};
@@ -37,7 +40,7 @@ struct ZoneCell {
             DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4, r.height + 4},
                                  1.f, Fade(YELLOW, 0.3f));
 
-        float pad  = r.width * 0.05f;
+        float pad = r.width * 0.05f;
         float labH = r.height * 0.14f;
         Rectangle inner = {r.x + pad, r.y + pad,
                            r.width - pad * 2, r.height - pad * 2 - labH};
@@ -56,32 +59,45 @@ struct ZoneCell {
                  Color{150, 150, 180, 200});
     }
 
-private:
+   private:
     static constexpr float kAspect = 59.f / 86.f;
 
     static Color zoneBg(ZoneType t) {
         switch (t) {
-        case ZoneType::Monster:      return {50, 14, 14, 220};
-        case ZoneType::SpellTrap:    return {12, 48, 34, 220};
-        case ZoneType::Field:        return {12, 30, 58, 220};
-        case ZoneType::ExtraMonster: return {42, 12, 58, 220};
-        case ZoneType::Deck:         return {22, 22, 32, 220};
-        case ZoneType::ExtraDeck:    return {28, 14, 48, 220};
-        case ZoneType::Graveyard:    return {48, 22,  8, 220};
-        case ZoneType::Banished:     return {50, 38,  8, 220};
-        default:                     return {20, 20, 30, 220};
+            case ZoneType::Monster:
+                return {50, 14, 14, 220};
+            case ZoneType::SpellTrap:
+                return {12, 48, 34, 220};
+            case ZoneType::Field:
+                return {12, 30, 58, 220};
+            case ZoneType::ExtraMonster:
+                return {42, 12, 58, 220};
+            case ZoneType::Deck:
+                return {22, 22, 32, 220};
+            case ZoneType::ExtraDeck:
+                return {28, 14, 48, 220};
+            case ZoneType::Graveyard:
+                return {48, 22, 8, 220};
+            case ZoneType::Banished:
+                return {50, 38, 8, 220};
+            default:
+                return {20, 20, 30, 220};
         }
     }
 
     static Color cardTypeColor(const Card* c) {
         if (c->isMonster()) return {88, 60, 60, 255};
-        if (c->isSpell())   return {56, 90, 72, 255};
-        if (c->isTrap())    return {88, 56, 92, 255};
+        if (c->isSpell()) return {56, 90, 72, 255};
+        if (c->isTrap()) return {88, 56, 92, 255};
         return {60, 60, 60, 255};
     }
 
     static void drawCardBack(Rectangle dst, const Texture2D* cb, bool rotateDef) {
-        if (cb && cb->id) { DrawUtils::blitCard(dst, *cb, rotateDef); DrawRectangleLinesEx(dst, 1.5f, Color{210, 170, 40, 255}); return; }
+        if (cb && cb->id) {
+            DrawUtils::blitCard(dst, *cb, rotateDef);
+            DrawRectangleLinesEx(dst, 1.5f, Color{210, 170, 40, 255});
+            return;
+        }
         const Color kNavy = {8, 6, 42, 255}, kGold = {210, 170, 40, 255};
         DrawRectangleRec(dst, kNavy);
         float cx = dst.x + dst.width * 0.5f, cy = dst.y + dst.height * 0.5f;
@@ -95,7 +111,10 @@ private:
 
     static void drawFallback(Rectangle dst, Card* c, bool faceDown,
                              const Texture2D* cb, bool rotateDef) {
-        if (faceDown) { drawCardBack(dst, cb, rotateDef); return; }
+        if (faceDown) {
+            drawCardBack(dst, cb, rotateDef);
+            return;
+        }
         if (!c) return;
         DrawRectangleRec(dst, cardTypeColor(c));
         DrawRectangleLinesEx(dst, 1.2f, Fade(WHITE, 0.35f));
@@ -113,11 +132,14 @@ private:
         if (zm->isEmpty()) return;
         Card* c = zm->peek();
         bool atk = zm->position() == Orientation::Vertical;
-        bool fd  = zm->visibility() != Visibility::Visible;
+        bool fd = zm->visibility() != Visibility::Visible;
         bool drew = false;
         if (!fd && c) {
             const Texture2D* tex = cache.Get(*c);
-            if (tex && tex->id) { DrawUtils::blitCard(inner, *tex, !atk); drew = true; }
+            if (tex && tex->id) {
+                DrawUtils::blitCard(inner, *tex, !atk);
+                drew = true;
+            }
         }
         if (!drew) drawFallback(inner, c, fd, cb, !atk);
         if (!fd && c) {
@@ -141,7 +163,10 @@ private:
                         inner.y + (inner.height - ch) * 0.5f, cw, ch};
         if (!fd) {
             const Texture2D* tex = cache.Get(*c);
-            if (tex && tex->id) { DrawUtils::blitCard(cr, *tex, false); return; }
+            if (tex && tex->id) {
+                DrawUtils::blitCard(cr, *tex, false);
+                return;
+            }
         }
         drawFallback(cr, c, fd, cb, false);
     }
@@ -149,8 +174,8 @@ private:
     static void drawStack(Rectangle inner, ZoneStack* zs,
                           CardImageCache& cache, const Texture2D* cb) {
         if (zs->isEmpty()) return;
-        int   layers = std::min(zs->count(), 4);
-        float off    = inner.width * 0.02f;
+        int layers = std::min(zs->count(), 4);
+        float off = inner.width * 0.02f;
         for (int i = layers - 1; i >= 1; --i)
             DrawRectangleRec({inner.x + i * off, inner.y + i * off,
                               inner.width - i * off, inner.height - i * off},
@@ -163,8 +188,10 @@ private:
             drawCardBack(inner, cb, false);
         } else if (top) {
             const Texture2D* tex = cache.Get(*top);
-            if (tex && tex->id) DrawUtils::blitCard(inner, *tex, false);
-            else                 drawFallback(inner, top, false, nullptr, false);
+            if (tex && tex->id)
+                DrawUtils::blitCard(inner, *tex, false);
+            else
+                drawFallback(inner, top, false, nullptr, false);
         }
         int fs = std::max(8, (int)(inner.width * 0.18f));
         int bw = fs + 8;
@@ -174,4 +201,4 @@ private:
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

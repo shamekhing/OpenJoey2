@@ -12,7 +12,7 @@ inline int run(int argc, char** argv) {
     return 0;
 }
 
-} // namespace openjoey::app
+}  // namespace openjoey::app
 
 int main(int argc, char** argv) {
     return openjoey::app::run(argc, argv);

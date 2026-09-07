@@ -2,38 +2,41 @@
 
 // ── from tests.cpp lines 125,222 ──
 TEST_CASE("Single-slot Zone put / remove / contains / guards", "[zone]") {
-    Zone_Monster slot;   // concrete single-slot zone (Zone/IZone is abstract)
-    Card c; c.id = 42;
+    Zone_Monster slot;  // concrete single-slot zone (Zone/IZone is abstract)
+    Card c;
+    c.id = 42;
 
     REQUIRE(slot.isEmpty());
     REQUIRE(slot.count() == 0);
 
-    REQUIRE(slot.put(&c));            // occupy
+    REQUIRE(slot.put(&c));  // occupy
     REQUIRE(!slot.isEmpty());
     REQUIRE(slot.count() == 1);
     REQUIRE(slot.contains(&c));
     REQUIRE(slot.peek() == &c);
 
-    REQUIRE(!slot.put(&c));           // already occupied
+    REQUIRE(!slot.put(&c));  // already occupied
     REQUIRE(slot.remove(nullptr) == &c);
     REQUIRE(slot.isEmpty());
 
-    REQUIRE(!slot.put(nullptr));      // cannot put null
-    REQUIRE(slot.remove(nullptr) == nullptr); // nothing to remove
+    REQUIRE(!slot.put(nullptr));               // cannot put null
+    REQUIRE(slot.remove(nullptr) == nullptr);  // nothing to remove
 }
 
 TEST_CASE("ZoneStack push/peek/index/count semantics", "[zone]") {
     ZoneStack_Deck deck;
     Card a, b, c;
-    a.id = 1; b.id = 2; c.id = 3;
+    a.id = 1;
+    b.id = 2;
+    c.id = 3;
 
-    deck.put(&a);   // bottom
+    deck.put(&a);  // bottom
     deck.put(&b);
-    deck.put(&c);   // top (back)
+    deck.put(&c);  // top (back)
 
     REQUIRE(deck.count() == 3);
-    REQUIRE(deck.peek(-1) == &c);     // top
-    REQUIRE(deck.peek(0) == &a);      // bottom
+    REQUIRE(deck.peek(-1) == &c);  // top
+    REQUIRE(deck.peek(0) == &a);   // bottom
     REQUIRE(deck.peek(2) == &c);
 
     deck.reset();
@@ -44,22 +47,24 @@ TEST_CASE("ZoneStack push/peek/index/count semantics", "[zone]") {
 TEST_CASE("IZone::moveTo transfers the top card and rolls back on failure", "[zone]") {
     ZoneStack_Deck deck;
     ZoneStack_Graveyard gy;
-    Zone_Monster ms;                  // single-slot monster zone (only 1 card)
+    Zone_Monster ms;  // single-slot monster zone (only 1 card)
     Card a, b;
-    a.id = 1; b.id = 2;
+    a.id = 1;
+    b.id = 2;
 
-    deck.put(&a); deck.put(&b);       // deck top = b
+    deck.put(&a);
+    deck.put(&b);  // deck top = b
     REQUIRE(deck.moveTo(gy));
     REQUIRE(deck.count() == 1);
     REQUIRE(gy.count() == 1);
     REQUIRE(gy.peek(-1) == &b);
 
-        // Move deck top (a) to an already-occupied single slot -> must roll back.
-    ms.put(&a);                       // ms now holds a
-    REQUIRE_FALSE(deck.moveTo(ms));   // ms full -> rollback
-    REQUIRE(deck.count() == 1);       // deck unchanged: still holds a
-    REQUIRE(deck.peek(-1) == &a);     // top is a
-    REQUIRE(ms.peek() == &a);         // ms unchanged
+    // Move deck top (a) to an already-occupied single slot -> must roll back.
+    ms.put(&a);                      // ms now holds a
+    REQUIRE_FALSE(deck.moveTo(ms));  // ms full -> rollback
+    REQUIRE(deck.count() == 1);      // deck unchanged: still holds a
+    REQUIRE(deck.peek(-1) == &a);    // top is a
+    REQUIRE(ms.peek() == &a);        // ms unchanged
 }
 
 // --- Field ---
@@ -88,7 +93,9 @@ TEST_CASE("Field helper queries and clearField", "[field]") {
     }
 
     SECTION("clearField resets monster + spell/trap + field zones") {
-        Card m; m.id = 7; m.state.controller = 0;
+        Card m;
+        m.id = 7;
+        m.state.controller = 0;
         f.monsterZones[0][4].put(&m);
         f.spellTrapZones[0][0].put(new Card{});
         f.fieldZones[1].put(new Card{});
@@ -98,5 +105,3 @@ TEST_CASE("Field helper queries and clearField", "[field]") {
         REQUIRE(f.spellTrapZones[0][0].isEmpty());
     }
 }
-
-

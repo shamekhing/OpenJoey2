@@ -9,10 +9,10 @@ TEST_CASE("CardDatabase loads the starter cards.json", "[card][db]") {
     REQUIRE(all.size() == 6);
 
     SECTION("lookups by id and name") {
-        REQUIRE(db.GetCardById(89631139) != nullptr);          // Blue-Eyes
-        REQUIRE(db.GetCardById(46986414) != nullptr);          // Dark Magician
+        REQUIRE(db.GetCardById(89631139) != nullptr);  // Blue-Eyes
+        REQUIRE(db.GetCardById(46986414) != nullptr);  // Dark Magician
         REQUIRE(db.GetCardByName("Kuriboh") != nullptr);
-        REQUIRE(db.GetCardById(99999999) == nullptr);          // unknown id
+        REQUIRE(db.GetCardById(99999999) == nullptr);  // unknown id
     }
 
     SECTION("parsed fields match the JSON") {
@@ -49,10 +49,14 @@ TEST_CASE("Card comparators are strict weak orderings", "[card][sort]") {
     REQUIRE(db.LoadFromFile(cardsPath()));
 
     Card a, b;
-    a.id = 1; b.id = 2;
-    a.name = "Zap"; b.name = "Apple";
-    a.atk = 100; b.atk = 200;
-    a.level = 3; b.level = 4;
+    a.id = 1;
+    b.id = 2;
+    a.name = "Zap";
+    b.name = "Apple";
+    a.atk = 100;
+    b.atk = 200;
+    a.level = 3;
+    b.level = 4;
     a.attributes.push_back(Attribute::Monster);
 
     using openjoey::cards::compare::byAtk;
@@ -75,11 +79,8 @@ TEST_CASE("Card comparators are strict weak orderings", "[card][sort]") {
 
 // --- Zones ---
 
-
 // ── from tests.cpp lines 245,261 ──
 // ── Effects: the "zone-move" invariant ───────────────────────────────────────
 // Per the design driving this refactor: every classic effect is expressed as a
 // card moving from one zone to another. EffectsBuiltIn is the single mutator;
 // Builtins are the single mutator; action::Perform dispatches by id.
-
-

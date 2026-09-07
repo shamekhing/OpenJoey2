@@ -4,13 +4,14 @@
 // counting. Pure functions — no raylib, no state: the deck editor screen
 // (screens/) drives them each frame.
 
-#include "cards/Card.hpp"
-#include "cards/CardCompare.hpp"
 #include <algorithm>
 #include <cctype>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "cards/Card.hpp"
+#include "cards/CardCompare.hpp"
 
 namespace openjoey::ui {
 using cards::Card;
@@ -20,14 +21,27 @@ using cards::CardDatabase;
 struct DeckLimits {
     static constexpr int kMinDeckSize = 40;
     static constexpr int kMaxDeckSize = 60;
-    static constexpr int kMaxCopies   = 3;
+    static constexpr int kMaxCopies = 3;
 };
 
 enum class DeckSortMode {
-    Type, NameDesc, NameAsc, LevelDesc, LevelAsc,
-    AtkDesc, AtkAsc, DefDesc, DefAsc, Id, COUNT
+    Type,
+    NameDesc,
+    NameAsc,
+    LevelDesc,
+    LevelAsc,
+    AtkDesc,
+    AtkAsc,
+    DefDesc,
+    DefAsc,
+    Id,
+    COUNT
 };
-enum class DeckTypeFilter { All, Monster, Spell, Trap, COUNT };
+enum class DeckTypeFilter { All,
+                            Monster,
+                            Spell,
+                            Trap,
+                            COUNT };
 
 inline const char* sortModeLabel(DeckSortMode m) {
     static constexpr const char* kLabels[] = {
@@ -48,11 +62,16 @@ inline void sortPool(std::vector<openjoey::cards::Card>& pool, DeckSortMode mode
     using CmpFn = bool (*)(const openjoey::cards::Card&, const openjoey::cards::Card&);
     namespace cardcmp = openjoey::cards::compare;
     static constexpr std::pair<CmpFn, bool> kSort[] = {
-        {cardcmp::byFrame,  false}, {cardcmp::byName,  false},
-        {cardcmp::byName,  true},  {cardcmp::byLevel, false},
-        {cardcmp::byLevel, true},  {cardcmp::byAtk,   false},
-        {cardcmp::byAtk,   true},  {cardcmp::byDef,   false},
-        {cardcmp::byDef,   true},  {cardcmp::byId,    false},
+        {cardcmp::byFrame, false},
+        {cardcmp::byName, false},
+        {cardcmp::byName, true},
+        {cardcmp::byLevel, false},
+        {cardcmp::byLevel, true},
+        {cardcmp::byAtk, false},
+        {cardcmp::byAtk, true},
+        {cardcmp::byDef, false},
+        {cardcmp::byDef, true},
+        {cardcmp::byId, false},
     };
     auto [cmp, rev] = kSort[(int)mode];
     std::sort(pool.begin(), pool.end(), cmp);
@@ -68,8 +87,8 @@ filterPool(const std::vector<openjoey::cards::Card>& pool, DeckTypeFilter type,
     std::transform(q.begin(), q.end(), q.begin(), ::tolower);
     for (const auto& c : pool) {
         if (type == DeckTypeFilter::Monster && !c.isMonster()) continue;
-        if (type == DeckTypeFilter::Spell   && !c.isSpell())   continue;
-        if (type == DeckTypeFilter::Trap    && !c.isTrap())    continue;
+        if (type == DeckTypeFilter::Spell && !c.isSpell()) continue;
+        if (type == DeckTypeFilter::Trap && !c.isTrap()) continue;
         if (!q.empty()) {
             std::string lo = c.name;
             std::transform(lo.begin(), lo.end(), lo.begin(), ::tolower);
@@ -87,4 +106,4 @@ inline int countCopies(const std::vector<openjoey::cards::Card>& deck, uint32_t 
     return n;
 }
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

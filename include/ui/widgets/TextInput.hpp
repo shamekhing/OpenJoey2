@@ -1,37 +1,42 @@
 #pragma once
-#include "ui/widgets/StyleSheet.hpp"
 #include <raylib.h>
+
 #include <string>
+
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 
 class TextInput {
-public:
+   public:
     TextInput() = default;
     void Update();
     void Draw(int x, int y, int w, int h) const;
     std::string GetText() const { return text_; }
     bool isChanged() const { return changed_; }
-    bool isTyping()  const { return typing_;  }
+    bool isTyping() const { return typing_; }
 
-private:
+   private:
     static bool isInputChar(int c) { return (c >= 32 && c < 127) || c == '\b'; }
 
-    std::string text_    = "Right click to search...";
-    bool        typing_  = false;
-    bool        changed_ = false;
+    std::string text_ = "Right click to search...";
+    bool typing_ = false;
+    bool changed_ = false;
 };
 
 inline void TextInput::Update() {
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
         typing_ = !typing_;
-        text_   = "";
+        text_ = "";
     }
     changed_ = false;
     if (typing_) {
         int ch = GetCharPressed();
         while (ch > 0) {
-            if (isInputChar(ch)) { text_ += (char)ch; changed_ = true; }
+            if (isInputChar(ch)) {
+                text_ += (char)ch;
+                changed_ = true;
+            }
             ch = GetCharPressed();
         }
         if (IsKeyPressed(KEY_BACKSPACE) && !text_.empty()) {
@@ -53,4 +58,4 @@ inline void TextInput::Draw(int x, int y, int w, int h) const {
              TEXT_FONT_SIZE, typing_ ? YELLOW : GRAY);
 }
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

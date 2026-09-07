@@ -5,11 +5,13 @@
 // derived from the ui/widgets StyleSheet — no fixed pixel values, no
 // state (the header hint reads the shared DuelUIState).
 
-#include "engine/duel/Duel.hpp"
-#include "ui/widgets/StyleSheet.hpp"
-#include "ui/duel/Action.hpp"
 #include <raylib.h>
+
 #include <string>
+
+#include "engine/duel/Duel.hpp"
+#include "ui/duel/Action.hpp"
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -17,12 +19,18 @@ using namespace openjoey::engine;
 struct DuelPanels {
     static const char* phaseName(Phase p) {
         switch (p) {
-        case Phase::Draw:    return "Draw";
-        case Phase::Standby: return "Standby";
-        case Phase::Main1:   return "Main 1";
-        case Phase::Battle:  return "Battle";
-        case Phase::Main2:   return "Main 2";
-        case Phase::End:     return "End";
+            case Phase::Draw:
+                return "Draw";
+            case Phase::Standby:
+                return "Standby";
+            case Phase::Main1:
+                return "Main 1";
+            case Phase::Battle:
+                return "Battle";
+            case Phase::Main2:
+                return "Main 2";
+            case Phase::End:
+                return "End";
         }
         return "?";
     }
@@ -42,7 +50,7 @@ struct DuelPanels {
 
         // Phase timeline (right side): Draw · MP1 · BP · MP2 · End — current lit.
         {
-            static constexpr const char *kPhases[] = {"Draw", "MP1", "BP", "MP2", "End"};
+            static constexpr const char* kPhases[] = {"Draw", "MP1", "BP", "MP2", "End"};
             const Phase kMap[] = {Phase::Draw, Phase::Main1, Phase::Battle,
                                   Phase::Main2, Phase::End};
             const int pw = 46, gap = 8, fs2 = 16, py = y + (h - fs2) / 2;
@@ -61,7 +69,7 @@ struct DuelPanels {
         }
 
         const char* msg = nullptr;
-        Color       mc  = YELLOW;
+        Color mc = YELLOW;
         if (duel.result != DuelResult::Ongoing) {
             msg = duel.result == DuelResult::Draw
                       ? "DRAW!  [R = rematch]"
@@ -91,10 +99,11 @@ struct DuelPanels {
         DrawRectangle(x, y, w, h, COLOR_FOOTER_BG);
         DrawLine(x, y, x + w, y, COLOR_DIVIDER_LINE);
         int fs = FONT_HELP_TEXT;
-        DrawText("Mouse:click=use  R-click=cancel  |  Arrows/WASD:move  Enter:use  "
-                 "SPACE:attack  B:Battle  N:Main2  C:position  F:flip/tributes  "
-                 "E:end  R:resolve/rematch  Z:undo  L:log  H:help",
-                 x + MAIN_PAD_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
+        DrawText(
+            "Mouse:click=use  R-click=cancel  |  Arrows/WASD:move  Enter:use  "
+            "SPACE:attack  B:Battle  N:Main2  C:position  F:flip/tributes  "
+            "E:end  R:resolve/rematch  Z:undo  L:log  H:help",
+            x + MAIN_PAD_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
     }
 
     // ── Overlays: handoff gate, chain window, win banner, help panel ─────────
@@ -114,9 +123,9 @@ struct DuelPanels {
         }
         if (duel.result != DuelResult::Ongoing) {
             DrawRectangle(0, 0, _SW, _SH, {0, 0, 0, 200});
-            const bool  p1  = duel.result == DuelResult::Player0Win;
+            const bool p1 = duel.result == DuelResult::Player0Win;
             const char* msg = p1 ? "PLAYER 1 WINS!" : "PLAYER 2 WINS!";
-            const int   fs  = FONT_MAIN_TITLE;
+            const int fs = FONT_MAIN_TITLE;
             DrawText(msg, _SW / 2 - MeasureText(msg, fs) / 2, _SH / 2 - fs,
                      fs, p1 ? GOLD : SKYBLUE);
             const char* sub = "press R for a rematch";
@@ -135,7 +144,7 @@ struct DuelPanels {
             DrawRectangle(_SW / 2 - bw / 2, 8, bw, fs + 12, {20, 20, 30, 230});
             DrawText(msg, _SW / 2 - MeasureText(msg, fs) / 2, 14, fs, ORANGE);
         }
-        if (st.helpOpen) { // modal controls panel — H closes it
+        if (st.helpOpen) {  // modal controls panel — H closes it
             DrawRectangle(0, 0, _SW, _SH, {0, 0, 0, 200});
             const int pw = _SW * 52 / 100, ph = _SH * 60 / 100;
             const int px = _SW / 2 - pw / 2, py = _SH / 2 - ph / 2;
@@ -168,4 +177,4 @@ struct DuelPanels {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

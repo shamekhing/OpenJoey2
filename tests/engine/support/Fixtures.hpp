@@ -4,31 +4,30 @@
 // Integration/unit tests for OpenJoey2 core (card DB + zone/field logic).
 // These do NOT link raylib: CardDatabase, Card, and game::zone are header-only
 // and raylib-free, so tests run fast without a GL context.
-#include "cards/cards.hpp"
-#include "action/ActionSpec.hpp"
-#include "engine/field/Field.hpp"
-
-#include "engine/field/zone/ZoneEnums.hpp"
-#include "engine/field/zone/IZone.hpp"
-#include "engine/field/zone/Zone.hpp"
-#include "engine/field/zone/ZoneStack.hpp"
-#include "engine/field/zone/Zones.hpp"
-#include "engine/config/DuelConfig.hpp"
-#include "engine/protocol/BattleProtocol.hpp"
-#include "engine/protocol/ChainProtocol.hpp"
-#include "engine/duel/Chain.hpp"
-#include "engine/duel/Duel.hpp"
-#include "engine/duel/Engine.hpp"
-#include "engine/action/Observe.hpp"
-#include "engine/action/Perform.hpp"
-#include "engine/protocol/DuelProtocol.hpp"
-#include "engine/action/Catalog.hpp"
-#include "Config.hpp"
-
 #include <algorithm>
 #include <filesystem>
 #include <string>
 #include <vector>
+
+#include "Config.hpp"
+#include "action/ActionSpec.hpp"
+#include "cards/cards.hpp"
+#include "engine/action/Catalog.hpp"
+#include "engine/action/Observe.hpp"
+#include "engine/action/Perform.hpp"
+#include "engine/config/DuelConfig.hpp"
+#include "engine/duel/Chain.hpp"
+#include "engine/duel/Duel.hpp"
+#include "engine/duel/Engine.hpp"
+#include "engine/field/Field.hpp"
+#include "engine/field/zone/IZone.hpp"
+#include "engine/field/zone/Zone.hpp"
+#include "engine/field/zone/ZoneEnums.hpp"
+#include "engine/field/zone/ZoneStack.hpp"
+#include "engine/field/zone/Zones.hpp"
+#include "engine/protocol/BattleProtocol.hpp"
+#include "engine/protocol/ChainProtocol.hpp"
+#include "engine/protocol/DuelProtocol.hpp"
 
 using namespace openjoey;
 using namespace openjoey::engine;
@@ -41,7 +40,7 @@ using namespace openjoey::engine::action;
 // NOT the full 14k-card database in openjoey-content. Resolve it relative to
 // this source file so it works regardless of CTest's working directory.
 inline std::string cardsPath() {
-    std::filesystem::path p(__FILE__);          // tests/support/Fixtures.hpp
+    std::filesystem::path p(__FILE__);  // tests/support/Fixtures.hpp
     return (p.parent_path().parent_path() / "fixtures" / "cards.json").string();
 }
 
@@ -70,7 +69,7 @@ void fieldMonster(Duel &d, Card *m, int player, int slot) {
     d.field.monsterZones[player][slot].changeOrientation(Orientation::Vertical);
 }
 
-} // namespace
+}  // namespace
 namespace {
 
 // Standard battle setup: P0's turn, Battle Phase open, one monster each side.
@@ -90,5 +89,4 @@ struct BattleFix {
     }
 };
 
-} // namespace
-
+}  // namespace

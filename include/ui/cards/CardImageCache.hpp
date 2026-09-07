@@ -1,5 +1,6 @@
 #pragma once
-#include "cards/Card.hpp"
+#include <raylib.h>
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -11,13 +12,15 @@
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <raylib.h>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "cards/Card.hpp"
+#include "cards/CardDatabase.hpp"
 
 namespace openjoey::ui {
 using cards::Card;
@@ -40,7 +43,7 @@ using cards::CardDatabase;
 //   * once maxTextures_ is exceeded, least-recently-used textures are evicted
 //     (unloaded on the main thread; they re-load from disk on demand)
 class CardImageCache {
-public:
+   public:
     // Upper bound on textures held in VRAM (LRU-evicted beyond this).
     static constexpr std::size_t kDefaultMaxTextures = 512;
     // Wait after a failed download before it may be re-requested.
@@ -77,7 +80,7 @@ public:
             std::filesystem::remove(jobQueue_.front().dest.string() + ".tmp", ec);
             jobQueue_.pop();
         }
-        if (inFlight_) // a curl started before stop_ may still have left a .tmp
+        if (inFlight_)  // a curl started before stop_ may still have left a .tmp
             std::filesystem::remove(inFlight_->dest.string() + ".tmp", ec);
         for (auto& [id, tex] : textures_)
             if (tex.id != 0) UnloadTexture(tex);
@@ -123,7 +126,7 @@ public:
             done = std::exchange(completed_, {});
         }
         for (uint32_t id : done) {
-            loadFailed_.erase(id); // fresh download: allow one new load attempt
+            loadFailed_.erase(id);  // fresh download: allow one new load attempt
             if (textures_.count(id)) continue;
             std::filesystem::path dest = imgDir_ / (std::to_string(id) + ".jpg");
             if (std::filesystem::exists(dest) && !loadTextureFromDisk(id, dest))
@@ -136,8 +139,11 @@ public:
     // `maxTextures`, least-recently-used textures are evicted.
     void SetMaxTextures(std::size_t maxTextures) { maxTextures_ = maxTextures; }
 
-private:
-    struct Job { uint32_t id; std::filesystem::path dest; };
+   private:
+    struct Job {
+        uint32_t id;
+        std::filesystem::path dest;
+    };
 
     void touch(uint32_t id) { lastUse_[id] = ++useClock_; }
 
@@ -177,7 +183,7 @@ private:
         auto it = retryNotBefore_.find(id);
         if (it != retryNotBefore_.end() &&
             std::chrono::steady_clock::now() < it->second)
-            return; // failed recently — wait out the cooldown
+            return;  // failed recently — wait out the cooldown
         queued_.insert(id);
         jobQueue_.push({id, dest});
         cv_.notify_one();
@@ -192,7 +198,7 @@ private:
                 if (stop_) return;
                 job = std::move(jobQueue_.front());
                 jobQueue_.pop();
-                inFlight_ = job; // so the destructor can sweep its .tmp
+                inFlight_ = job;  // so the destructor can sweep its .tmp
             }
             bool ok = curlDownload(imageUrl_ + std::to_string(job.id) + ".jpg", job.dest);
             if (!ok && !stopping())
@@ -200,7 +206,7 @@ private:
             {
                 std::lock_guard<std::mutex> lk(mtx_);
                 inFlight_.reset();
-                queued_.erase(job.id); // failed ids may be re-requested later
+                queued_.erase(job.id);  // failed ids may be re-requested later
                 if (ok)
                     completed_.push_back(job.id);
                 else
@@ -222,7 +228,7 @@ private:
         // URL is constructed from a fixed base + integer ID — no injection risk.
         // POSIX-only: curl via the shell (documented; UI consumers run POSIX).
         std::string cmd = "curl -sSL --max-time 20 -o '" + tmp + "' '" + url + "' 2>/dev/null";
-        int ret = std::system(cmd.c_str()); // NOLINT
+        int ret = std::system(cmd.c_str());  // NOLINT
         if (ret == 0 && std::filesystem::exists(tmp) &&
             std::filesystem::file_size(tmp) > 1024) {
             std::filesystem::rename(tmp, dest);
@@ -233,24 +239,24 @@ private:
         return false;
     }
 
-    std::filesystem::path            imgDir_;
-    std::string                      imageUrl_;
-    std::string                      imageUrlSmall_;
+    std::filesystem::path imgDir_;
+    std::string imageUrl_;
+    std::string imageUrlSmall_;
     std::unordered_map<uint32_t, Texture2D> textures_;
-    std::unordered_map<uint32_t, uint64_t>  lastUse_;   // main thread only
-    std::unordered_set<uint32_t>     loadFailed_;        // main thread only
-    std::size_t                      maxTextures_ = kDefaultMaxTextures;
-    uint64_t                         useClock_    = 0;
-    std::queue<Job>                  jobQueue_;
-    std::optional<Job>               inFlight_; // guarded by mtx_
-    std::vector<uint32_t>            completed_;
-    std::unordered_set<uint32_t>     queued_;
+    std::unordered_map<uint32_t, uint64_t> lastUse_;  // main thread only
+    std::unordered_set<uint32_t> loadFailed_;         // main thread only
+    std::size_t maxTextures_ = kDefaultMaxTextures;
+    uint64_t useClock_ = 0;
+    std::queue<Job> jobQueue_;
+    std::optional<Job> inFlight_;  // guarded by mtx_
+    std::vector<uint32_t> completed_;
+    std::unordered_set<uint32_t> queued_;
     std::unordered_map<uint32_t, std::chrono::steady_clock::time_point> retryNotBefore_;
-    std::mutex                       mtx_;
-    std::condition_variable          cv_;
-    std::atomic<bool>                stop_{false};
-    bool                             downloadsEnabled_ = true;
-    std::thread                      worker_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+    std::atomic<bool> stop_{false};
+    bool downloadsEnabled_ = true;
+    std::thread worker_;
 
     // Only a plain https base URL is safe to interpolate into a shell command.
     static bool urlIsSafe(const std::string& url) {
@@ -264,4 +270,4 @@ private:
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

@@ -10,10 +10,11 @@
 //                        re-applied on restore (equips/counters/turn flags
 //                        live on the shared card objects)
 // turnState and chain link args are remapped for tokens as well.
-#include "engine/duel/Duel.hpp"
 #include <map>
 #include <memory>
 #include <vector>
+
+#include "engine/duel/Duel.hpp"
 
 namespace openjoey::engine {
 
@@ -22,17 +23,17 @@ namespace openjoey::engine {
 inline Duel cloneDuel(const Duel &src,
                       std::map<Card *, cards::CardState> *cardStates = nullptr) {
     Duel dst;
-    dst.config      = src.config;
-    dst.turn        = src.turn;
-    dst.chain       = src.chain;
-    dst.lp          = src.lp;
-    dst.turnPlayer  = src.turnPlayer;
+    dst.config = src.config;
+    dst.turn = src.turn;
+    dst.chain = src.chain;
+    dst.lp = src.lp;
+    dst.turnPlayer = src.turnPlayer;
     dst.activePlayer = src.activePlayer;
-    dst.result      = src.result;
-    dst.winReason   = src.winReason;
-    dst.turnState   = src.turnState;
-    dst.battleStep  = src.battleStep;
-    dst.damageStep  = src.damageStep;
+    dst.result = src.result;
+    dst.winReason = src.winReason;
+    dst.turnState = src.turnState;
+    dst.battleStep = src.battleStep;
+    dst.damageStep = src.damageStep;
     dst.lastDamageOutcome = src.lastDamageOutcome;
     dst.battleTrace = src.battleTrace;
     dst.deckBackings = src.deckBackings;
@@ -41,16 +42,16 @@ inline Duel cloneDuel(const Duel &src,
     const zone::Field &sf = src.field;
     for (int p = 0; p < zone::Field::PLAYERS; ++p) {
         for (int i = 0; i < zone::Field::MONSTER_ZONES; ++i) {
-            f.monsterZones[p][i]   = sf.monsterZones[p][i];
+            f.monsterZones[p][i] = sf.monsterZones[p][i];
             f.spellTrapZones[p][i] = sf.spellTrapZones[p][i];
         }
-        f.fieldZones[p]       = sf.fieldZones[p];
-        f.handZones[p]        = sf.handZones[p];
-        f.deckZones[p]        = sf.deckZones[p];
-        f.extraDeckZones[p]   = sf.extraDeckZones[p];
-        f.graveyardZones[p]   = sf.graveyardZones[p];
-        f.banishedZones[p]    = sf.banishedZones[p];
-        f.sideDeckZones[p]    = sf.sideDeckZones[p];
+        f.fieldZones[p] = sf.fieldZones[p];
+        f.handZones[p] = sf.handZones[p];
+        f.deckZones[p] = sf.deckZones[p];
+        f.extraDeckZones[p] = sf.extraDeckZones[p];
+        f.graveyardZones[p] = sf.graveyardZones[p];
+        f.banishedZones[p] = sf.banishedZones[p];
+        f.sideDeckZones[p] = sf.sideDeckZones[p];
     }
     for (int z = 0; z < zone::Field::EMZ_COUNT; ++z)
         f.extraMonsterZones[z] = sf.extraMonsterZones[z];
@@ -70,15 +71,15 @@ inline Duel cloneDuel(const Duel &src,
             if (c && !c->state.isToken) (*cardStates)[const_cast<Card *>(c)] = c->state;
         };
         for (int p = 0; p < zone::Field::PLAYERS; ++p) {
-            for (auto &z : sf.monsterZones[p])   record(z.peek());
+            for (auto &z : sf.monsterZones[p]) record(z.peek());
             for (auto &z : sf.spellTrapZones[p]) record(z.peek());
             record(sf.fieldZones[p].peek());
-            for (int i = 0; i < sf.handZones[p].count(); ++i)  record(sf.handZones[p].peek(i));
-            for (int i = 0; i < sf.deckZones[p].count(); ++i)  record(sf.deckZones[p].peek(i));
+            for (int i = 0; i < sf.handZones[p].count(); ++i) record(sf.handZones[p].peek(i));
+            for (int i = 0; i < sf.deckZones[p].count(); ++i) record(sf.deckZones[p].peek(i));
             for (int i = 0; i < sf.extraDeckZones[p].count(); ++i) record(sf.extraDeckZones[p].peek(i));
             for (int i = 0; i < sf.graveyardZones[p].count(); ++i) record(sf.graveyardZones[p].peek(i));
-            for (int i = 0; i < sf.banishedZones[p].count(); ++i)  record(sf.banishedZones[p].peek(i));
-            for (int i = 0; i < sf.sideDeckZones[p].count(); ++i)  record(sf.sideDeckZones[p].peek(i));
+            for (int i = 0; i < sf.banishedZones[p].count(); ++i) record(sf.banishedZones[p].peek(i));
+            for (int i = 0; i < sf.sideDeckZones[p].count(); ++i) record(sf.sideDeckZones[p].peek(i));
         }
         for (auto &z : sf.extraMonsterZones) record(z.peek());
     }
@@ -93,7 +94,10 @@ inline Duel cloneDuel(const Duel &src,
     sw(dst.turnState.replayAttacker);
     auto remapSet = [&](std::set<Card *> &s) {
         std::set<Card *> out;
-        for (Card *c : s) { sw(c); out.insert(c); }
+        for (Card *c : s) {
+            sw(c);
+            out.insert(c);
+        }
         s.swap(out);
     };
     remapSet(dst.turnState.attacked);
@@ -121,9 +125,9 @@ inline DuelSnapshot makeSnapshot(const Duel &d) {
 }
 
 inline void restoreSnapshot(Duel &d, const DuelSnapshot &s) {
-    d = cloneDuel(s.duel); // fresh token clones again (remap inside)
+    d = cloneDuel(s.duel);  // fresh token clones again (remap inside)
     for (auto &[c, st] : s.cardStates)
         if (c) c->state = st;
 }
 
-} // namespace openjoey::engine
+}  // namespace openjoey::engine

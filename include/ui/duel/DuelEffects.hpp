@@ -5,14 +5,15 @@
 // hand, and sweeps resolved cards to the Graveyard. Operates purely on the
 // engine/field + DuelUIState — no raylib, no cursor.
 
-#include "engine/duel/Engine.hpp"
+#include <string>
+
+#include "action/ActionArgs.hpp"  // ActionArgs
+#include "cards/Card.hpp"
 #include "engine/action/Catalog.hpp"
-#include "action/ActionArgs.hpp" // ActionArgs
-#include "engine/action/Moves.hpp"      // action::detail::moveCard
+#include "engine/action/Moves.hpp"  // action::detail::moveCard
+#include "engine/duel/Engine.hpp"
 #include "engine/field/Field.hpp"
 #include "ui/duel/Action.hpp"
-#include "cards/Card.hpp"
-#include <string>
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -20,7 +21,7 @@ using cards::Card;
 using cards::CardDatabase;
 
 struct DuelEffects {
-    Engine&      engine;
+    Engine& engine;
     zone::Field& field;
     DuelUIState& st;
 
@@ -34,17 +35,17 @@ struct DuelEffects {
         // The engine charges spec.lpCost at activation (one place, never
         // refunded); scope on the spec derives mass targets — no sentinels.
         ActionArgs a;
-        a.target            = target;
-        a.source            = st.pendingCard; // engine checks set-turn Traps (p.31)
+        a.target = target;
+        a.source = st.pendingCard;  // engine checks set-turn Traps (p.31)
         const std::string r =
             engine.activateEffect(st.pendingFx, st.pendingOwner, a);
         if (r.find("Chain Link") != std::string::npos) {
             auto [hz, hp] = field.findCard(st.pendingCard);
             if (hz && hz->type() == zone::ZoneType::Hand)
-                setSpellTrap(st.pendingCard); // spells sit in the S/T row while resolving
+                setSpellTrap(st.pendingCard);  // spells sit in the S/T row while resolving
             st.activated.push_back(st.pendingCard);
             st.chainPrompt = true;
-            st.mode        = DuelMode::Navigate;
+            st.mode = DuelMode::Navigate;
         }
         st.pendingCard = st.pendingTarget = nullptr;
         return r;
@@ -59,8 +60,11 @@ struct DuelEffects {
         if (slot < 0) return "no free spell/trap zone.";
         if (!z->remove(c)) return "remove from hand failed.";
         auto& stz = field.spellTrapZones[c->state.controller][slot];
-        if (!stz.put(c)) { z->put(c); return "set failed — zone rejected the card."; }
-        stz.changeVisibility(zone::Visibility::Limited); // face-down: owner only
+        if (!stz.put(c)) {
+            z->put(c);
+            return "set failed — zone rejected the card.";
+        }
+        stz.changeVisibility(zone::Visibility::Limited);  // face-down: owner only
         return c->name + " set face-down.";
     }
 
@@ -75,4 +79,4 @@ struct DuelEffects {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

@@ -1,13 +1,15 @@
 #pragma once
+#include <raylib.h>
+
+#include <functional>
+#include <string>
+#include <vector>
+
 #include "cards/Card.hpp"
 #include "ui/cards/CardImageCache.hpp"
 #include "ui/cards/TextFit.hpp"
 #include "ui/cards/Thumbnail.hpp"
 #include "ui/widgets/StyleSheet.hpp"
-#include <functional>
-#include <raylib.h>
-#include <string>
-#include <vector>
 
 // Replaces the old List + ListItem pair. CardList renders a scrollable,
 // cursor-tracked list of card rows with thumbnail, type tag, stat line,
@@ -21,12 +23,12 @@ struct CardList {
     static void DrawItem(const openjoey::cards::Card& card, CardImageCache& cache,
                          int x, int y, int w,
                          bool selected, int copies, int maxCopies) {
-        const int itemH   = CARD_ITEM_HEIGHT;
-        const int txW     = THUMBNAIL_WIDTH;
-        const int txPad   = THUMBNAIL_PAD;
+        const int itemH = CARD_ITEM_HEIGHT;
+        const int txW = THUMBNAIL_WIDTH;
+        const int txPad = THUMBNAIL_PAD;
         const int textGap = THUMBNAIL_TEXT_GAP;
-        const int selBdr  = SELECTION_BORDER;
-        const int cpXOff  = COPY_COUNT_X_OFFSET;
+        const int selBdr = SELECTION_BORDER;
+        const int cpXOff = COPY_COUNT_X_OFFSET;
         const int nmRight = CARD_NAME_RIGHT_MARGIN;
 
         Color typeCol = cardTypeColor(card);
@@ -57,11 +59,11 @@ struct CardList {
                      int x, int y, int w, int h,
                      int cursor, bool focused, int maxCopies,
                      std::function<int(uint32_t)> countFn) {
-        const int itemH    = CARD_ITEM_HEIGHT;
-        const int sbW      = SCROLLBAR_WIDTH;
-        const int sbXOff   = SCROLLBAR_X_OFFSET;
-        const int sbHTrim  = SCROLLBAR_H_TRIM;
-        const int sbThMin  = SCROLLBAR_THUMB_MIN;
+        const int itemH = CARD_ITEM_HEIGHT;
+        const int sbW = SCROLLBAR_WIDTH;
+        const int sbXOff = SCROLLBAR_X_OFFSET;
+        const int sbHTrim = SCROLLBAR_H_TRIM;
+        const int sbThMin = SCROLLBAR_THUMB_MIN;
 
         int maxVis = h / itemH;
         int scroll = std::max(0, cursor - maxVis / 2);
@@ -73,11 +75,11 @@ struct CardList {
         }
 
         if ((int)cards.size() > maxVis) {
-            int   barH   = h - sbHTrim;
-            int   barX   = x + w - sbXOff;
-            float frac   = (float)scroll / std::max(1, (int)cards.size() - maxVis);
-            int   thumbH = std::max(sbThMin, barH * maxVis / std::max(1, (int)cards.size()));
-            int   thumbY = y + (int)(frac * (barH - thumbH));
+            int barH = h - sbHTrim;
+            int barX = x + w - sbXOff;
+            float frac = (float)scroll / std::max(1, (int)cards.size() - maxVis);
+            int thumbH = std::max(sbThMin, barH * maxVis / std::max(1, (int)cards.size()));
+            int thumbY = y + (int)(frac * (barH - thumbH));
             DrawRectangle(barX, y, sbW, barH, COLOR_SCROLLBAR_BG);
             DrawRectangle(barX, thumbY, sbW, thumbH, COLOR_SCROLLBAR_THUMB);
         }
@@ -88,4 +90,4 @@ struct CardList {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

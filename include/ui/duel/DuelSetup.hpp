@@ -5,17 +5,19 @@
 // engine, and the shared card-back texture. Stateless — DuelScreen owns the
 // deck vectors (they back the card memory for the whole duel).
 
+#include <raylib.h>
+
+#include <filesystem>
+#include <iostream>
+#include <vector>
+
+#include "cards/Card.hpp"
+#include "cards/CardDatabase.hpp"
 #include "engine/action/Catalog.hpp"
 #include "engine/duel/Engine.hpp"
 #include "engine/field/Field.hpp"
-#include "cards/Card.hpp"
-#include "cards/CardDatabase.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/deck/DeckFile.hpp"
-#include <filesystem>
-#include <iostream>
-#include <raylib.h>
-#include <vector>
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -23,8 +25,8 @@ using cards::Card;
 using cards::CardDatabase;
 
 struct DuelSetup {
-    static constexpr int kMaxDeckCards  = 60; // mirrors DeckEditorScreen::kMaxDeckSize
-    static constexpr int kFallbackCards = 40; // first-DB-cards fallback size
+    static constexpr int kMaxDeckCards = 60;   // mirrors DeckEditorScreen::kMaxDeckSize
+    static constexpr int kFallbackCards = 40;  // first-DB-cards fallback size
 
     // Load the shared card-back texture from the settings paths.
     static Texture2D loadCardBack(const AppContext& ctx) {
@@ -61,7 +63,7 @@ struct DuelSetup {
             src = ctx.selectedDeck;
         } else {
             src = loadDefaultDeck(ctx);
-            if (src.empty()) { // no saved deck: first DB cards
+            if (src.empty()) {  // no saved deck: first DB cards
                 for (auto& c : ctx.cardDb.GetAllCards()) {
                     src.push_back(c);
                     if ((int)src.size() >= kFallbackCards) break;
@@ -80,10 +82,12 @@ struct DuelSetup {
             for (auto& c : in) (c.isExtraDeckMonster() ? extra : main).push_back(c);
         };
 
-        mainA.clear(); mainB.clear(); extraA.clear(); extraB.clear();
-        splitExtra(src, mainA, extraA); // player 1
-        splitExtra(src, mainB, extraB); // player 2 (same deck, hotseat)
-        
+        mainA.clear();
+        mainB.clear();
+        extraA.clear();
+        extraB.clear();
+        splitExtra(src, mainA, extraA);  // player 1
+        splitExtra(src, mainB, extraB);  // player 2 (same deck, hotseat)
     }
 
     // Seat main decks via the engine (shuffled there) and copy extra decks
@@ -99,7 +103,7 @@ struct DuelSetup {
             std::vector<Card*> ptrs;
             for (auto& c : main) ptrs.push_back(&c);
             engine.setDeck(p, ptrs);
-            engine.sealDeckBacking(p, &main); // seal the OWNING vector (ptrs is a temp)
+            engine.sealDeckBacking(p, &main);  // seal the OWNING vector (ptrs is a temp)
             for (auto& c : (p == 0 ? extraA : extraB)) {
                 field.extraDeckZones[p].put(&c);
             }
@@ -108,4 +112,4 @@ struct DuelSetup {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

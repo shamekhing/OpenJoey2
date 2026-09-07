@@ -1,12 +1,14 @@
 #pragma once
-#include "ui/widgets/StyleSheet.hpp"
-#include <algorithm>
 #include <raylib.h>
+
+#include <algorithm>
+
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 
 class ProgressBar {
-public:
+   public:
     static void Draw(int x, int y, int w, int h, float frac) {
         Color fill = (frac >= 1.0f) ? GREEN : YELLOW;
         DrawRectangle(x, y, w, h, COLOR_PROGRESS_BG);
@@ -15,4 +17,4 @@ public:
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

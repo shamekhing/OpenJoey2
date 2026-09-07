@@ -1,14 +1,14 @@
 // openjoey-cards unit tests: CardDatabase, CardParser, comparators, ActionSpec.
 // Raylib-free by design: links openjoey::cards + openjoey::foundation only.
 #define CATCH_CONFIG_MAIN
-#include "catch.hpp"
-
 #include "cards/cards.hpp"
-#include "action/ActionSpec.hpp"
 
 #include <filesystem>
 #include <string>
 #include <type_traits>
+
+#include "action/ActionSpec.hpp"
+#include "catch.hpp"
 
 using namespace openjoey;
 using namespace openjoey::cards;
@@ -31,8 +31,8 @@ TEST_CASE("CardDatabase loads the starter cards.json", "[db]") {
     REQUIRE_FALSE(db.empty());
 
     SECTION("lookups by id and name") {
-        REQUIRE(db.GetCardById(89631139) != nullptr);          // Blue-Eyes
-        REQUIRE(db.GetCardById(46986414) != nullptr);          // Dark Magician
+        REQUIRE(db.GetCardById(89631139) != nullptr);  // Blue-Eyes
+        REQUIRE(db.GetCardById(46986414) != nullptr);  // Dark Magician
         REQUIRE(db.GetCardByName("Kuriboh") != nullptr);
         REQUIRE(db.GetCardById(99999999) == nullptr);          // unknown id
         REQUIRE(db.GetCardByName("No Such Card") == nullptr);  // unknown name
@@ -74,7 +74,7 @@ TEST_CASE("FindByName substring search is deterministic", "[db]") {
     REQUIRE(hits.front()->id == 46986414);
 
     // Results are sorted by id ascending regardless of hash order.
-    auto all = db.FindByName(""); // empty needle matches every card
+    auto all = db.FindByName("");  // empty needle matches every card
     REQUIRE(all.size() == db.size());
     for (std::size_t i = 1; i < all.size(); ++i)
         REQUIRE(all[i - 1]->id < all[i]->id);
@@ -94,9 +94,9 @@ TEST_CASE("LoadFromString parses an inline remote card-data payload", "[db][pars
     REQUIRE(db.GetCardById(111)->atk == 100);
     REQUIRE(db.GetCardById(111)->isMonster());
     REQUIRE(db.GetCardById(222)->isSpell());
-    REQUIRE(db.GetCardByName("Beta")->name == "Beta");       // duplicate id: first wins
+    REQUIRE(db.GetCardByName("Beta")->name == "Beta");  // duplicate id: first wins
     REQUIRE(db.GetCardByName("Beta dupe") == nullptr);
-    REQUIRE(db.GetCardByName("NoId") == nullptr);            // id-less entry dropped
+    REQUIRE(db.GetCardByName("NoId") == nullptr);  // id-less entry dropped
 }
 
 TEST_CASE("LoadFromFile missing file leaves the db empty", "[db]") {
@@ -121,11 +121,11 @@ TEST_CASE("Database is movable but not copyable", "[db]") {
 
     CardDatabase source;
     REQUIRE(source.LoadFromFile(cardsPath()));
-    const Card* be = source.GetCardById(89631139); // pointer into source storage
+    const Card* be = source.GetCardById(89631139);  // pointer into source storage
 
     CardDatabase moved(std::move(source));
     REQUIRE(moved.size() == 6);
-    REQUIRE(moved.GetCardById(89631139) == be); // vector move keeps element addresses
+    REQUIRE(moved.GetCardById(89631139) == be);  // vector move keeps element addresses
 }
 
 // --- Card identity & presentation (Card.hpp) ---------------------------------
@@ -138,10 +138,10 @@ TEST_CASE("Card equality is identity-by-id", "[card]") {
     REQUIRE_FALSE(a != b);
 
     a.name = "A";
-    b.name = "B"; // different definitions, same id: still equal
+    b.name = "B";  // different definitions, same id: still equal
     REQUIRE(a == b);
 
-    Card zero; // id == 0: equals nothing, not even itself
+    Card zero;  // id == 0: equals nothing, not even itself
     REQUIRE(zero != zero);
     REQUIRE_FALSE(zero == zero);
     REQUIRE(a != zero);
@@ -151,11 +151,11 @@ TEST_CASE("Card equality is identity-by-id", "[card]") {
 TEST_CASE("Card presentation helpers", "[card]") {
     Card be;
     be.id = 89631139;
-    be.name   = "Blue-Eyes White Dragon";
+    be.name = "Blue-Eyes White Dragon";
     be.attributes.push_back(Attribute::Monster);
-    be.atk    = 3000;
-    be.def    = 2500;
-    be.level  = 8;
+    be.atk = 3000;
+    be.def = 2500;
+    be.level = 8;
 
     REQUIRE(be.cardTypeTag() == "[MON]");
     REQUIRE(be.statLine() == "Level 8  ATK 3000  DEF 2500");
@@ -199,16 +199,16 @@ TEST_CASE("FindByName returns every card whose name matches", "[db]") {
 
     // Exact lookup still resolves the first card with that name.
     REQUIRE(db.GetCardByName("Dup")->id == 1);
-    REQUIRE(db.FindByName("").size() == db.size()); // empty needle matches all
+    REQUIRE(db.FindByName("").size() == db.size());  // empty needle matches all
 }
 
 TEST_CASE("GetAllCards is read-only and the index stays coherent", "[db]") {
     CardDatabase db;
     REQUIRE(db.LoadFromFile(cardsPath()));
 
-    const CardDatabase &view = db;
+    const CardDatabase& view = db;
     STATIC_REQUIRE(
-        std::is_same<decltype(view.GetAllCards()), const std::vector<Card> &>::value);
+        std::is_same<decltype(view.GetAllCards()), const std::vector<Card>&>::value);
     REQUIRE(view.GetAllCards().size() == db.size());
 
     // Mutating gameplay fields through the lookup API must not dangle the
@@ -265,18 +265,22 @@ TEST_CASE("Parser maps stat edge cases to sane values", "[parser]") {
 
 TEST_CASE("Comparators are strict weak orderings", "[compare]") {
     Card a, b;
-    a.id = 1; b.id = 2;
-    a.name = "Zap"; b.name = "Apple";
-    a.atk = 100; b.atk = 200;
-    a.level = 3; b.level = 4;
+    a.id = 1;
+    b.id = 2;
+    a.name = "Zap";
+    b.name = "Apple";
+    a.atk = 100;
+    b.atk = 200;
+    a.level = 3;
+    b.level = 4;
     a.attributes.push_back(Attribute::Monster);
 
     using openjoey::cards::compare::byAtk;
     using openjoey::cards::compare::byDef;
+    using openjoey::cards::compare::byFrame;
     using openjoey::cards::compare::byId;
     using openjoey::cards::compare::byLevel;
     using openjoey::cards::compare::byName;
-    using openjoey::cards::compare::byFrame;
 
     SECTION("byName: Apple before Zap") {
         REQUIRE_FALSE(byName(a, b));
@@ -335,7 +339,7 @@ TEST_CASE("ActionSpec aggregate field order is stable", "[effect]") {
     REQUIRE_FALSE(e.needsTarget);
     REQUIRE(std::string(e.note) == "draw 100");
 
-    ActionSpec def{}; // defaults: None / Ignition / speed 1 / amount 1 / no cost
+    ActionSpec def{};  // defaults: None / Ignition / speed 1 / amount 1 / no cost
     REQUIRE(def.id == ActionId::None);
     REQUIRE(def.timing == EffectType::Ignition);
     REQUIRE(def.speed == 1);
@@ -343,4 +347,3 @@ TEST_CASE("ActionSpec aggregate field order is stable", "[effect]") {
     REQUIRE(def.lpCost == 0);
     REQUIRE(def.scope == TargetScope::None);
 }
-

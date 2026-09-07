@@ -14,440 +14,440 @@
 namespace openjoey {
 
 enum class ActionId : uint16_t {
-  None = 0,
-
-  // ── ACTIVATION COSTS (paid before resolution, never refunded) ──
-  Cost_Tribute,
-  Cost_Discard,
-  Cost_PayLP,
-  Cost_BanishCost,
-
-  // ── HAND / DECK MOVEMENTS ──
-  Move_Draw,
-  Move_MillToGY,
-  Move_DiscardToGY,
-  Move_ReturnHand,
-  Move_ReturnDeck,
-
-  // ── REMOVAL & DESTRUCTION ──
-  Move_DestroyToGY,
-  Move_SendToGY,
-  Move_Banish,
-
-  // ── SUMMONING (source -> monster zone / EMZ) ──
-  Summon_Normal,
-  Summon_Set,
-  Summon_Flip,
-  Summon_Special,
-  Summon_Token,
-  Summon_Fusion,
-  Summon_Synchro,
-  Summon_Xyz,
-  Summon_Ritual,
-
-  // ── POSITION / VISIBILITY ──
-  Pos_ChangeAToDef,
-  Pos_ChangeDefToAtk,
-  Pos_Flip,
-
-  // ── CHAIN & LIFE-POINT EFFECTS ──
-  NegateActivation,
-  NegateEffect,
-  LP_Damage,
-  LP_Gain,
-
-  // ── EQUIP ──
-  Equip_Equip,
-  Equip_Unequip,
-
-  // ── COUNTERS ──
-  Counter_Place,
-  Counter_Remove,
-
-  // ── DRAW PHASE ──
-  DrawCard,
-  SkipDraw,
-  DrawFirstCard,
-
-  // ── STANDBY PHASE ──
-  EnterStandbyPhase,
-  ResolveStandbyEffect,
-
-  // ── MAIN PHASE 1 / 2 ──
-  EnterMainPhase1,
-  EnterMainPhase2,
-  SummonOrSetMonster,
-  ChangeMonsterBattlePosition,
-  ChangeToAttackPosition,
-  ChangeToDefensePosition,
-  ActivateCardEffect,
-  ActivateSpellEffect,
-  ActivateTrapEffect,
-  ActivateMonsterEffect,
-  SetSpellCard,
-  SetTrapCard,
-
-  // ── NORMAL SUMMON / SET ──
-  NormalSummon,
-  NormalSet,
-  PlayMonsterFaceUpAttack,
-  PlayMonsterFaceDownDefense,
-
-  // ── TRIBUTE SUMMON / SET ──
-  TributeSummon,
-  TributeSet,
-  SendTributeToGraveyard,
-
-  // ── FLIP SUMMON ──
-  FlipSummon,
-  FlipToFaceUpAttack,
-  ActivateFlipEffectTrigger,
-
-  // ── SPECIAL SUMMON ──
-  SpecialSummon,
-  SpecialSummonFromHand,
-  SpecialSummonFromGraveyard,
-  SpecialSummonFromBanished,
-  SpecialSummonFromExtraDeck,
-  SpecialSummonFaceUp,
-  SpecialSummonFaceDown,
-  ChooseAttackOrDefensePosition,
-
-  // ── FUSION SUMMON ──
-  FusionSummon,
-
-  // ── RITUAL SUMMON ──
-  RitualSummon,
-
-  // ── BATTLE PHASE ──
-  EnterBattlePhase,
-  SkipBattlePhase,
-  SelectMonsterToAttackWith,
-  SelectAttackTarget,
-  DeclareAttack,
-  AttackMonster,
-  AttackDirectly,
-  CanChooseNotToAttack,
-  CancelAttack,
-  ConfirmAttack,
-  ReturnToMainPhase2,
-
-  // ── CHAINING & PRIORITY ──
-  RespondWithEffect,
-  AddToChain,
-  PassChain,
-  PassPriority,
-  ResolveChain,
-
-  // ── END PHASE ──
-  EnterEndPhase,
-  SelectAndDiscard,
-
-  // ── TURN MANAGEMENT ──
-  StartTurn,
-  EndTurn,
-
-  // ── WIN CONDITIONS ──
-  CheckWinConditions,
-  DeckOut,
-  CardEffectWin,
-  Draw,
-
-  // ── PUBLIC-ZONE ACTIONS ──
-  ViewGraveyard,
-  PickUpGraveyard,
-
-  // ── DECK MANAGEMENT ──
-  ShuffleDeck,
-  CutDeck,
-
-  // ── HAND / DECK MOVEMENTS ──
-  Move_SearchToHand,
-  Move_Excavate,
-
-  // ── FUSION SUMMON ──
-  ActivateFusionSummoningCard,
-
-  // ── PENDULUM SUMMON (classic gate) ──
-  ActivateInLeftmostZone,
-  ActivateInRightmostZone,
-  ActivatePendulumMonsterAsSpell,
+    None = 0,
+
+    // ── ACTIVATION COSTS (paid before resolution, never refunded) ──
+    Cost_Tribute,
+    Cost_Discard,
+    Cost_PayLP,
+    Cost_BanishCost,
+
+    // ── HAND / DECK MOVEMENTS ──
+    Move_Draw,
+    Move_MillToGY,
+    Move_DiscardToGY,
+    Move_ReturnHand,
+    Move_ReturnDeck,
+
+    // ── REMOVAL & DESTRUCTION ──
+    Move_DestroyToGY,
+    Move_SendToGY,
+    Move_Banish,
+
+    // ── SUMMONING (source -> monster zone / EMZ) ──
+    Summon_Normal,
+    Summon_Set,
+    Summon_Flip,
+    Summon_Special,
+    Summon_Token,
+    Summon_Fusion,
+    Summon_Synchro,
+    Summon_Xyz,
+    Summon_Ritual,
+
+    // ── POSITION / VISIBILITY ──
+    Pos_ChangeAToDef,
+    Pos_ChangeDefToAtk,
+    Pos_Flip,
+
+    // ── CHAIN & LIFE-POINT EFFECTS ──
+    NegateActivation,
+    NegateEffect,
+    LP_Damage,
+    LP_Gain,
+
+    // ── EQUIP ──
+    Equip_Equip,
+    Equip_Unequip,
+
+    // ── COUNTERS ──
+    Counter_Place,
+    Counter_Remove,
+
+    // ── DRAW PHASE ──
+    DrawCard,
+    SkipDraw,
+    DrawFirstCard,
+
+    // ── STANDBY PHASE ──
+    EnterStandbyPhase,
+    ResolveStandbyEffect,
+
+    // ── MAIN PHASE 1 / 2 ──
+    EnterMainPhase1,
+    EnterMainPhase2,
+    SummonOrSetMonster,
+    ChangeMonsterBattlePosition,
+    ChangeToAttackPosition,
+    ChangeToDefensePosition,
+    ActivateCardEffect,
+    ActivateSpellEffect,
+    ActivateTrapEffect,
+    ActivateMonsterEffect,
+    SetSpellCard,
+    SetTrapCard,
+
+    // ── NORMAL SUMMON / SET ──
+    NormalSummon,
+    NormalSet,
+    PlayMonsterFaceUpAttack,
+    PlayMonsterFaceDownDefense,
+
+    // ── TRIBUTE SUMMON / SET ──
+    TributeSummon,
+    TributeSet,
+    SendTributeToGraveyard,
+
+    // ── FLIP SUMMON ──
+    FlipSummon,
+    FlipToFaceUpAttack,
+    ActivateFlipEffectTrigger,
+
+    // ── SPECIAL SUMMON ──
+    SpecialSummon,
+    SpecialSummonFromHand,
+    SpecialSummonFromGraveyard,
+    SpecialSummonFromBanished,
+    SpecialSummonFromExtraDeck,
+    SpecialSummonFaceUp,
+    SpecialSummonFaceDown,
+    ChooseAttackOrDefensePosition,
+
+    // ── FUSION SUMMON ──
+    FusionSummon,
+
+    // ── RITUAL SUMMON ──
+    RitualSummon,
+
+    // ── BATTLE PHASE ──
+    EnterBattlePhase,
+    SkipBattlePhase,
+    SelectMonsterToAttackWith,
+    SelectAttackTarget,
+    DeclareAttack,
+    AttackMonster,
+    AttackDirectly,
+    CanChooseNotToAttack,
+    CancelAttack,
+    ConfirmAttack,
+    ReturnToMainPhase2,
+
+    // ── CHAINING & PRIORITY ──
+    RespondWithEffect,
+    AddToChain,
+    PassChain,
+    PassPriority,
+    ResolveChain,
+
+    // ── END PHASE ──
+    EnterEndPhase,
+    SelectAndDiscard,
+
+    // ── TURN MANAGEMENT ──
+    StartTurn,
+    EndTurn,
+
+    // ── WIN CONDITIONS ──
+    CheckWinConditions,
+    DeckOut,
+    CardEffectWin,
+    Draw,
+
+    // ── PUBLIC-ZONE ACTIONS ──
+    ViewGraveyard,
+    PickUpGraveyard,
+
+    // ── DECK MANAGEMENT ──
+    ShuffleDeck,
+    CutDeck,
+
+    // ── HAND / DECK MOVEMENTS ──
+    Move_SearchToHand,
+    Move_Excavate,
+
+    // ── FUSION SUMMON ──
+    ActivateFusionSummoningCard,
+
+    // ── PENDULUM SUMMON (classic gate) ──
+    ActivateInLeftmostZone,
+    ActivateInRightmostZone,
+    ActivatePendulumMonsterAsSpell,
 
-  // ── RITUAL SUMMON ──
-  ActivateRitualSpellCard,
+    // ── RITUAL SUMMON ──
+    ActivateRitualSpellCard,
 
-  // ── END PHASE ──
-  AnnounceEndOfTurn,
+    // ── END PHASE ──
+    AnnounceEndOfTurn,
 
-  // ── BATTLE PHASE ──
-  AnnounceEnteringBattlePhase,
-  BattleStartStep,
-  BattleStep,
+    // ── BATTLE PHASE ──
+    AnnounceEnteringBattlePhase,
+    BattleStartStep,
+    BattleStep,
 
-  // ── CHAINING & PRIORITY ──
-  BuildChain,
+    // ── CHAINING & PRIORITY ──
+    BuildChain,
 
-  // ── BATTLE PHASE ──
-  CanAttackDifferentMonster,
-  CanAttackMultipleMonsters,
-  CanAttackOnce,
-  CanAttackSameMonster,
-  CanCancelAttack,
-  CannotAttackAgain,
+    // ── BATTLE PHASE ──
+    CanAttackDifferentMonster,
+    CanAttackMultipleMonsters,
+    CanAttackOnce,
+    CanAttackSameMonster,
+    CanCancelAttack,
+    CannotAttackAgain,
 
-  // ── END PHASE ──
-  CannotEndTurn,
+    // ── END PHASE ──
+    CannotEndTurn,
 
-  // ── FLIP SUMMON ──
-  CannotFlipSummonSameTurn,
+    // ── FLIP SUMMON ──
+    CannotFlipSummonSameTurn,
 
-  // ── MAIN PHASE 1 / 2 ──
-  CannotPlayFaceUpDefense,
+    // ── MAIN PHASE 1 / 2 ──
+    CannotPlayFaceUpDefense,
 
-  // ── BATTLE PHASE ──
-  CannotSkipIfMonsterOnField,
+    // ── BATTLE PHASE ──
+    CannotSkipIfMonsterOnField,
 
-  // ── MAIN PHASE 1 / 2 ──
-  CheckAlreadyChangedThisTurn,
-  CheckCannotChangePosition,
+    // ── MAIN PHASE 1 / 2 ──
+    CheckAlreadyChangedThisTurn,
+    CheckCannotChangePosition,
 
-  // ── BATTLE PHASE ──
-  CheckDirectAttackLegal,
+    // ── BATTLE PHASE ──
+    CheckDirectAttackLegal,
 
-  // ── FLIP SUMMON ──
-  CheckFlipEffect,
+    // ── FLIP SUMMON ──
+    CheckFlipEffect,
 
-  // ── FUSION SUMMON ──
-  CheckFusionMaterials,
+    // ── FUSION SUMMON ──
+    CheckFusionMaterials,
 
-  // ── END PHASE ──
-  CheckHandSize,
+    // ── END PHASE ──
+    CheckHandSize,
 
-  // ── LINK SUMMON (classic gate) ──
-  CheckLinkMaterials,
-  CheckLinkRating,
+    // ── LINK SUMMON (classic gate) ──
+    CheckLinkMaterials,
+    CheckLinkRating,
 
-  // ── MAIN PHASE 1 / 2 ──
-  CheckMaterialsInRequiredPlaces,
-  CheckMonsterPlayedThisTurn,
-  CheckMonstersInExtraDeck,
-  CheckMonstersInHand,
+    // ── MAIN PHASE 1 / 2 ──
+    CheckMaterialsInRequiredPlaces,
+    CheckMonsterPlayedThisTurn,
+    CheckMonstersInExtraDeck,
+    CheckMonstersInHand,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  CheckNonTunerMonsters,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    CheckNonTunerMonsters,
 
-  // ── BATTLE PHASE ──
-  CheckOpponentFieldEmpty,
+    // ── BATTLE PHASE ──
+    CheckOpponentFieldEmpty,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  CheckPendulumScales,
+    // ── PENDULUM SUMMON (classic gate) ──
+    CheckPendulumScales,
 
-  // ── BATTLE PHASE ──
-  CheckReplay,
+    // ── BATTLE PHASE ──
+    CheckReplay,
 
-  // ── TRIBUTE SUMMON / SET ──
-  CheckTributeRequirement,
+    // ── TRIBUTE SUMMON / SET ──
+    CheckTributeRequirement,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  CheckTunerMonster,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    CheckTunerMonster,
 
-  // ── XYZ SUMMON (classic gate) ──
-  CheckXyzMaterials,
-  CheckXyzMaterialsFaceUp,
-  ChooseXyzMonsterFromExtraDeck,
+    // ── XYZ SUMMON (classic gate) ──
+    CheckXyzMaterials,
+    CheckXyzMaterialsFaceUp,
+    ChooseXyzMonsterFromExtraDeck,
 
-  // ── LINK SUMMON (classic gate) ──
-  CoLinked,
+    // ── LINK SUMMON (classic gate) ──
+    CoLinked,
 
-  // ── BATTLE PHASE ──
-  ConfirmAttackResolution,
+    // ── BATTLE PHASE ──
+    ConfirmAttackResolution,
 
-  // ── LINK SUMMON (classic gate) ──
-  CountLinkMonsterAs1OrLinkRating,
+    // ── LINK SUMMON (classic gate) ──
+    CountLinkMonsterAs1OrLinkRating,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  DeclarePendulumSummoning,
+    // ── PENDULUM SUMMON (classic gate) ──
+    DeclarePendulumSummoning,
 
-  // ── XYZ SUMMON (classic gate) ──
-  DeclareXyzSummoning,
+    // ── XYZ SUMMON (classic gate) ──
+    DeclareXyzSummoning,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  DeclaresSynchroSummon,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    DeclaresSynchroSummon,
 
-  // ── XYZ SUMMON (classic gate) ──
-  DetachXyzMaterial,
+    // ── XYZ SUMMON (classic gate) ──
+    DetachXyzMaterial,
 
-  // ── END PHASE ──
-  DiscardUntilHas6,
+    // ── END PHASE ──
+    DiscardUntilHas6,
 
-  // ── BATTLE PHASE ──
-  FaceUpAttackPosition,
-  FirstMonsterStillConsideredAttacked,
-  FirstPlayerCannotBattle,
+    // ── BATTLE PHASE ──
+    FaceUpAttackPosition,
+    FirstMonsterStillConsideredAttacked,
+    FirstPlayerCannotBattle,
 
-  // ── TURN MANAGEMENT ──
-  FirstTurnSkips,
+    // ── TURN MANAGEMENT ──
+    FirstTurnSkips,
 
-  // ── END PHASE ──
-  HandLimitUnresolved,
+    // ── END PHASE ──
+    HandLimitUnresolved,
 
-  // ── BATTLE PHASE ──
-  HasNotAttackedYet,
+    // ── BATTLE PHASE ──
+    HasNotAttackedYet,
 
-  // ── RITUAL SUMMON ──
-  HaveMatchingRitualMonster,
+    // ── RITUAL SUMMON ──
+    HaveMatchingRitualMonster,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  HaveOnePendulumInEachZone,
+    // ── PENDULUM SUMMON (classic gate) ──
+    HaveOnePendulumInEachZone,
 
-  // ── TRIBUTE SUMMON / SET ──
-  HaveRequiredTribute,
+    // ── TRIBUTE SUMMON / SET ──
+    HaveRequiredTribute,
 
-  // ── RITUAL SUMMON ──
-  HaveRitualSpellInHand,
+    // ── RITUAL SUMMON ──
+    HaveRitualSpellInHand,
 
-  // ── TURN MANAGEMENT ──
-  IncrementTurnNumber,
+    // ── TURN MANAGEMENT ──
+    IncrementTurnNumber,
 
-  // ── TRIBUTE SUMMON / SET ──
-  Level5to6Need1,
-  Level7orHigherNeed2,
+    // ── TRIBUTE SUMMON / SET ──
+    Level5to6Need1,
+    Level7orHigherNeed2,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  LevelsMustBeBetweenScales,
+    // ── PENDULUM SUMMON (classic gate) ──
+    LevelsMustBeBetweenScales,
 
-  // ── LINK SUMMON (classic gate) ──
-  LinkArrowPointsToZone,
-  LinkMaterialCanBeLinkMonster,
-  LinkSummon,
+    // ── LINK SUMMON (classic gate) ──
+    LinkArrowPointsToZone,
+    LinkMaterialCanBeLinkMonster,
+    LinkSummon,
 
-  // ── MAIN PHASE 1 / 2 ──
-  MatchMaterialRequirements,
+    // ── MAIN PHASE 1 / 2 ──
+    MatchMaterialRequirements,
 
-  // ── LINK SUMMON (classic gate) ──
-  MonsterIsLinked,
+    // ── LINK SUMMON (classic gate) ──
+    MonsterIsLinked,
 
-  // ── BATTLE PHASE ──
-  MonsterRemovedBeforeDamageStep,
+    // ── BATTLE PHASE ──
+    MonsterRemovedBeforeDamageStep,
 
-  // ── END PHASE ──
-  MoreThan6Cards,
+    // ── END PHASE ──
+    MoreThan6Cards,
 
-  // ── LINK SUMMON (classic gate) ──
-  NearestPreviousLink,
+    // ── LINK SUMMON (classic gate) ──
+    NearestPreviousLink,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  NeedOneTuner,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    NeedOneTuner,
 
-  // ── BATTLE PHASE ──
-  NewMonsterPlayedBeforeDamageStep,
+    // ── BATTLE PHASE ──
+    NewMonsterPlayedBeforeDamageStep,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  PendulumMonsterGYToExtraDeck,
-  PendulumSummon,
+    // ── PENDULUM SUMMON (classic gate) ──
+    PendulumMonsterGYToExtraDeck,
+    PendulumSummon,
 
-  // ── FUSION SUMMON ──
-  PlaceFusionCardInSpellTrapZone,
-  PlaceFusionMonsterInExtraMonsterZone,
-  PlaceFusionSummoningCardInGraveyard,
+    // ── FUSION SUMMON ──
+    PlaceFusionCardInSpellTrapZone,
+    PlaceFusionMonsterInExtraMonsterZone,
+    PlaceFusionSummoningCardInGraveyard,
 
-  // ── MAIN PHASE 1 / 2 ──
-  PlaceInExtraMonsterZone,
+    // ── MAIN PHASE 1 / 2 ──
+    PlaceInExtraMonsterZone,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  PlaceInExtraMonsterZoneOrPointedZone,
+    // ── PENDULUM SUMMON (classic gate) ──
+    PlaceInExtraMonsterZoneOrPointedZone,
 
-  // ── LINK SUMMON (classic gate) ──
-  PlaceInPointedZone,
+    // ── LINK SUMMON (classic gate) ──
+    PlaceInPointedZone,
 
-  // ── RITUAL SUMMON ──
-  PlaceRitualSpellCardInGraveyard,
+    // ── RITUAL SUMMON ──
+    PlaceRitualSpellCardInGraveyard,
 
-  // ── XYZ SUMMON (classic gate) ──
-  PlaceXyzMonsterOnTop,
+    // ── XYZ SUMMON (classic gate) ──
+    PlaceXyzMonsterOnTop,
 
-  // ── RITUAL SUMMON ──
-  PlayRitualMonsterInMainMonsterZone,
+    // ── RITUAL SUMMON ──
+    PlayRitualMonsterInMainMonsterZone,
 
-  // ── BATTLE PHASE ──
-  ProceedToDamageStep,
-  ReSelectNewTarget,
+    // ── BATTLE PHASE ──
+    ProceedToDamageStep,
+    ReSelectNewTarget,
 
-  // ── WIN CONDITIONS ──
-  ReduceLP0,
+    // ── WIN CONDITIONS ──
+    ReduceLP0,
 
-  // ── BATTLE PHASE ──
-  ReplayAfterFieldChange,
+    // ── BATTLE PHASE ──
+    ReplayAfterFieldChange,
 
-  // ── TRIBUTE SUMMON / SET ──
-  RequireTribute,
+    // ── TRIBUTE SUMMON / SET ──
+    RequireTribute,
 
-  // ── TURN MANAGEMENT ──
-  ResetPerTurnState,
+    // ── TURN MANAGEMENT ──
+    ResetPerTurnState,
 
-  // ── END PHASE ──
-  ResolveEndPhaseEffects,
+    // ── END PHASE ──
+    ResolveEndPhaseEffects,
 
-  // ── CHAINING & PRIORITY ──
-  ResolveInReverseOrder,
+    // ── CHAINING & PRIORITY ──
+    ResolveInReverseOrder,
 
-  // ── LINK SUMMON (classic gate) ──
-  ResolveLinkFirst,
-  ResolveLinkLast,
+    // ── LINK SUMMON (classic gate) ──
+    ResolveLinkFirst,
+    ResolveLinkLast,
 
-  // ── BATTLE PHASE ──
-  ReturnToBattleStep,
+    // ── BATTLE PHASE ──
+    ReturnToBattleStep,
 
-  // ── FUSION SUMMON ──
-  SendFusionMaterialsToGraveyard,
+    // ── FUSION SUMMON ──
+    SendFusionMaterialsToGraveyard,
 
-  // ── PUBLIC-ZONE ACTIONS ──
-  SendMaterialsToGraveyard,
+    // ── PUBLIC-ZONE ACTIONS ──
+    SendMaterialsToGraveyard,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  SendSynchroMaterialsToGraveyard,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    SendSynchroMaterialsToGraveyard,
 
-  // ── TRIBUTE SUMMON / SET ──
-  SendTributedMonstersToGraveyard,
+    // ── TRIBUTE SUMMON / SET ──
+    SendTributedMonstersToGraveyard,
 
-  // ── XYZ SUMMON (classic gate) ──
-  SendXyzMaterialToGraveyard,
-  StackXyzMaterials,
+    // ── XYZ SUMMON (classic gate) ──
+    SendXyzMaterialToGraveyard,
+    StackXyzMaterials,
 
-  // ── TURN MANAGEMENT ──
-  StartingPlayerSkipBattle,
-  StartingPlayerSkipDraw,
+    // ── TURN MANAGEMENT ──
+    StartingPlayerSkipBattle,
+    StartingPlayerSkipDraw,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  SumLevelsMustEqualSynchroLevel,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    SumLevelsMustEqualSynchroLevel,
 
-  // ── SPECIAL SUMMON ──
-  SummonFromCardEffect,
+    // ── SPECIAL SUMMON ──
+    SummonFromCardEffect,
 
-  // ── TURN MANAGEMENT ──
-  SwapPlayers,
+    // ── TURN MANAGEMENT ──
+    SwapPlayers,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  SynchroSummon,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    SynchroSummon,
 
-  // ── FUSION SUMMON ──
-  TakeFusionMonsterFromExtraDeck,
+    // ── FUSION SUMMON ──
+    TakeFusionMonsterFromExtraDeck,
 
-  // ── SYNCHRO SUMMON (classic gate) ──
-  TakeSynchroMonsterFromExtraDeck,
+    // ── SYNCHRO SUMMON (classic gate) ──
+    TakeSynchroMonsterFromExtraDeck,
 
-  // ── TRIBUTE SUMMON / SET ──
-  TributeForRitualSummon,
+    // ── TRIBUTE SUMMON / SET ──
+    TributeForRitualSummon,
 
-  // ── WIN CONDITIONS ──
-  UnableToDraw,
-  Win,
+    // ── WIN CONDITIONS ──
+    UnableToDraw,
+    Win,
 
-  // ── XYZ SUMMON (classic gate) ──
-  XyzSummon,
+    // ── XYZ SUMMON (classic gate) ──
+    XyzSummon,
 
-  // ── PENDULUM SUMMON (classic gate) ──
-  ZoneBecomesPendulumZone,
+    // ── PENDULUM SUMMON (classic gate) ──
+    ZoneBecomesPendulumZone,
 };
 
-} // namespace openjoey
+}  // namespace openjoey

@@ -4,12 +4,13 @@
 // save/load and the duel's default-deck bootstrap). Format: one numeric card
 // id per line; blank lines and '#' comments are ignored.
 
-#include "cards/Card.hpp"
-#include "cards/CardDatabase.hpp"
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include "cards/Card.hpp"
+#include "cards/CardDatabase.hpp"
 
 namespace openjoey::ui {
 using cards::Card;
@@ -27,8 +28,8 @@ struct DeckFile {
     // Resolve ids against db; unknown ids and comment lines are skipped.
     // maxCards caps the result (<= 0 = unlimited). Never throws on bad lines.
     static std::vector<openjoey::cards::Card> Read(const std::filesystem::path& path,
-                                            const openjoey::cards::CardDatabase& db,
-                                            int maxCards = 0) {
+                                                   const openjoey::cards::CardDatabase& db,
+                                                   int maxCards = 0) {
         std::vector<openjoey::cards::Card> deck;
         std::ifstream f(path);
         if (!f.is_open()) return deck;
@@ -40,10 +41,11 @@ struct DeckFile {
                 if (const auto* card = db.GetCardById(id))
                     if (maxCards <= 0 || (int)deck.size() < maxCards)
                         deck.push_back(*card);
-            } catch (...) {}
+            } catch (...) {
+            }
         }
         return deck;
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

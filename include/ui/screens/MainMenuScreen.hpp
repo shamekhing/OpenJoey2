@@ -1,17 +1,19 @@
 #pragma once
+#include <raylib.h>
+
+#include <cassert>
+#include <filesystem>
+
 #include "ui/AppScreen.hpp"
-#include "ui/widgets/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
 #include "ui/widgets/KeyboardNav.hpp"
-#include <cassert>
-#include <filesystem>
-#include <raylib.h>
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 
 class MainMenuScreen : public IScreen {
-public:
+   public:
     explicit MainMenuScreen(AppContext& /*ctx*/) { loadBackground(); }
 
     ~MainMenuScreen() override {
@@ -43,8 +45,8 @@ public:
         }
         DrawRectangle(0, 0, sw, sh, Fade(BLACK, OVERLAY_FADE));
 
-        const char* title  = "OpenJoey";
-        const int   titleW = MeasureText(title, FONT_MAIN_TITLE);
+        const char* title = "OpenJoey";
+        const int titleW = MeasureText(title, FONT_MAIN_TITLE);
         DrawText(title, (sw - titleW) / 2, sh / 4, FONT_MAIN_TITLE, GOLD);
 
         const int startY = sh / 2;
@@ -61,26 +63,33 @@ public:
                  sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, DARKGRAY);
     }
 
-private:
+   private:
     static constexpr int kItemCount = 5;
     static constexpr const char* kItems[kItemCount] = {
-        "Duel", "Deck Editor", "Settings", "Testing", "Quit",
+        "Duel",
+        "Deck Editor",
+        "Settings",
+        "Testing",
+        "Quit",
     };
     static constexpr AppScreen kScreenMap[kItemCount] = {
-        AppScreen::Duel, AppScreen::DeckEditor,
-        AppScreen::Settings, AppScreen::Testing, AppScreen::MainMenu,
+        AppScreen::Duel,
+        AppScreen::DeckEditor,
+        AppScreen::Settings,
+        AppScreen::Testing,
+        AppScreen::MainMenu,
     };
     static_assert(sizeof(kItems) / sizeof(kItems[0]) ==
-                  sizeof(kScreenMap) / sizeof(kScreenMap[0]),
+                      sizeof(kScreenMap) / sizeof(kScreenMap[0]),
                   "kItems and kScreenMap must have the same length");
 
     KeyboardNav nav_;
-    Texture2D   background_ = {};
+    Texture2D background_ = {};
 
     void loadBackground() {
         for (const auto& path : {
-                std::filesystem::path("data/assets/backgrounds/menu_background.png"),
-                std::filesystem::path("../data/assets/backgrounds/menu_background.png")}) {
+                 std::filesystem::path("data/assets/backgrounds/menu_background.png"),
+                 std::filesystem::path("../data/assets/backgrounds/menu_background.png")}) {
             if (std::filesystem::exists(path)) {
                 background_ = LoadTexture(path.string().c_str());
                 if (background_.id) break;
@@ -89,4 +98,4 @@ private:
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

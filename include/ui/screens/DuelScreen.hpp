@@ -12,16 +12,19 @@
 // renders. The view always belongs to the turn player; between turns a
 // pass-device gate hides hands from the other player.
 
+#include <raylib.h>
+
+#include <string>
+#include <ui/cards/CardPreview.hpp>
+#include <vector>
+
+#include "cards/Card.hpp"
 #include "engine/duel/Duel.hpp"
 #include "engine/duel/Engine.hpp"
-#include "cards/Card.hpp"
 #include "engine/field/Field.hpp"
 #include "ui/AppScreen.hpp"
-#include "ui/widgets/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
-#include "ui/screens/IScreen.hpp"
 #include "ui/duel/Action.hpp"
-#include <ui/cards/CardPreview.hpp>
 #include "ui/duel/DuelActions.hpp"
 #include "ui/duel/DuelEffects.hpp"
 #include "ui/duel/DuelPanels.hpp"
@@ -29,9 +32,8 @@
 #include "ui/duel/FieldGrid.hpp"
 #include "ui/duel/FieldRows.hpp"
 #include "ui/duel/ZoneInfoPanel.hpp"
-#include <raylib.h>
-#include <string>
-#include <vector>
+#include "ui/screens/IScreen.hpp"
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -39,10 +41,9 @@ using cards::Card;
 using cards::CardDatabase;
 
 class DuelScreen : public IScreen {
-public:
+   public:
     explicit DuelScreen(AppContext& ctx)
-        : ctx_(ctx), engine_(duel_), field_(duel_.field), fx_(engine_, field_, ui_),
-          act_(engine_, duel_, field_, fieldGrid_, fx_, ui_) {
+        : ctx_(ctx), engine_(duel_), field_(duel_.field), fx_(engine_, field_, ui_), act_(engine_, duel_, field_, fieldGrid_, fx_, ui_) {
         setupDuel();
     }
 
@@ -58,12 +59,12 @@ public:
     void Draw() const override {
         ClearBackground(COLOR_BG_DARK);
 
-        int leftW   = _SW * DUEL_LEFT_W_PCT / 100;
-        int rightW  = _SW * DUEL_RIGHT_W_PCT / 100;
+        int leftW = _SW * DUEL_LEFT_W_PCT / 100;
+        int rightW = _SW * DUEL_RIGHT_W_PCT / 100;
         int centerW = _SW - leftW - rightW;
         int headerH = HEADER_HEIGHT;
         int footerH = int(0.03f * _SH);
-        int fieldH  = _SH - headerH - footerH;
+        int fieldH = _SH - headerH - footerH;
 
         DuelPanels::drawHeader(engine_, duel_, ui_, 0, 0, _SW, headerH);
         drawPreviewPanel(0, headerH, leftW, fieldH);
@@ -124,18 +125,18 @@ public:
         }
     }
 
-private:
+   private:
     AppContext& ctx_;
-    Duel        duel_;
-    Engine      engine_;
-    Field&      field_;
-    std::vector<Card> deckA_, deckB_;   // one main deck instance per player
-    std::vector<Card> extraA_, extraB_; // fusion monsters routed out of the main deck
-    Texture2D   cardBack_ = {};
+    Duel duel_;
+    Engine engine_;
+    Field& field_;
+    std::vector<Card> deckA_, deckB_;    // one main deck instance per player
+    std::vector<Card> extraA_, extraB_;  // fusion monsters routed out of the main deck
+    Texture2D cardBack_ = {};
     mutable FieldGrid fieldGrid_;
-    DuelUIState ui_;                    // shared screen state (Action.hpp)
-    DuelEffects fx_;                    // effect-activation plumbing
-    DuelActions act_;                   // contextual action menu
+    DuelUIState ui_;   // shared screen state (Action.hpp)
+    DuelEffects fx_;   // effect-activation plumbing
+    DuelActions act_;  // contextual action menu
     mutable CardPreview preview_;
 
     // ── Setup / turn flow ─────────────────────────────────────────────────────
@@ -151,11 +152,11 @@ private:
         engine_.clearUndo();
         engine_.drawOpeningHands();
         engine_.startTurn();
-        advanceToMain1(); // Draw Phase has no decisions — go straight to Main1
+        advanceToMain1();  // Draw Phase has no decisions — go straight to Main1
         fieldGrid_.setViewer(duel_.turnPlayer, field_);
         ui_.lastResult = "Duel start — player " + std::to_string(duel_.turnPlayer) +
                          " begins.";
-        ui_.mode        = DuelMode::Navigate;
+        ui_.mode = DuelMode::Navigate;
         ui_.chainPrompt = ui_.handoff = false;
         ui_.attacker = ui_.pendingCard = nullptr;
         ui_.activated.clear();
@@ -177,7 +178,10 @@ private:
     void advanceToMain1() { engine_.toMain1(); }
 
     void endTurnFlow() {
-        if (ui_.chainPrompt) { ui_.lastResult = "resolve the chain first (R)."; return; }
+        if (ui_.chainPrompt) {
+            ui_.lastResult = "resolve the chain first (R).";
+            return;
+        }
         if (ui_.mode == DuelMode::AttackTarget) {
             ui_.lastResult = "cancel the attack first (ESC).";
             return;
@@ -186,7 +190,7 @@ private:
         r += " " + engine_.startTurn();
         advanceToMain1();
         fieldGrid_.setViewer(duel_.turnPlayer, field_);
-        ui_.handoff = true; // SPACE gate hides the next player's hand
+        ui_.handoff = true;  // SPACE gate hides the next player's hand
         ui_.lastResult = r;
     }
 
@@ -202,7 +206,7 @@ private:
         }
         if (ui_.handoff) {
             if (IsKeyPressed(KEY_SPACE)) {
-                ui_.handoff    = false;
+                ui_.handoff = false;
                 ui_.lastResult = "player " + std::to_string(duel_.turnPlayer + 1) +
                                  " — your turn.";
             }
@@ -218,19 +222,25 @@ private:
             if (duel_.chain.links.empty()) {
                 fx_.sweepResolved();
                 ui_.chainPrompt = false;
-                ui_.mode        = DuelMode::Navigate;
+                ui_.mode = DuelMode::Navigate;
             } else {
                 ui_.lastResult += " — still open, the other player may chain.";
             }
             return ScreenEvent::none();
         }
-        if (ui_.helpOpen) { // help modal blocks gameplay input; H closes it
+        if (ui_.helpOpen) {  // help modal blocks gameplay input; H closes it
             if (IsKeyPressed(KEY_H)) ui_.helpOpen = false;
             return ScreenEvent::none();
         }
-        if (IsKeyPressed(KEY_H)) { ui_.helpOpen = true; return ScreenEvent::none(); }
-        if (IsKeyPressed(KEY_L)) { ui_.logOpen = !ui_.logOpen; return ScreenEvent::none(); }
-        if (IsKeyPressed(KEY_Z) && engine_.canUndo()) { // one-step undo
+        if (IsKeyPressed(KEY_H)) {
+            ui_.helpOpen = true;
+            return ScreenEvent::none();
+        }
+        if (IsKeyPressed(KEY_L)) {
+            ui_.logOpen = !ui_.logOpen;
+            return ScreenEvent::none();
+        }
+        if (IsKeyPressed(KEY_Z) && engine_.canUndo()) {  // one-step undo
             engine_.undo();
             fieldGrid_.setViewer(duel_.turnPlayer, field_);
             ui_.mode = DuelMode::Navigate;
@@ -239,16 +249,16 @@ private:
             return ScreenEvent::none();
         }
 
-        const bool up  = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
+        const bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
         const bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
         // Left/right stay live in every mode: targeting (attack/effect/tribute)
         // must be able to leave the attacker's column (p.35 target selection).
-        const bool lf  = IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A);
-        const bool rt  = IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D);
+        const bool lf = IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A);
+        const bool rt = IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D);
         bool ent = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
         bool esc = IsKeyPressed(KEY_ESCAPE);
-        const int  dr  = (down ? 1 : 0) - (up ? 1 : 0);
-        const int  dc  = (rt ? 1 : 0) - (lf ? 1 : 0);
+        const int dr = (down ? 1 : 0) - (up ? 1 : 0);
+        const int dc = (rt ? 1 : 0) - (lf ? 1 : 0);
 
         // ── Mouse: click-to-cursor; every click reuses a keyboard pathway ────
         // Left click moves the keyboard cursor onto the hit zone/hand card and
@@ -260,15 +270,15 @@ private:
         } else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             if (fieldGrid_.pointToCursor(mousePos, field_)) {
                 if (ui_.mode == DuelMode::Menu)
-                    ui_.mode = DuelMode::Navigate; // re-open fresh menu on the hit cell
+                    ui_.mode = DuelMode::Navigate;  // re-open fresh menu on the hit cell
                 ent = true;
             } else if (ui_.mode == DuelMode::Menu) {
-                esc = true; // click away from any zone closes the menu
+                esc = true;  // click away from any zone closes the menu
             }
         } else if (ui_.mode == DuelMode::Navigate && !ui_.chainPrompt) {
             const Vector2 md = GetMouseDelta();
             if (md.x != 0.f || md.y != 0.f)
-                fieldGrid_.pointToCursor(mousePos, field_); // hover-follow inspect
+                fieldGrid_.pointToCursor(mousePos, field_);  // hover-follow inspect
         }
 
         if (ui_.mode == DuelMode::Navigate) {
@@ -278,119 +288,139 @@ private:
                 ui_.post(r);
             }
             if (IsKeyPressed(KEY_N)) ui_.post(engine_.toMain2());
-            if (IsKeyPressed(KEY_E)) { endTurnFlow(); return ScreenEvent::none(); }
+            if (IsKeyPressed(KEY_E)) {
+                endTurnFlow();
+                return ScreenEvent::none();
+            }
         }
 
         switch (ui_.mode) {
-        case DuelMode::Navigate: {
-            fieldGrid_.moveCursor(dr, dc, field_);
-            if (ent) { ui_.mode = DuelMode::Menu; act_.rebuild(); }
-            if (IsKeyPressed(KEY_F)) { // flip summon own face-down monster
-                Card* c = cursorCard();
-                if (gridRow(FieldRow::OwnMonster) && c)
-                    ui_.post(engine_.flipSummon(c));
-                else ui_.lastResult = "flip summon: cursor on your face-down monster.";
-            }
-            if (IsKeyPressed(KEY_C)) { // change battle position (once/turn)
-                Card* c = cursorCard();
-                if (gridRow(FieldRow::OwnMonster) && c)
-                    ui_.post(engine_.changePosition(c));
-                else ui_.lastResult = "position change: cursor on your monster.";
-            }
-            if (IsKeyPressed(KEY_SPACE) && duel_.turn.phase == Phase::Battle)
-                attackFlow();
-            break;
-        }
-
-        case DuelMode::Menu: {
-            if (up || down) {
-                const int n = (int)ui_.actions.size();
-                if (n > 0)
-                    ui_.actionCursor = (ui_.actionCursor + (down ? 1 : n - 1)) % n;
-            }
-            if (esc) { ui_.mode = DuelMode::Navigate; break; }
-            if (ent) {
-                if (ui_.actions.empty()) { ui_.mode = DuelMode::Navigate; break; }
-                const std::string r = ui_.actions[ui_.actionCursor].invoke();
-                if (ui_.mode == DuelMode::Menu)
-                    ui_.mode = DuelMode::Navigate; // actions may switch mode
-                ui_.post(r);
-            }
-            break;
-        }
-        case DuelMode::AttackTarget: {
-            if (esc) {
-                engine_.cancelAttack();
-                ui_.attacker   = nullptr;
-                ui_.mode       = DuelMode::Navigate;
-                ui_.lastResult = "attack called off.";
+            case DuelMode::Navigate: {
+                fieldGrid_.moveCursor(dr, dc, field_);
+                if (ent) {
+                    ui_.mode = DuelMode::Menu;
+                    act_.rebuild();
+                }
+                if (IsKeyPressed(KEY_F)) {  // flip summon own face-down monster
+                    Card* c = cursorCard();
+                    if (gridRow(FieldRow::OwnMonster) && c)
+                        ui_.post(engine_.flipSummon(c));
+                    else
+                        ui_.lastResult = "flip summon: cursor on your face-down monster.";
+                }
+                if (IsKeyPressed(KEY_C)) {  // change battle position (once/turn)
+                    Card* c = cursorCard();
+                    if (gridRow(FieldRow::OwnMonster) && c)
+                        ui_.post(engine_.changePosition(c));
+                    else
+                        ui_.lastResult = "position change: cursor on your monster.";
+                }
+                if (IsKeyPressed(KEY_SPACE) && duel_.turn.phase == Phase::Battle)
+                    attackFlow();
                 break;
             }
-            fieldGrid_.moveCursor(dr, dc, field_);
-            if (ent) {
-                Card* t = cursorCard();
-                if (!gridRow(FieldRow::OppMonster)) {
-                    ui_.lastResult = "pick a target on the OPPONENT's monster row "
-                                     "(ENTER on the empty row = direct attack).";
-                    break;
+
+            case DuelMode::Menu: {
+                if (up || down) {
+                    const int n = (int)ui_.actions.size();
+                    if (n > 0)
+                        ui_.actionCursor = (ui_.actionCursor + (down ? 1 : n - 1)) % n;
                 }
-                if (!t && !engine_.canDirectAttack(ui_.attacker)) {
-                    ui_.lastResult = "opponent still controls monsters — pick one.";
-                    break;
-                }
-                ui_.post(engine_.declareAttack(ui_.attacker, t));
-                if (engine_.confirmAttack()) { // replay check (p.37)
-                    ui_.post(engine_.resolveDamage());
-                    fx_.sweepResolved();
+                if (esc) {
                     ui_.mode = DuelMode::Navigate;
-                } else {
-                    ui_.lastResult += " REPLAY — target changed; pick again.";
+                    break;
                 }
-                ui_.attacker = nullptr;
+                if (ent) {
+                    if (ui_.actions.empty()) {
+                        ui_.mode = DuelMode::Navigate;
+                        break;
+                    }
+                    const std::string r = ui_.actions[ui_.actionCursor].invoke();
+                    if (ui_.mode == DuelMode::Menu)
+                        ui_.mode = DuelMode::Navigate;  // actions may switch mode
+                    ui_.post(r);
+                }
+                break;
             }
-            break;
-        }
+            case DuelMode::AttackTarget: {
+                if (esc) {
+                    engine_.cancelAttack();
+                    ui_.attacker = nullptr;
+                    ui_.mode = DuelMode::Navigate;
+                    ui_.lastResult = "attack called off.";
+                    break;
+                }
+                fieldGrid_.moveCursor(dr, dc, field_);
+                if (ent) {
+                    Card* t = cursorCard();
+                    if (!gridRow(FieldRow::OppMonster)) {
+                        ui_.lastResult =
+                            "pick a target on the OPPONENT's monster row "
+                            "(ENTER on the empty row = direct attack).";
+                        break;
+                    }
+                    if (!t && !engine_.canDirectAttack(ui_.attacker)) {
+                        ui_.lastResult = "opponent still controls monsters — pick one.";
+                        break;
+                    }
+                    ui_.post(engine_.declareAttack(ui_.attacker, t));
+                    if (engine_.confirmAttack()) {  // replay check (p.37)
+                        ui_.post(engine_.resolveDamage());
+                        fx_.sweepResolved();
+                        ui_.mode = DuelMode::Navigate;
+                    } else {
+                        ui_.lastResult += " REPLAY — target changed; pick again.";
+                    }
+                    ui_.attacker = nullptr;
+                }
+                break;
+            }
 
-        case DuelMode::EffectTarget: {
-            if (esc) {
-                ui_.pendingCard = ui_.pendingTarget = nullptr;
-                ui_.mode        = DuelMode::Navigate;
-                ui_.lastResult  = "activation cancelled.";
+            case DuelMode::EffectTarget: {
+                if (esc) {
+                    ui_.pendingCard = ui_.pendingTarget = nullptr;
+                    ui_.mode = DuelMode::Navigate;
+                    ui_.lastResult = "activation cancelled.";
+                    break;
+                }
+                fieldGrid_.moveCursor(dr, dc, field_);
+                if (ent) {
+                    Card* t = cursorCard();
+                    ui_.pendingTarget = t;
+                    ui_.mode = DuelMode::Navigate;
+                    ui_.post(fx_.finishActivation(t));
+                    fx_.sweepResolved();
+                }
                 break;
             }
-            fieldGrid_.moveCursor(dr, dc, field_);
-            if (ent) {
-                Card* t           = cursorCard();
-                ui_.pendingTarget = t;
-                ui_.mode          = DuelMode::Navigate;
-                ui_.post(fx_.finishActivation(t));
-                fx_.sweepResolved();
-            }
-            break;
-        }
-        case DuelMode::TributeTarget: {
-            if (esc) {
-                ui_.tributePicks.clear();
-                ui_.tributeCount  = 0;
-                ui_.fusionPending = ui_.ritualPending = false;
-                ui_.pendingCard   = nullptr;
-                ui_.mode          = DuelMode::Navigate;
-                ui_.lastResult    = "summon cancelled.";
+            case DuelMode::TributeTarget: {
+                if (esc) {
+                    ui_.tributePicks.clear();
+                    ui_.tributeCount = 0;
+                    ui_.fusionPending = ui_.ritualPending = false;
+                    ui_.pendingCard = nullptr;
+                    ui_.mode = DuelMode::Navigate;
+                    ui_.lastResult = "summon cancelled.";
+                    break;
+                }
+                fieldGrid_.moveCursor(dr, dc, field_);
+                if (IsKeyPressed(KEY_F)) {
+                    act_.enterTributeConfirm();
+                    break;
+                }
+                if (ent) {
+                    Card* c = cursorCard();
+                    if (gridRow(FieldRow::OwnMonster) && c &&
+                        fieldGrid_.ownerOf(fieldGrid_.cursorZone(field_), field_) ==
+                            fieldGrid_.viewer())
+                        act_.toggleTributePick(c);
+                    else
+                        ui_.lastResult = "pick tributes on YOUR monster row.";
+                }
                 break;
             }
-            fieldGrid_.moveCursor(dr, dc, field_);
-            if (IsKeyPressed(KEY_F)) { act_.enterTributeConfirm(); break; }
-            if (ent) {
-                Card* c = cursorCard();
-                if (gridRow(FieldRow::OwnMonster) && c &&
-                    fieldGrid_.ownerOf(fieldGrid_.cursorZone(field_), field_) ==
-                        fieldGrid_.viewer())
-                    act_.toggleTributePick(c);
-                else ui_.lastResult = "pick tributes on YOUR monster row.";
-            }
-            break;
-        }
-        default: break;
+            default:
+                break;
         }
         return ScreenEvent::none();
     }
@@ -403,8 +433,9 @@ private:
             return;
         }
         if (!engine_.canAttack(c)) {
-            ui_.lastResult = "attack not possible (Battle Phase, your face-up ATK "
-                             "monster, once per Battle Phase).";
+            ui_.lastResult =
+                "attack not possible (Battle Phase, your face-up ATK "
+                "monster, once per Battle Phase).";
             return;
         }
         ui_.attacker = c;
@@ -416,10 +447,10 @@ private:
                 fx_.sweepResolved();
             }
             ui_.attacker = nullptr;
-            ui_.mode     = DuelMode::Navigate;
+            ui_.mode = DuelMode::Navigate;
             return;
         }
-        ui_.mode       = DuelMode::AttackTarget;
+        ui_.mode = DuelMode::AttackTarget;
         ui_.lastResult = c->name + " — pick an attack target (ENTER), ESC calls it off.";
     }
 
@@ -445,17 +476,19 @@ private:
 
     void drawPreviewPanel(int x, int y, int w, int h) const {
         preview_.SetCardBack(cardBack_.id ? &cardBack_ : nullptr);
-        zone::IZone* z   = fieldGrid_.cursorZone(const_cast<Field&>(field_));
-        Card*        top = cursorCard(); // follows the cursor (was: zone top only)
-        bool         fd  = false;
+        zone::IZone* z = fieldGrid_.cursorZone(const_cast<Field&>(field_));
+        Card* top = cursorCard();  // follows the cursor (was: zone top only)
+        bool fd = false;
         if (z) {
             // Restricted zones (decks) never show; otherwise entitlement rules.
-            if (z->visibility() == zone::Visibility::Restricted) fd = true;
-            else if (top && !canView(top))                      fd = true;
+            if (z->visibility() == zone::Visibility::Restricted)
+                fd = true;
+            else if (top && !canView(top))
+                fd = true;
         }
         preview_.SetCard(top, fd);
         preview_.Draw({(float)x, (float)y, (float)w, (float)h}, ctx_.imageCache);
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

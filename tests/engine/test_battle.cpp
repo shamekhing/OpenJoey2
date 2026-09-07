@@ -29,14 +29,13 @@ TEST_CASE("Replay: re-declaring with a DIFFERENT monster locks the first (p.37)"
     // Replay trigger: the attack target leaves the field before the Damage Step.
     action::MoveDestroyToGY(fix.d.field, &fix.t);
     REQUIRE_FALSE(action::ConfirmAttack(fix.d));
-    REQUIRE(action::CanAttack(fix.d, &fix.a)); // refund: may still re-declare
+    REQUIRE(action::CanAttack(fix.d, &fix.a));  // refund: may still re-declare
 
     // Re-declare with a different monster -> the first attacker is locked.
     REQUIRE(action::DeclareAttack(fix.d, &a2, nullptr).find("direct") !=
             std::string::npos);
     REQUIRE_FALSE(action::CanAttack(fix.d, &fix.a));
 }
-
 
 // ── from tests.cpp lines 749,923 ──
 TEST_CASE("Undo: snapshot/restore rolls back a summon, incl. tokens",
@@ -64,15 +63,15 @@ TEST_CASE("Undo: snapshot/restore rolls back a summon, incl. tokens",
     REQUIRE(d.field.handZones[0].contains(&deck[0]));  // back in hand
     REQUIRE(d.field.monsterZones[0][0].isEmpty());
     REQUIRE_FALSE(d.turnState.normalSummonUsed);
-    REQUIRE(action::CanNormalSummon(d));               // budget restored
-    REQUIRE_FALSE(e.undo());                            // nothing older
+    REQUIRE(action::CanNormalSummon(d));  // budget restored
+    REQUIRE_FALSE(e.undo());              // nothing older
 
     // Tokens survive a snapshot round-trip with remapped pointers.
     e.checkpoint();
     Card *tok = action::SummonToken(d, "Sheep", 0, 0);
     REQUIRE(tok != nullptr);
     REQUIRE(e.undo());
-    REQUIRE(d.field.tokens.empty());                    // token erased by rollback
+    REQUIRE(d.field.tokens.empty());  // token erased by rollback
     REQUIRE(d.field.monsterZones[0][0].isEmpty());
 }
 
@@ -95,8 +94,7 @@ TEST_CASE("Engine battle entry guards (p.34-35)", "[engine][battle]") {
     }
     SECTION("Direct attack requires an empty opponent field (p.34)") {
         BattleFix f{1800, 1400};
-        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find(
-                    "empty opponent field") != std::string::npos);
+        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find("empty opponent field") != std::string::npos);
     }
 }
 
@@ -150,7 +148,7 @@ TEST_CASE("Engine damage: ATK vs ATK (p.38)", "[engine][battle]") {
         CHECK(f.d.field.monsterZones[1][1].isEmpty());        // defender destroyed
         CHECK_FALSE(f.d.field.monsterZones[0][0].isEmpty());  // attacker survives
         CHECK(f.d.field.graveyardZones[1].contains(&f.t));    // sent to GY
-        CHECK_FALSE(action::CanAttack(f.d, &f.a));                   // attack committed
+        CHECK_FALSE(action::CanAttack(f.d, &f.a));            // attack committed
     }
     SECTION("attacker weaker: attacker destroyed, difference rebounds") {
         BattleFix f{1200, 1800};
@@ -178,7 +176,7 @@ TEST_CASE("Engine damage: ATK vs DEF (p.38)", "[engine][battle]") {
         action::DeclareAttack(f.d, &f.a, &f.t);
         action::ResolveDamage(f.d);
         CHECK(f.d.field.monsterZones[1][1].isEmpty());
-        CHECK(f.d.lp[0] == DuelConfig::START_LP); // attacker takes nothing
+        CHECK(f.d.lp[0] == DuelConfig::START_LP);  // attacker takes nothing
         CHECK(f.d.lp[1] == DuelConfig::START_LP);
     }
     SECTION("ATK < DEF: rebound damages the attacker's controller") {
@@ -187,7 +185,7 @@ TEST_CASE("Engine damage: ATK vs DEF (p.38)", "[engine][battle]") {
         action::DeclareAttack(f.d, &f.a, &f.t);
         action::ResolveDamage(f.d);
         CHECK(f.d.lp[0] == DuelConfig::START_LP - 200);
-        CHECK_FALSE(f.d.field.monsterZones[0][0].isEmpty()); // attacker survives
+        CHECK_FALSE(f.d.field.monsterZones[0][0].isEmpty());  // attacker survives
         CHECK_FALSE(f.d.field.monsterZones[1][1].isEmpty());
     }
     SECTION("face-down defender is flipped at the Damage Step but STAYS DEF") {
@@ -203,9 +201,9 @@ TEST_CASE("Engine damage: ATK vs DEF (p.38)", "[engine][battle]") {
         CHECK(f.d.field.monsterZones[1][1].isVisible());
         CHECK(f.d.field.monsterZones[1][1].position() ==
               Orientation::Horizontal);
-        CHECK(f.d.field.monsterZones[1][1].isEmpty());        // 1800 > 1000: destroyed
+        CHECK(f.d.field.monsterZones[1][1].isEmpty());  // 1800 > 1000: destroyed
         CHECK(f.d.lp[0] == DuelConfig::START_LP);
-        CHECK(f.d.lp[1] == DuelConfig::START_LP);                 // DEF: no damage
+        CHECK(f.d.lp[1] == DuelConfig::START_LP);  // DEF: no damage
     }
     SECTION("ATK == DEF: nothing happens") {
         BattleFix f{1500, 1000, 1500};
@@ -224,7 +222,7 @@ TEST_CASE("Direct attack deals full ATK and can win the duel (p.34, p.44)",
           "[engine][battle][win]") {
     SECTION("full damage, no destruction") {
         BattleFix f{1000};
-        f.d.field.monsterZones[1][1].remove(); // opponent field now empty
+        f.d.field.monsterZones[1][1].remove();  // opponent field now empty
         REQUIRE(action::CanAttack(f.d, &f.a));
         REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find("attacks") !=
                 std::string::npos);
@@ -240,7 +238,7 @@ TEST_CASE("Direct attack deals full ATK and can win the duel (p.34, p.44)",
     SECTION("LP reaching 0 ends the duel (p.44)") {
         BattleFix f{1000};
         f.d.field.monsterZones[1][1].remove();
-        f.d.lp[1] = 500; // lethal
+        f.d.lp[1] = 500;  // lethal
         action::DeclareAttack(f.d, &f.a, nullptr);
         action::ResolveDamage(f.d);
         CHECK(f.d.lp[1] <= 0);
@@ -250,5 +248,3 @@ TEST_CASE("Direct attack deals full ATK and can win the duel (p.34, p.44)",
 }
 
 // ── Chains: Spell Speed rule + real LP effects (p.41) ────────────────────────
-
-

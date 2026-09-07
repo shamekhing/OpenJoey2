@@ -1,12 +1,13 @@
 #pragma once
+#include <raylib.h>
+
+#include <ui/cards/CardPreview.hpp>
+#include <vector>
+
 #include "ui/AppScreen.hpp"
-#include "ui/widgets/StyleSheet.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
-#include <ui/cards/CardPreview.hpp>
-
-#include <raylib.h>
-#include <vector>
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 using cards::Card;
@@ -16,7 +17,7 @@ using cards::CardDatabase;
 // the shared CardPreview widget. Useful for verifying CardImageCache download +
 // cache behaviour at runtime.
 class TestingScreen : public IScreen {
-public:
+   public:
     explicit TestingScreen(AppContext& ctx) : ctx_(ctx) {
         const auto& src = ctx_.cardDb.GetAllCards();
         cards_.assign(src.begin(), src.end());
@@ -67,11 +68,11 @@ public:
                       ctx_.imageCache);
     }
 
-private:
-    AppContext&                    ctx_;
-    std::vector<openjoey::cards::Card>    cards_;
-    int                            idx_ = 0;
-    mutable CardPreview            preview_;
+   private:
+    AppContext& ctx_;
+    std::vector<openjoey::cards::Card> cards_;
+    int idx_ = 0;
+    mutable CardPreview preview_;
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

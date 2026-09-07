@@ -1,14 +1,13 @@
 // openjoey-foundation unit tests: Config round-trip/path resolution and the
 // ActionId catalog pins. Raylib-free: links openjoey::foundation only.
 #define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
-
-#include "Config.hpp"
-#include "action/ActionId.hpp"
-
 #include <cstdio>
 #include <filesystem>
 #include <string>
+
+#include "Config.hpp"
+#include "action/ActionId.hpp"
+#include "catch.hpp"
 
 namespace fs = std::filesystem;
 using openjoey::Config;
@@ -58,11 +57,11 @@ TEST_CASE("Default Settings carry the shipped defaults", "[config]") {
 
 TEST_CASE("Settings Save/Load round-trips through user_settings.json", "[config]") {
     Config s;
-    s.baseDir_       = g_sandbox / "bin" / "data";
-    s.screenWidth    = 1280;
-    s.screenHeight   = 720;
-    s.fullscreen     = true;
-    s.targetFps      = 144;
+    s.baseDir_ = g_sandbox / "bin" / "data";
+    s.screenWidth = 1280;
+    s.screenHeight = 720;
+    s.fullscreen = true;
+    s.targetFps = 144;
     s.downloadImages = false;
     s.paths.cardsJson = "custom_cards.json";
     REQUIRE(s.Save());
@@ -97,10 +96,10 @@ TEST_CASE("Partial user_settings.json overrides only what it sets", "[config]") 
         std::fclose(f);
     }
     Config loaded = Config::Load(fakeArgv0("partial").c_str());
-    CHECK(loaded.targetFps == 144);        // overridden
-    CHECK(loaded.screenWidth == 1620);     // default preserved
-    CHECK(loaded.paths.cardsJson.filename() == "mine.json"); // overridden
-    CHECK(loaded.paths.cardImgDir.filename() == "images");   // default preserved
+    CHECK(loaded.targetFps == 144);                           // overridden
+    CHECK(loaded.screenWidth == 1620);                        // default preserved
+    CHECK(loaded.paths.cardsJson.filename() == "mine.json");  // overridden
+    CHECK(loaded.paths.cardImgDir.filename() == "images");    // default preserved
 }
 
 TEST_CASE("Nested settings.json schema (file/dir/url/app) is honored", "[config]") {
@@ -116,7 +115,8 @@ TEST_CASE("Nested settings.json schema (file/dir/url/app) is honored", "[config]
                    R"("cardImgSmallUrl": "https://images.example.test/cards_small/",)"
                    R"("cardImgUrl": "https://images.example.test/cards/"},)"
                    R"("app": {"screenWidth": 800, "screenHeight": 600, "fullscreen": true,)"
-                   R"("targetFps": 30, "downloadImages": false}})", f);
+                   R"("targetFps": 30, "downloadImages": false}})",
+                   f);
         std::fclose(f);
     }
     Config loaded = Config::Load(fakeArgv0("nested").c_str());

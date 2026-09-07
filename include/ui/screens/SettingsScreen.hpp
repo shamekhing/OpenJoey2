@@ -1,13 +1,14 @@
 #pragma once
-#include "ui/AppScreen.hpp"
-#include "ui/widgets/StyleSheet.hpp"
-#include "ui/core/AppContext.hpp"
+#include <raylib.h>
+
+#include <string>
+
 #include "Config.hpp"
+#include "ui/AppScreen.hpp"
+#include "ui/core/AppContext.hpp"
 #include "ui/screens/IScreen.hpp"
 #include "ui/widgets/KeyboardNav.hpp"
-
-#include <raylib.h>
-#include <string>
+#include "ui/widgets/StyleSheet.hpp"
 
 namespace openjoey::ui {
 
@@ -15,7 +16,7 @@ namespace openjoey::ui {
 // Changes are applied live to the running raylib window and persisted to
 // data/user_settings.json on every edit.
 class SettingsScreen : public IScreen {
-public:
+   public:
     explicit SettingsScreen(AppContext& ctx) : ctx_(ctx) { nav_.setCount(kOptCount); }
 
     ScreenEvent Update(float) override {
@@ -44,8 +45,7 @@ public:
         const Config& s = ctx_.settings;
         const char* labels[kOptCount] = {
             "Fullscreen", "Target FPS", "Resolution", "Download card images",
-            "Chain response window", "End Phase auto-discard"
-        };
+            "Chain response window", "End Phase auto-discard"};
         std::string values[kOptCount] = {
             s.fullscreen ? "ON" : "OFF",
             std::to_string(s.targetFps) + " FPS",
@@ -65,15 +65,15 @@ public:
                      sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, GREEN);
     }
 
-private:
-    static constexpr int kOptCount   = 6;
-    static constexpr int kWidths[]   = {1280, 1620, 1920};
-    static constexpr int kHeights[]  = {720, 920, 1080};
-    static constexpr int kFps[]      = {30, 60, 120};
+   private:
+    static constexpr int kOptCount = 6;
+    static constexpr int kWidths[] = {1280, 1620, 1920};
+    static constexpr int kHeights[] = {720, 920, 1080};
+    static constexpr int kFps[] = {30, 60, 120};
 
-    AppContext&  ctx_;
-    KeyboardNav  nav_;
-    std::string  statusMsg_;
+    AppContext& ctx_;
+    KeyboardNav nav_;
+    std::string statusMsg_;
 
     void apply(int which) {
         Config& s = ctx_.settings;
@@ -84,7 +84,8 @@ private:
                 break;
             case 1: {
                 int idx = 0;
-                for (int i = 0; i < 3; ++i) if (kFps[i] == s.targetFps) idx = i;
+                for (int i = 0; i < 3; ++i)
+                    if (kFps[i] == s.targetFps) idx = i;
                 s.targetFps = kFps[(idx + 1) % 3];
                 SetTargetFPS(s.targetFps);
                 break;
@@ -92,10 +93,10 @@ private:
             case 2: {
                 int wi = 0, hi = 0;
                 for (int i = 0; i < 3; ++i) {
-                    if (kWidths[i]  == s.screenWidth)  wi = i;
+                    if (kWidths[i] == s.screenWidth) wi = i;
                     if (kHeights[i] == s.screenHeight) hi = i;
                 }
-                s.screenWidth  = kWidths[(wi + 1) % 3];
+                s.screenWidth = kWidths[(wi + 1) % 3];
                 s.screenHeight = kHeights[(hi + 1) % 3];
                 applyWindow(s);
                 break;
@@ -122,4 +123,4 @@ private:
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

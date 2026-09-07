@@ -16,15 +16,15 @@ namespace openjoey::ui {
 using namespace openjoey::engine;
 
 enum class FieldRow : int {
-    OppHand    = 0,
-    OppST      = 1,
+    OppHand = 0,
+    OppST = 1,
     OppMonster = 2,
     OwnMonster = 3,
-    OwnST      = 4,
-    OwnHand    = 5,
+    OwnST = 4,
+    OwnHand = 5,
 };
 
-constexpr int kFieldRows = 6; // hand strips included
+constexpr int kFieldRows = 6;  // hand strips included
 constexpr int kFieldCols = 9;
 
 constexpr int fieldRow(FieldRow r) { return static_cast<int>(r); }
@@ -34,6 +34,6 @@ constexpr bool isHandRow(int r) {
 }
 constexpr bool isOppMonsterRow(int r) { return r == fieldRow(FieldRow::OppMonster); }
 constexpr bool isOwnMonsterRow(int r) { return r == fieldRow(FieldRow::OwnMonster); }
-constexpr bool isMonsterRow(int r)    { return isOppMonsterRow(r) || isOwnMonsterRow(r); }
+constexpr bool isMonsterRow(int r) { return isOppMonsterRow(r) || isOwnMonsterRow(r); }
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

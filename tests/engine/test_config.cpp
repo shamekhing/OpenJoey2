@@ -17,10 +17,8 @@ TEST_CASE("Config round-trips user_settings.json", "[config]") {
     REQUIRE(loaded.fullscreen == true);
     REQUIRE(loaded.downloadImages == false);
 
-        std::error_code ec;
+    std::error_code ec;
     std::filesystem::remove(Config::settingsFile(nullptr), ec);
 }
 
 // ── Card effect subscription (layer 1 carries the data; no later-layer dep) ──
-
-

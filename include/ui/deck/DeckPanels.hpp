@@ -5,20 +5,22 @@
 // state, so it always renders the current frame's data. All layout constants
 // come from the uikit StyleSheet.
 
-#include "cards/Card.hpp"
-#include <ui/cards/CardImageCache.hpp>
+#include <raylib.h>
+
+#include <string>
 #include <ui/cards/CardGrid.hpp>
+#include <ui/cards/CardImageCache.hpp>
 #include <ui/cards/CardList.hpp>
 #include <ui/cards/DeckStats.hpp>
-#include "ui/widgets/StyleSheet.hpp"
-#include "ui/widgets/Panel.hpp"
-#include "ui/widgets/KeyboardNav.hpp"
-#include "ui/widgets/TextInput.hpp"
+#include <vector>
+
+#include "cards/Card.hpp"
 #include "ui/core/AppContext.hpp"
 #include "ui/deck/DeckFilters.hpp"
-#include <raylib.h>
-#include <string>
-#include <vector>
+#include "ui/widgets/KeyboardNav.hpp"
+#include "ui/widgets/Panel.hpp"
+#include "ui/widgets/StyleSheet.hpp"
+#include "ui/widgets/TextInput.hpp"
 
 namespace openjoey::ui {
 using cards::Card;
@@ -26,15 +28,15 @@ using cards::CardDatabase;
 
 struct DeckPanels {
     // Live editor state (references — always current).
-    const AppContext&                  ctx;
-    const TextInput&                   searchInput;
-    const KeyboardNav&                 poolNav;
-    const KeyboardNav&                 deckNav;
+    const AppContext& ctx;
+    const TextInput& searchInput;
+    const KeyboardNav& poolNav;
+    const KeyboardNav& deckNav;
     const std::vector<openjoey::cards::Card>& deck;
-    const DeckSortMode&                sortMode;
-    const DeckTypeFilter&              typeFilter;
-    const bool&                        focusPool;
-    const bool&                        deckGridView;
+    const DeckSortMode& sortMode;
+    const DeckTypeFilter& typeFilter;
+    const bool& focusPool;
+    const bool& deckGridView;
 
     // ── Card Pool (search bar + list) ────────────────────────────────────────
     void drawPool(const std::vector<const openjoey::cards::Card*>& fp,
@@ -70,11 +72,11 @@ struct DeckPanels {
             card = &deck[deckNav.cursor];
         if (!card) return;
 
-        Color col  = CardList::cardTypeColor(*card);
-        int artX   = x + PREVIEW_PAD_X;
-        int artY   = y + PREVIEW_ART_Y_OFFSET;
-        int artW   = w - PREVIEW_ART_SIDE_PAD;
-        int artH   = (int)((float)artW * PREVIEW_ASPECT_RATIO);
+        Color col = CardList::cardTypeColor(*card);
+        int artX = x + PREVIEW_PAD_X;
+        int artY = y + PREVIEW_ART_Y_OFFSET;
+        int artW = w - PREVIEW_ART_SIDE_PAD;
+        int artH = (int)((float)artW * PREVIEW_ASPECT_RATIO);
         if (artY + artH > y + h - MAIN_PAD_BOTTOM / 2)
             artH = y + h - MAIN_PAD_BOTTOM / 2 - artY;
 
@@ -101,7 +103,8 @@ struct DeckPanels {
 
         int copies = countCopies(deck, card->id);
         Color cpCol = (copies >= DeckLimits::kMaxCopies) ? RED
-                    : (copies > 0) ? GREEN : GRAY;
+                      : (copies > 0)                     ? GREEN
+                                                         : GRAY;
         DrawText(TextFormat("In deck: %d / %d", copies, DeckLimits::kMaxCopies),
                  x + PREVIEW_PAD_X, infoY, FONT_CARD_STAT, cpCol);
         infoY += FONT_CARD_STAT + PREVIEW_INFO_GAP;
@@ -109,7 +112,7 @@ struct DeckPanels {
         const std::string& desc = card->description;
         int charsPerLine =
             (w - PREVIEW_DESC_SIDE_PAD) / std::max(1, PREVIEW_DESC_CHAR_W);
-        int cur   = 0;
+        int cur = 0;
         int lineH = FONT_CARD_STAT + 3;
         while (cur < (int)desc.size() && infoY < y + h - THUMBNAIL_PAD) {
             int end = std::min(cur + charsPerLine, (int)desc.size());
@@ -155,4 +158,4 @@ struct DeckPanels {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

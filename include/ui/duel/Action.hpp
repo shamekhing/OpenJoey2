@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "cards/Card.hpp"
-#include "engine/action/Catalog.hpp" // ActionSpec (pending activation)
 #include "action/ActionId.hpp"
+#include "cards/Card.hpp"
+#include "engine/action/Catalog.hpp"  // ActionSpec (pending activation)
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -23,11 +23,11 @@ using cards::CardDatabase;
 
 // Hotseat input state machine (used by DuelScreen).
 enum class DuelMode : uint8_t {
-    Navigate,      // free cursor movement over the field
-    Menu,          // an action list is open for the cursor's zone
-    AttackTarget,  // picking an attack target for the declared attacker
-    EffectTarget,  // picking a target for a card activation
-    TributeTarget, // picking tribute / fusion / ritual materials
+    Navigate,       // free cursor movement over the field
+    Menu,           // an action list is open for the cursor's zone
+    AttackTarget,   // picking an attack target for the declared attacker
+    EffectTarget,   // picking a target for a card activation
+    TributeTarget,  // picking tribute / fusion / ritual materials
 };
 
 // One entry of the zone action menu: a label for the list UI, the engine
@@ -49,30 +49,30 @@ struct DuelUIState {
 
     // Action menu (DuelMode::Menu).
     DuelActionList actions;
-    int            actionCursor = 0;
+    int actionCursor = 0;
 
     // Pending attack.
     Card* attacker = nullptr;
 
     // Pending card activation (spell/trap/monster effect in flight).
-    Card*         pendingCard   = nullptr; // the card being activated
-    Card*         pendingTarget = nullptr; // target chosen in EffectTarget mode
-    ActionSpec pendingFx{};             // its catalog entry
-    int           pendingOwner  = 0;       // player who activated pendingFx
+    Card* pendingCard = nullptr;    // the card being activated
+    Card* pendingTarget = nullptr;  // target chosen in EffectTarget mode
+    ActionSpec pendingFx{};         // its catalog entry
+    int pendingOwner = 0;           // player who activated pendingFx
 
     // Chain responder window (the other player may chain; R resolves).
     bool chainPrompt = false;
 
     // Hotseat pass-the-device gate + controls popup.
-    bool handoff  = false;
-    bool helpOpen = true; // open on the first duel (H toggles)
+    bool handoff = false;
+    bool helpOpen = true;  // open on the first duel (H toggles)
 
     // Cards awaiting the Graveyard after chain resolution.
     std::vector<Card*> activated;
 
     // Tribute / fusion / ritual material picking.
     std::vector<Card*> tributePicks;
-    int  tributeCount  = 0;
+    int tributeCount = 0;
     bool fusionPending = false;
     bool ritualPending = false;
 
@@ -97,4 +97,4 @@ struct DuelUIState {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

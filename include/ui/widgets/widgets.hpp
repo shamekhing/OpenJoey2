@@ -7,10 +7,10 @@
 //
 // Dependency chain: core -> uikit -> cards -> gameplay -> app.
 
-#include "ui/widgets/StyleSheet.hpp"
 #include "ui/widgets/DrawUtils.hpp"
-#include "ui/widgets/ProgressBar.hpp"
 #include "ui/widgets/KeyboardNav.hpp"
 #include "ui/widgets/KeyboardNav2D.hpp"
-#include "ui/widgets/TextInput.hpp"
 #include "ui/widgets/Panel.hpp"
+#include "ui/widgets/ProgressBar.hpp"
+#include "ui/widgets/StyleSheet.hpp"
+#include "ui/widgets/TextInput.hpp"

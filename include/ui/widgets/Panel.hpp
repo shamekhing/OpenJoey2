@@ -1,7 +1,9 @@
 #pragma once
-#include "ui/widgets/StyleSheet.hpp"
 #include <raylib.h>
+
 #include <string>
+
+#include "ui/widgets/StyleSheet.hpp"
 
 // Titled bordered panel — draws a header bar with optional right-aligned badge
 // and a body background. Replaces the ad-hoc header+border pattern in screens.
@@ -39,4 +41,4 @@ struct Panel {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui

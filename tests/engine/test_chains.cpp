@@ -3,17 +3,16 @@
 // ── from tests.cpp lines 367,379 ──
 TEST_CASE("Chain resolves last-activated-first (p.41)", "[duel][chain]") {
     Chain c;
-    c.push(ActionSpec{ActionId::Move_Draw, EffectType::Ignition, 1}, 0); // activated first
-    c.push(ActionSpec{ActionId::LP_Damage, EffectType::Ignition, 2}, 1); // response
-    c.push(ActionSpec{ActionId::Move_Banish, EffectType::Quick, 3}, 0);  // counter, fastest
+    c.push(ActionSpec{ActionId::Move_Draw, EffectType::Ignition, 1}, 0);  // activated first
+    c.push(ActionSpec{ActionId::LP_Damage, EffectType::Ignition, 2}, 1);  // response
+    c.push(ActionSpec{ActionId::Move_Banish, EffectType::Quick, 3}, 0);   // counter, fastest
 
     auto order = c.resolutionOrder();
     REQUIRE(order.size() == 3);
-    REQUIRE(order[0]->id == ActionId::Move_Banish); // last activated, first resolved
+    REQUIRE(order[0]->id == ActionId::Move_Banish);  // last activated, first resolved
     REQUIRE(order[1]->id == ActionId::LP_Damage);
-    REQUIRE(order[2]->id == ActionId::Move_Draw);    // first activated, last resolved
+    REQUIRE(order[2]->id == ActionId::Move_Draw);  // first activated, last resolved
 }
-
 
 // ── from tests.cpp lines 596,629 ──
 TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
@@ -51,7 +50,6 @@ TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
     action::ResolveChain(d);
 }
 
-
 // ── from tests.cpp lines 706,724 ──
 TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mode off)",
           "[engine][chain]") {
@@ -66,12 +64,11 @@ TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mo
     ActionSpec dmg{ActionId::LP_Damage, EffectType::Ignition, 1, 100};
     CHECK(action::ActivateEffect(d, dmg, 0).find("Chain Link") != std::string::npos);
     CHECK(action::PassResponse(d, 0).find("disabled") != std::string::npos);
-    CHECK(d.chain.links.size() == 1); // still open — resolved explicitly
+    CHECK(d.chain.links.size() == 1);  // still open — resolved explicitly
     CHECK_FALSE(action::ChainWaiting(d));
     action::ResolveChain(d);
     CHECK(d.chain.links.empty());
 }
-
 
 // ── from tests.cpp lines 924,968 ──
 TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
@@ -90,10 +87,10 @@ TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
     REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Gain, EffectType::Ignition, 1}, 0)
                 .find("illegal chain") != std::string::npos);
     // SS3 may answer SS2; then SS2 may NOT answer SS3.
-    ActionArgs hitP1; // explicit victim: player 1
+    ActionArgs hitP1;  // explicit victim: player 1
     hitP1.targetPlayer = 1;
     REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Damage, EffectType::Ignition, 3, 100}, 0,
-                               hitP1)
+                                   hitP1)
                 .find("Chain Link 3") != std::string::npos);
     REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Gain, EffectType::Ignition, 2}, 1)
                 .find("illegal chain") != std::string::npos);
@@ -118,7 +115,6 @@ TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
 }
 
 // ── Win conditions (p.44) ────────────────────────────────────────────────────
-
 
 // ── from tests.cpp lines 1194,1267 ──
 TEST_CASE("Chain negation: a counter blanks the link it responds to (p.44)",
@@ -167,7 +163,7 @@ TEST_CASE("Summon_Flip link triggers the flipped card's effect (Man-Eater)",
     Duel d;
     Card flipper;
     mkMon(&flipper, 700, 3, 450, 600);
-    flipper.name = "Man-Eater Bug"; // catalog: FLIP 500 damage to opponent
+    flipper.name = "Man-Eater Bug";  // catalog: FLIP 500 damage to opponent
 
     // Face-down Defense on P0's side (Limited + Horizontal = set).
     flipper.state.owner = flipper.state.controller = 0;
@@ -191,5 +187,3 @@ TEST_CASE("Summon_Flip link triggers the flipped card's effect (Man-Eater)",
     CHECK(d.lp[0] == DuelConfig::START_LP);
     CHECK(d.field.monsterZones[0][0].isVisible());
 }
-
-

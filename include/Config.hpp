@@ -32,32 +32,32 @@ struct Config {
         std::filesystem::path banlistJson;
         std::filesystem::path cardImgDir;
         std::filesystem::path cardBackImg;
-        std::string cardsJsonUrl;      // remote card-database endpoint (content config)
-        std::string cardImgUrl;        // full card art base URL
-        std::string cardImgSmallUrl;   // small card art base URL (fallback)
+        std::string cardsJsonUrl;     // remote card-database endpoint (content config)
+        std::string cardImgUrl;       // full card art base URL
+        std::string cardImgSmallUrl;  // small card art base URL (fallback)
 
         // Fill in the standard data/ layout under the given base dir.
         void defaults(const std::filesystem::path& base) {
-            cardsJson        = base / "cards.json";
-            banlistJson      = base / "banlist.json";
-            cardImgDir       = base / "images";
-            cardBackImg      = base / "card_back.png";
+            cardsJson = base / "cards.json";
+            banlistJson = base / "banlist.json";
+            cardImgDir = base / "images";
+            cardBackImg = base / "card_back.png";
             // URL endpoints are intentionally NOT baked into the code — they are
             // content-layer configuration (data/settings.json, `url` group).
         }
     } paths;
 
     // ── Window / app options (absorbed AppConfig; persisted under "app") ──────
-    int  screenWidth    = 1620;
-    int  screenHeight   = 920;
-    bool fullscreen     = false;
-    int  targetFps      = 60;
+    int screenWidth = 1620;
+    int screenHeight = 920;
+    bool fullscreen = false;
+    int targetFps = 60;
     bool downloadImages = true;
 
     // ── Duel format switches (per-duel engine config; defaults = shipped classic) ─
-    bool chainResponseWindow = false; // p.45: chains resolve only after both pass
-    bool autoDiscardEndPhase = true;  // p.41: EndTurn auto-discards down to 6
-    const char *windowTitle = "OpenJoey";
+    bool chainResponseWindow = false;  // p.45: chains resolve only after both pass
+    bool autoDiscardEndPhase = true;   // p.41: EndTurn auto-discards down to 6
+    const char* windowTitle = "OpenJoey";
 
     // Default-constructed config carries valid on-disk path defaults so that
     // even a bare `Config c;` is safe to inspect (tests, or before Load).
@@ -144,7 +144,7 @@ struct Config {
         for (auto it = p.begin(); it != p.end(); ++it) {
             if (it->empty()) continue;  // drop separator artifacts (e.g. "dir/")
             if (!(first && !dataName.empty() && *it == fs::path(dataName)))
-                rest /= *it;            // content-root relative: skip "data"
+                rest /= *it;  // content-root relative: skip "data"
             first = false;
         }
         return baseDir / rest;
@@ -158,17 +158,17 @@ struct Config {
         try {
             const auto j = nlohmann::json::parse(in);
             // Window / download options: nested `app` group, then legacy flat keys.
-            c.screenWidth    = pick(j, "app", "screenWidth",    c.screenWidth);
-            c.screenHeight   = pick(j, "app", "screenHeight",   c.screenHeight);
-            c.fullscreen     = pick(j, "app", "fullscreen",     c.fullscreen);
-            c.targetFps      = pick(j, "app", "targetFps",      c.targetFps);
+            c.screenWidth = pick(j, "app", "screenWidth", c.screenWidth);
+            c.screenHeight = pick(j, "app", "screenHeight", c.screenHeight);
+            c.fullscreen = pick(j, "app", "fullscreen", c.fullscreen);
+            c.targetFps = pick(j, "app", "targetFps", c.targetFps);
             c.downloadImages = pick(j, "app", "downloadImages", c.downloadImages);
             c.chainResponseWindow = pick(j, "app", "chainResponseWindow", c.chainResponseWindow);
             c.autoDiscardEndPhase = pick(j, "app", "autoDiscardEndPhase", c.autoDiscardEndPhase);
-            c.screenWidth    = pick(j, nullptr, "screenWidth",    c.screenWidth);
-            c.screenHeight   = pick(j, nullptr, "screenHeight",   c.screenHeight);
-            c.fullscreen     = pick(j, nullptr, "fullscreen",     c.fullscreen);
-            c.targetFps      = pick(j, nullptr, "targetFps",      c.targetFps);
+            c.screenWidth = pick(j, nullptr, "screenWidth", c.screenWidth);
+            c.screenHeight = pick(j, nullptr, "screenHeight", c.screenHeight);
+            c.fullscreen = pick(j, nullptr, "fullscreen", c.fullscreen);
+            c.targetFps = pick(j, nullptr, "targetFps", c.targetFps);
             c.downloadImages = pick(j, nullptr, "downloadImages", c.downloadImages);
             // Content paths: `file` / `dir` groups, then the legacy `paths` group.
             auto pathEntry = [&](const char* group, const char* key,
@@ -178,17 +178,17 @@ struct Config {
                 else if (auto v2 = findKey(j, "paths", key))
                     dst = resolveEntry(v2->get<std::string>(), c.baseDir_);
             };
-            pathEntry("file", "cardsJson",   c.paths.cardsJson);
+            pathEntry("file", "cardsJson", c.paths.cardsJson);
             pathEntry("file", "banlistJson", c.paths.banlistJson);
-            pathEntry("dir",  "cardImgDir",  c.paths.cardImgDir);
+            pathEntry("dir", "cardImgDir", c.paths.cardImgDir);
             pathEntry("file", "cardBackImg", c.paths.cardBackImg);
             // URLs come from the `url` group — the content layer owns them.
             auto urlEntry = [&](const char* key, std::string& dst) {
                 if (auto v = findKey(j, "url", key))
                     dst = v->get<std::string>();
             };
-            urlEntry("cardsJsonUrl",    c.paths.cardsJsonUrl);
-            urlEntry("cardImgUrl",      c.paths.cardImgUrl);
+            urlEntry("cardsJsonUrl", c.paths.cardsJsonUrl);
+            urlEntry("cardImgUrl", c.paths.cardImgUrl);
             urlEntry("cardImgSmallUrl", c.paths.cardImgSmallUrl);
         } catch (const std::exception& e) {
             std::cerr << "[Config] failed to load " << path << ": " << e.what() << "\n";
@@ -221,20 +221,20 @@ struct Config {
         auto path = settingsFile();
         std::filesystem::create_directories(path.parent_path(), ec);
         nlohmann::json j;
-        j["app"]["screenWidth"]     = screenWidth;
-        j["app"]["screenHeight"]    = screenHeight;
-        j["app"]["fullscreen"]      = fullscreen;
-        j["app"]["targetFps"]       = targetFps;
-        j["app"]["downloadImages"]  = downloadImages;
+        j["app"]["screenWidth"] = screenWidth;
+        j["app"]["screenHeight"] = screenHeight;
+        j["app"]["fullscreen"] = fullscreen;
+        j["app"]["targetFps"] = targetFps;
+        j["app"]["downloadImages"] = downloadImages;
         j["app"]["chainResponseWindow"] = chainResponseWindow;
         j["app"]["autoDiscardEndPhase"] = autoDiscardEndPhase;
-        j["file"]["cardsJson"]      = paths.cardsJson.string();
-        j["file"]["banlistJson"]    = paths.banlistJson.string();
-        j["file"]["cardBackImg"]    = paths.cardBackImg.string();
-        j["dir"]["cardImgDir"]      = paths.cardImgDir.string();
-        j["url"]["cardsJsonUrl"]    = paths.cardsJsonUrl;
+        j["file"]["cardsJson"] = paths.cardsJson.string();
+        j["file"]["banlistJson"] = paths.banlistJson.string();
+        j["file"]["cardBackImg"] = paths.cardBackImg.string();
+        j["dir"]["cardImgDir"] = paths.cardImgDir.string();
+        j["url"]["cardsJsonUrl"] = paths.cardsJsonUrl;
         j["url"]["cardImgSmallUrl"] = paths.cardImgSmallUrl;
-        j["url"]["cardImgUrl"]      = paths.cardImgUrl;
+        j["url"]["cardImgUrl"] = paths.cardImgUrl;
         std::ofstream out(path);
         if (!out) return false;
         out << std::setw(2) << j;
@@ -242,4 +242,4 @@ struct Config {
     }
 };
 
-} // namespace openjoey
+}  // namespace openjoey

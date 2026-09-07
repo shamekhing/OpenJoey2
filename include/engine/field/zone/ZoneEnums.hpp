@@ -13,22 +13,22 @@ using cards::Card;
 
 // Every zone on the mat (10). Single-card slots and stacks both use this.
 enum class ZoneType : uint8_t {
-  Monster,
-  SpellTrap,
-  Field,
-  ExtraMonster,
-  Hand,
-  Deck,
-  ExtraDeck,
-  Graveyard,
-  Banished,
-  SideDeck,
+    Monster,
+    SpellTrap,
+    Field,
+    ExtraMonster,
+    Hand,
+    Deck,
+    ExtraDeck,
+    Graveyard,
+    Banished,
+    SideDeck,
 };
 
 // Battle position of a card on the field (ATK = vertical, DEF = horizontal).
 enum class Orientation : uint8_t {
-  Vertical,
-  Horizontal,
+    Vertical,
+    Horizontal,
 };
 
 // Entitlement — who may look at a card in this zone:
@@ -36,9 +36,9 @@ enum class Orientation : uint8_t {
 //   Limited    — exactly one player (the owner/controller knows)
 //   Restricted — neither player (e.g. the deck's order)
 enum class Visibility : uint8_t {
-  Visible,
-  Limited,
-  Restricted,
+    Visible,
+    Limited,
+    Restricted,
 };
 
-} // namespace openjoey::engine::engine::zone
+}  // namespace openjoey::engine::zone

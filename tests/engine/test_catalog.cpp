@@ -56,12 +56,15 @@ TEST_CASE("Mass destruction via the resolver: Raigeki / Dark Hole / Heavy Storm"
         fieldMonster(d, mkMon(&b1, 803, 4, 1300, 700), 0, 0);
         int n = 0;
         for (auto &mz : d.field.monsterZones[1])
-          if (Card *c = mz.peek()) { MoveDestroyToGY(d.field, c); ++n; }
+            if (Card *c = mz.peek()) {
+                MoveDestroyToGY(d.field, c);
+                ++n;
+            }
         std::string msg = std::to_string(n) + " card(s) destroyed -> Graveyard.";
         CHECK(msg.find("2 card(s) destroyed") != std::string::npos);
         CHECK(d.field.monsterZones[1][0].isEmpty());
         CHECK(d.field.monsterZones[1][1].isEmpty());
-        CHECK(d.field.monsterZones[0][0].contains(&b1)); // own monster spared
+        CHECK(d.field.monsterZones[0][0].contains(&b1));  // own monster spared
         CHECK(d.field.graveyardZones[1].contains(&a1));
     }
     SECTION("Dark Hole clears both sides") {
@@ -78,15 +81,15 @@ TEST_CASE("Mass destruction via the resolver: Raigeki / Dark Hole / Heavy Storm"
     SECTION("Heavy Storm clears Spells/Traps only") {
         Duel d;
         Card st1, mon;
-        st1.id = 900; st1.name = "Solemn"; st1.attributes.push_back(Attribute::Trap);
+        st1.id = 900;
+        st1.name = "Solemn";
+        st1.attributes.push_back(Attribute::Trap);
         d.field.spellTrapZones[0][0].put(&st1);
         fieldMonster(d, mkMon(&mon, 901, 4, 1000, 800), 1, 0);
         int nd = action::MoveDestroyMass(d.field, TargetScope::AllSpellsTraps, 1);
         std::string msg = std::to_string(nd) + " card(s) destroyed -> Graveyard.";
         CHECK(msg.find("1 card(s) destroyed") != std::string::npos);
         CHECK(d.field.spellTrapZones[0][0].isEmpty());
-        CHECK(d.field.monsterZones[1][0].contains(&mon)); // monster spared
+        CHECK(d.field.monsterZones[1][0].contains(&mon));  // monster spared
     }
 }
-
-

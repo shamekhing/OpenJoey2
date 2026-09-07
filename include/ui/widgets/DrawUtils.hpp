@@ -1,6 +1,7 @@
 #pragma once
-#include <algorithm>
 #include <raylib.h>
+
+#include <algorithm>
 #include <string>
 
 // Stateless drawing helpers used by multiple widgets.
@@ -11,7 +12,7 @@ using cards::Card;
 using cards::CardDatabase;
 
 struct DrawUtils {
-    static constexpr float kCardAspect = 59.f / 86.f; // portrait W:H
+    static constexpr float kCardAspect = 59.f / 86.f;  // portrait W:H
 
     // Draw a card texture fitted into dst, optionally rotated 90° CW for DEF.
     static void blitCard(Rectangle dst, const Texture2D& tex, bool rotateDef) {
@@ -69,9 +70,12 @@ struct DrawUtils {
                 std::string trial = desc.substr(pos, nxt - pos);
                 if (MeasureText(trial.c_str(), fs) > maxPx) break;
                 line = trial;
-                end  = nxt;
+                end = nxt;
             }
-            if (end == pos) { end = pos + 1; line = desc.substr(pos, 1); }
+            if (end == pos) {
+                end = pos + 1;
+                line = desc.substr(pos, 1);
+            }
             lines.push_back(line);
             pos = (end < desc.size() && desc[end] == ' ') ? end + 1 : end;
         }
@@ -79,4 +83,4 @@ struct DrawUtils {
     }
 };
 
-} // namespace openjoey::ui
+}  // namespace openjoey::ui
