@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OpenJoey2</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #101018; color: #e8e8f0;
+               font-family: system-ui, sans-serif; display: flex;
+               flex-direction: column; align-items: center; justify-content: center; }
+  canvas { background: #101018; outline: none; }
+  #status { margin-top: 8px; font-size: 14px; color: #9a9ab0; }
+</style>
+</head>
+<body>
+  <canvas id="canvas" width="1280" height="720" tabindex="0"></canvas>
+  <div id="status">loading…</div>
+  <script>
+    const status = document.getElementById('status');
+    var Module = {
+      canvas: document.getElementById('canvas'),
+      setStatus(t) {
+        if (t) status.textContent = t;
+        else status.textContent = 'click the canvas for keyboard focus';
+      },
+    };
+  </script>
+  <script async src="OpenJoey2.js"></script>
+</body>
+</html>

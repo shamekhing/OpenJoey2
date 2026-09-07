@@ -17,21 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out openjoey-foundation (data + scripts)
+
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/openjoey-foundation
-          path: openjoey-foundation
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install pillow (make_assets dependency)
         run: python -m pip install --quiet pillow
       - name: Generate card back + menu background
-        working-directory: openjoey-foundation
+        working-directory: .
         run: python3 scripts/make_assets.py
       - name: Fetch card database
-        working-directory: openjoey-foundation
+        working-directory: .
         run: python3 scripts/fetch_cards.py
       - name: Publish content-latest release
         env:
@@ -39,8 +37,8 @@ jobs:
         run: |
           gh release delete content-latest --yes --cleanup-tag || true
           gh release create content-latest \
-            openjoey-foundation/data/cards.json \
-            openjoey-foundation/data/card_back.png \
-            openjoey-foundation/data/assets/backgrounds/menu_background.png \
+            data/cards.json \
+            data/card_back.png \
+            data/assets/backgrounds/menu_background.png \
             --title "OpenJoey content (auto-fetched)" \
             --notes "cards.json + generated assets from $(date -u +%Y-%m-%d)."

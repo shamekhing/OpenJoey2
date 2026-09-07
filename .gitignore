@@ -16,3 +16,6 @@ openjoey-*/
 # Third-party rulebook PDF: local reference only, never distributed
 *.pdf
 *.pdf
+
+# Bulk card-image cache (fetched at runtime / via scripts, not shipped in git)
+data/images/

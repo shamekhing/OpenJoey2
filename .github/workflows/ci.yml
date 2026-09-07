@@ -1,8 +1,7 @@
 name: CI
 
-# Central CI for the whole project. Modules are sibling repos; the headless
-# chain (foundation <- cards <- gameplay) builds/tests on all three OSes, the
-# app superbuild gates on ubuntu, and clang-format enforces the shared config.
+# Monorepo CI: headless tests (core/cards/engine) on three OSes, the raylib
+# app build on ubuntu, a web (Emscripten) build smoke, and clang-format.
 on:
   push:
     branches: [main]
@@ -17,90 +16,40 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      # Sibling dependency checkouts (OPENJOEY_DEPS_DIR defaults to the parent
-      # dir). If repos are private, pass a PAT:
-      #   token: ${{ secrets.OPENJOEY_CI_PAT }}
-      - name: Check out openjoey-foundation
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-foundation
-          path: openjoey-foundation
-      - name: Check out openjoey-cards
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-cards
-          path: openjoey-cards
-      - name: Check out openjoey-engine
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-engine
-          path: openjoey-engine
-      - name: Configure + build + test (cards)
+      - name: Configure + build + test (all suites)
         run: |
-          cmake -S openjoey-cards -B openjoey-cards/build
-          cmake --build openjoey-cards/build --config Release --parallel 4
-          ctest --test-dir openjoey-cards/build --output-on-failure -C Release
-      - name: Configure + build + test (gameplay)
-        run: |
-          cmake -S openjoey-engine -B openjoey-engine/build
-          cmake --build openjoey-engine/build --config Release --parallel 4
-          ctest --test-dir openjoey-engine/build --output-on-failure -C Release
-
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check out modules (sources live in the sibling repos)
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-foundation
-          path: openjoey-foundation
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-cards
-          path: openjoey-cards
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-engine
-          path: openjoey-engine
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-app
-          path: openjoey-app
-      - name: clang-format check (shared .clang-format)
-        run: |
-          find openjoey-foundation/include openjoey-foundation/tests \
-               openjoey-cards/include openjoey-cards/tests \
-               openjoey-engine/include openjoey-engine/tests \
-               openjoey-app/include openjoey-app/src \(
-               -name '*.hpp' -o -name '*.cpp' \) -print0 \
-            | xargs -0 clang-format --dry-run --Werror
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --parallel 4
+          ctest --test-dir build --output-on-failure -C Release
 
   app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out openjoey-foundation
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-foundation
-          path: openjoey-foundation
-      - name: Check out openjoey-uikit
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-uikit
-          path: openjoey-uikit
-      - name: Check out openjoey-cards
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-cards
-          path: openjoey-cards
-      - name: Check out openjoey-engine
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/openjoey-engine
-          path: openjoey-engine
-      - name: Superbuild (Debug)
+      - name: Superbuild (Release, includes raylib UI)
         run: |
-          cmake -S openjoey-app -B openjoey-app/build -DCMAKE_BUILD_TYPE=Debug
-          cmake --build openjoey-app/build --config Debug --parallel 4
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --parallel 4
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.69
+      - name: Configure + build (web)
+        run: |
+          emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-web -j4
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: clang-format check (shared .clang-format)
+        run: |
+          find include src tests \
+               \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
