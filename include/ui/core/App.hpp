@@ -32,7 +32,9 @@ class App {
     explicit App(const char* argv0 = nullptr)
         : settings_(Config::Load(argv0)),
           platform_(settings_),
-          imageCache_(settings_.paths.cardImgDir, settings_.paths.cardImgUrl, settings_.paths.cardImgSmallUrl),
+          imageCache_(settings_.paths.cardImgDir, settings_.paths.cardImgUrl,
+                      settings_.paths.cardImgSmallUrl,
+                      settings_.downloadImages),
           ctx_{cardDb_, selectedDeck_, imageCache_, settings_} {}
     ~App() = default;
     App(const App&) = delete;

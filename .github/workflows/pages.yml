@@ -31,6 +31,12 @@ jobs:
           emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
           cmake --build build-web -j4
 
+      - name: Verify web artifact
+        run: |
+          test -f build-web/web/OpenJoey2.js
+          test -f build-web/web/OpenJoey2.wasm
+          test -f build-web/web/OpenJoey2.data
+
       - name: Gather pages artifact
         run: |
           mkdir -p pages

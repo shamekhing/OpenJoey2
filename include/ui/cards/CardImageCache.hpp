@@ -50,21 +50,33 @@ class CardImageCache {
     static constexpr std::chrono::seconds kRetryCooldown{30};
 
     // Base image URLs are supplied by the app's configuration layer — no
-    // provider defaults live in the cards domain.
+    // provider defaults live in the cards domain. `allowDownloads` mirrors the
+    // user-facing downloadImages setting.
     CardImageCache(std::filesystem::path imgDir,
                    std::string remoteImageUrl,
-                   std::string remoteImageUrlSmall)
+                   std::string remoteImageUrlSmall,
+                   bool allowDownloads = true)
         : imgDir_(std::move(imgDir)),
           imageUrl_(std::move(remoteImageUrl)),
           imageUrlSmall_(std::move(remoteImageUrlSmall)) {
-        // settings.json is player-editable: the URLs are interpolated into a
-        // shell command, so only a well-formed https base is accepted.
-        downloadsEnabled_ = urlIsSafe(imageUrl_) && urlIsSafe(imageUrlSmall_);
+#ifdef __EMSCRIPTEN__
+        // Web build: there is no shell and no curl binary, and pthread_create
+        // is unsupported without -pthread. Downloads are off and no worker is
+        // started — Get() falls back to the drawn faces (docs/CONTENT.md).
+        (void)allowDownloads;
+        downloadsEnabled_ = false;
+#else
+        // settings.json is player-editable: the URLs and the image directory
+        // are interpolated into a shell command (curlDownload), so both must
+        // be shell-safe or downloads stay off.
+        downloadsEnabled_ = allowDownloads && urlIsSafe(imageUrl_) &&
+                            urlIsSafe(imageUrlSmall_) && pathIsSafe(imgDir_);
         if (!downloadsEnabled_)
             std::fprintf(stderr,
-                         "[CardImageCache] unsafe image URL in settings — "
+                         "[CardImageCache] unsafe download settings — "
                          "downloads disabled\n");
         worker_ = std::thread(&CardImageCache::workerLoop, this);
+#endif
     }
 
     ~CardImageCache() {
@@ -258,15 +270,23 @@ class CardImageCache {
     bool downloadsEnabled_ = true;
     std::thread worker_;
 
+    // Only shell-safe characters may be interpolated into the curlDownload()
+    // command: the URL base from settings and the image directory path.
+    static bool shellUnsafeChar(char c) {
+        return c == '\'' || c == '"' || c == '\\' || c == ';' || c == '|' ||
+               c == '&' || c == '$' || c == '`' || c == '(' || c == ')' ||
+               c == '<' || c == '>' || c == '\n';
+    }
+
     // Only a plain https base URL is safe to interpolate into a shell command.
     static bool urlIsSafe(const std::string& url) {
         if (url.rfind("https://", 0) != 0) return false;
-        for (char c : url)
-            if (c == '\'' || c == '"' || c == '\\' || c == ';' || c == '|' ||
-                c == '&' || c == '$' || c == '`' || c == '(' || c == ')' ||
-                c == '<' || c == '>' || c == '\n')
-                return false;
-        return true;
+        return !std::any_of(url.begin(), url.end(), shellUnsafeChar);
+    }
+
+    static bool pathIsSafe(const std::filesystem::path& p) {
+        const std::string s = p.string();
+        return !std::any_of(s.begin(), s.end(), shellUnsafeChar);
     }
 };
 
