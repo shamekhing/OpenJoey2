@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 380,394 ──
 TEST_CASE("Duel owns Field + Life Points + turn + chain (layer 4)", "[duel]") {
     Duel d;
     REQUIRE(d.lp[0] == 8000);
@@ -20,7 +19,6 @@ TEST_CASE("Duel owns Field + Life Points + turn + chain (layer 4)", "[duel]") {
     REQUIRE(d.field.findCard(const_cast<const Card *>(&m)).first != nullptr);
 }
 
-// ── from tests.cpp lines 725,748 ──
 TEST_CASE("Deck pointer seal: backing recorded, re-sealable, mismatch detectable",
           "[engine][duel]") {
     Duel d;

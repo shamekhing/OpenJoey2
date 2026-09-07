@@ -1,6 +1,6 @@
 # Action vocabulary — full realization table
 
-Every `ActionId` (openjoey-foundation, `action/ActionId.hpp`) is realized
+Every `ActionId` (include/action/ActionId.hpp) is realized
 exactly once in `duel/engine/Support.hpp` → `Engine::perform()`. The
 `perform-every-id` test iterates the whole enum and fails on any action
 without a real verdict. Post-classic mechanics realize as classic-format

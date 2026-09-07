@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 1360,1547 ──
 TEST_CASE("Tokens: spawned by the mat, fight, cease to exist off the field",
           "[action][token]") {
     Duel d;

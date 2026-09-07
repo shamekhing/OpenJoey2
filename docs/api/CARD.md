@@ -1,30 +1,51 @@
-# openjoey-cards — API contract
+# Cards layer — API contract (`include/cards/`)
 
-Version 0.3.0 · header-only · C++17 · raylib-free · PolyForm-Noncommercial-1.0.0
+Version 0.3.0 · header-only · C++17 · raylib-free · depends on the core
+vocabulary + nlohmann/json. Namespace: `openjoey::cards`.
 
-Stable contract between `openjoey-cards` and its consumers (`openjoey-engine`,
-`openjoey-app`).
+## 1. Canonical Card surface (read this before touching anything)
 
-## 1. Module
+`cards/Card.hpp` is the **legacy surface and it is canonical**:
 
-* Namespace: `openjoey::cards` (parser detail: `cards::detail`, comparators:
-  `cards::compare`).
-* Target: `openjoey_cards` / alias `openjoey::cards`. Depends on
-  `openjoey::foundation` only. **100% raylib-free** (card widgets live in
-  openjoey-app, `ui/cards/`).
+```cpp
+struct Card : CardDef {          // CardDef: id, name, description, atk/def/level
+    CardState state;             // owner/controller, equip/counters, isToken, …
+    bool operator==(const Card&) const;   // identity: id != 0 && id == other.id
+    int effectiveAtk() const;    // max(0, atk + state.atkMod)  (same for DEF)
+};
+```
 
-## 2. Types
+There is **no** `cardId` (the member is `id`), no `type`/`CardType`, no
+`frameType`, no `imageId`, and **no `effects` vector**. Frame/subtype lives in
+the `Attribute` list (`cards/CardEnums.hpp` — one enumerator per name):
+`isMonster()/isSpell()/isTrap()` and `isExtraDeckMonster()` derive from it, as
+does `hasAttribute(a)` / `hasAttributes(list, any)`. Do not reintroduce the
+removed members — the engine, UI and tests are written against this surface.
 
-* `CardType` — Monster / Spell / Trap.
-* `CardDef` — identity: name, cardId, imageId, description, type, frameType,
-  atk/def/level, `effects: vector<openjoey::ActionSpec>`.
-* `CardState` — duel state: owner/controller, set/placed flags, equips
-  (equippedCards + equipTarget + bonusAtk/Def), atkMod/defMod, xyzMaterials,
-  counters, isToken. **No location/position** — zones own placement truth.
-* `Card : CardDef { CardState state; }` — equality is id-by-identity;
-  `effectiveAtk()/effectiveDef()` (base + mods, ≥ 0); presentation helpers.
-* `CardParser` — `parseRemoteCardJson(string) → ParseResult` (dedup by id,
-  never throws); `detail/cardFromRemoteJson` maps provider fields.
-* `CardDatabase` — owns cards (pointer-stable, movable-not-copyable);
-  `LoadFromFile/LoadFromString`, `GetCardById/Name`, `FindByName` (sorted).
-* `compare::` — byName/byType/byId/byLevel/byAtk/byDef.
+## 2. Parser (`cards/CardParser.hpp` + `utils/JsonUtils.hpp`)
+
+`parseRemoteCardJson(content) -> ParseResult { cards, errors, ok() }`
+
+* input: remote payload `{ "data": [ … ] }`; never aborts on bad entries —
+  problems are collected, valid cards kept;
+* dedup by `id`, first entry wins; id-less entries dropped; nameless entries
+  become `"Card <id>"`;
+* frame → attribute mapping (`detail::cardFromRemoteJson`): monster/spell/trap
+  family, spell/trap icons (Equip, Continuous, Field, QuickPlay, Counter,
+  Ritual), extra-deck mechanics (Fusion, Ritual, Synchro, Xyz). **No**
+  `Attribute::Effect` is emitted.
+
+## 3. Database (`cards/CardDatabase.hpp`)
+
+Owns every `Card` in a `vector<Card>` (stable addresses) and hands out
+non-owning pointers. Movable, not copyable. API: `LoadFromFile` /
+`LoadFromString` / `Clear` · `GetCardById` / `GetCardByName` (nullptr when
+missing) · `FindByName` (substring, sorted by id) · `GetCardByAttribute` ·
+`GetAllCards()` (read-only). Mutating the vector invalidates the id/name index
+and is deliberately impossible.
+
+## 4. Comparators (`cards/CardCompare.hpp`)
+
+`compare::byName / byId / byLevel / byAtk / byDef / byFrame` — strict weak
+orderings, name tiebreak; `byFrame` derives Monster < Spell < Trap from the
+attribute list (there is no `type` member to sort on).

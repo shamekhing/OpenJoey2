@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 353,366 ──
 TEST_CASE("TurnManager walks Draw->Standby->Main1->Battle->Main2->End (p.30)",
           "[duel][turn]") {
     DuelProtocol t;
@@ -26,7 +25,6 @@ TEST_CASE("TurnManager walks Draw->Standby->Main1->Battle->Main2->End (p.30)",
     REQUIRE(t.turnNumber == 2);
 }
 
-// ── from tests.cpp lines 423,463 ──
 TEST_CASE("Engine setup: opening hand + first-turn skips (p.27)", "[engine][turn]") {
     Duel d;
     Card deck0[7], deck1[7];
@@ -68,7 +66,6 @@ TEST_CASE("Engine turn swap + End Phase hand limit of 6 (p.44)", "[engine][turn]
     REQUIRE_FALSE(d.turn.skipDraw);
 }
 
-// ── from tests.cpp lines 969,997 ──
 TEST_CASE("Deck-out at the mandatory draw loses the duel (p.44)",
           "[engine][win]") {
     Duel d;

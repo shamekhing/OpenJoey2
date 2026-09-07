@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 1270,1357 ──
 TEST_CASE("classicEffectsFor maps wired classic cards and skips the rest",
           "[classic][catalog]") {
     CHECK(classicEffectsFor("Pot of Greed").size() == 1);

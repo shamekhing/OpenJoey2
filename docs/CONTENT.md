@@ -1,50 +1,27 @@
-# openjoey-content
+# Content
 
-All runtime content for the OpenJoey split. This repo intentionally keeps
-**only small, hand-maintained files in git**; anything fetched or generated is
-gitignored and produced by the pipeline below.
+What ships in `data/` (root) versus what is fetched at runtime.
 
-| Path | In git? | Producer / purpose |
-|---|---|---|
-| `data/settings.json` | yes | shipped defaults, consumed by `openjoey::Settings::Load` (see `docs/DATA.md` — compiled-in defaults remain the fallback) |
-| `data/decks/` | yes | hand-maintained decks (`default.txt` = 40-card classic starter) |
-| `data/card_back2.png` | yes | spare/alternative card back — **not yet referenced by any code or script** |
-| `docs/SD_RuleBook_EN_10.pdf` | **no** — untracked third-party content, local copy only | reference (the rules this engine implements) |
-| `scripts/fetch_cards.py` | yes | downloads `cards.json` (`--images` to bulk-fetch art) |
-| `scripts/make_assets.py` | yes | generates `card_back.png` + menu background |
-| `data/cards.json` (28 MB) | **no** | `fetch_cards.py` / CI pipeline |
-| `data/images/` (2.3 GB) | **no** | app runtime (`CardImageCache`) / `fetch_cards.py --images` |
-| `data/card_back.png`, `data/assets/backgrounds/*` | **no** | `make_assets.py` / CI pipeline |
-| `data/user_settings.json` | **no** | written by the app (`SettingsScreen`) at runtime |
+## In git (`data/`)
 
-## Getting content onto a fresh clone
+| Path | Role |
+|---|---|
+| `cards.json` | remote-format card database (see `docs/DATA.md`) |
+| `classic_cards.json` | the curated classic-format set |
+| `decks/default.txt` | starter deck (card ids, one per line) |
+| `card_back.png` | shared card back (Pillow-generated, see `scripts/`) |
+| `settings.json` | shipped-default reference for `Config::Load` |
 
-Either run the scripts (network required):
+## Not in git
 
-```sh
-python3 scripts/make_assets.py
-python3 scripts/fetch_cards.py            # cards.json (add --images to bulk-fetch art)
-```
+* `data/images/` — the runtime card-image cache (Konami art; gitignored on
+  purpose). Populated by `scripts/fetch_cards.py --images` or downloaded on
+  demand by `ui/cards/CardImageCache.hpp` (native build only — the web build
+  uses drawn fallback faces).
+* Generated assets (`scripts/make_assets.py`) — regeneratable.
 
-…or download the assets from the `content-latest` release of this repository
-(created by the `fetch-content` GitHub Actions pipeline, monthly). Card images
-are **not** release assets (GitHub caps assets at 2 GB); the app fetches them
-on demand at runtime via `openjoey-cards`' `CardImageCache`.
+## Path contract
 
-At build time `openjoey-app` symlinks this repo's `data/` next to the binary so
-runtime paths stay unchanged: `<builddir>/data/...`.
-
-## Data contract
-
-Formats and naming rules are specified in [`docs/DATA.md`](docs/DATA.md) —
-notably the `<cardId>.jpg` image-naming contract that `Card::imageId`
-(openjoey-cards) depends on.
-
-Extracted from OpenJoey2@21f1d8e. Consumed by: openjoey-app (build-time
-symlink), openjoey-cards (image-cache URL/naming contract).
-
-## License
-
-Licensed under the PolyForm Noncommercial License 1.0.0 — see
-[`LICENSE`](LICENSE). Free for noncommercial use; commercial use requires a
-paid license from the copyright holder (shamekhing@gmail.com).
+`src/main.cpp` passes `argv[0]`; `Config` resolves `data/` beside the
+executable. The root CMakeLists symlinks `data/` into the build dir (native)
+and preloads it at `/data` (web).

@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 262,352 ──
 TEST_CASE("MoveDraw shifts the deck top card to the owner's hand", "[effect]") {
     Field f;
     Card a{}, b{};

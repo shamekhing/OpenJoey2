@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 651,686 ──
 TEST_CASE("Engine position change: an attacked monster cannot switch (p.36)",
           "[engine][summon][battle]") {
     BattleFix fix(2000, 500, 800);
@@ -37,7 +36,6 @@ TEST_CASE("Replay: re-declaring with a DIFFERENT monster locks the first (p.37)"
     REQUIRE_FALSE(action::CanAttack(fix.d, &fix.a));
 }
 
-// ── from tests.cpp lines 749,923 ──
 TEST_CASE("Undo: snapshot/restore rolls back a summon, incl. tokens",
           "[engine][undo]") {
     Duel d;

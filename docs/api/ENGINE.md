@@ -1,58 +1,78 @@
-# openjoey-engine — API contract
+# Engine layer — API contract (`include/engine/`)
 
-Version 0.3.0 · header-only · C++17 · raylib-free
+Version 0.3.0 · header-only · C++17 · raylib-free · classic ruleset only.
+Namespace: `openjoey::engine` (action functions: `openjoey::engine::action`).
+Consumers: `ui`, tests, the future `openjoey::ai`.
 
-Stable contract between `openjoey-engine` and its consumers (`openjoey-app`,
-tests, the future `openjoey-ai`).
+## 1. Module map
 
-## 1. Module
+```
+engine/action/   the rules, one concern per header
+                 State (legality predicates, LP, win) · Moves (mat primitives)
+                 Summons · Battle (declare/damage/replay) · Chains (activate/
+                 resolve, response window) · Turn (start/end) · Perform (id→fn)
+                 Observe (StateView + LegalActions) · Catalog (classic effects)
+                 Support (standby, equips, counters, search) · Gates (format)
+engine/duel/     Duel (state) · Chain · Engine (facade) · Undo (snapshots)
+engine/config/   DuelConfig — constants + per-duel runtime switches
+engine/field/    Field + zone/ (the mat: monster/ST/field/EMZ + stacks)
+engine/protocol/ DuelProtocol, BattleProtocol, ChainProtocol (state walks)
+```
 
-* Namespace: `openjoey::engine` (zone vocabulary: `openjoey::engine::zone`).
-* Target: `openjoey_engine` / alias `openjoey::engine`. Depends on
-  `openjoey::cards` → `openjoey::foundation`. Raylib never enters.
-* Include roots: `zone/`, `field/`, `action/`, `duel/`, `config/`, `protocol/`.
+## 2. `Engine` facade (`engine/duel/Engine.hpp`)
 
-## 2. Layout & responsibilities
+Thin wrapper over one external `Duel&` (rematch = `duel = Duel{}` +
+`hardReset()`). Groups: setup (`setDeck` — seals deck backings, `shuffleDecks`,
+`drawOpeningHands`), turn flow (`startTurn/endTurn/toMain1/toMain2/toBattle`),
+battle (`canAttack/canDirectAttack/declareAttack/confirmAttack/cancelAttack/
+resolveDamage`), summons (`normalSummon/normalSet/tributeSummon/flipSummon/
+changePosition/fusionSummon/ritualSummon`), effects (`activateEffect/
+passResponse/resolveChain/chainWaiting`), readouts (`lp`), AI seams
+(`observe`/`legalActions` — see `include/ai/Ai.hpp`), undo
+(`checkpoint/canUndo/undo/clearUndo`).
 
-| Path | Owns |
-|---|---|
-| `zone/` | mat vocabulary: `ZoneType`, `Orientation`, `Visibility`, `IZone`, `Zone`, `ZoneStack`, `Zones` (one class per header) |
-| `field/Field.hpp` | the mat: all zones both players + `tokens` (engine-spawned) + `findCard`/queries |
-| `action/builtins/` | **one HPP per built-in action** (19): zone-move primitives — Draw, Mill, Discard, Destroy, Banish, ReturnHand/Deck, SearchToHand, Excavate, MaterialsToGY, ToMMZ, Normal/Set, Special, Token, Fusion, Ritual, Pos_Flip, Equip, Counters |
-| `action/detail/` | ZoneMove (targeted transfer with rollback), LeaveField (detach sweeps + token erasure) |
-| `action/ActionResolver.hpp` | `ActionSpec` → zone-moves/LP dispatcher (single point; `DuelContext` LP hooks) |
-| `action/Catalog.hpp` | classic card → ActionSpec wiring (data table) |
-| `action/actions/<Name>.hpp` ×213 | **one HPP per action** — `act_<Name>(args)` Engine members; umbrella `action/realizations.hpp` |
-| `action/builtins.hpp` | umbrella for the builtins |
-| `duel/Duel.hpp` | state: field, protocol, chain, LP, result/WinReason (incl. CardEffectWin) |
-| `duel/Engine.hpp` | facade + per-turn bookkeeping + AI seams |
-| `duel/Chain.hpp` | chain links (full ActionSpec per link) |
-| `duel/Observe.hpp` | `StateView` + `Engine::observe(viewer)` — AI/UI read-only view |
-| `duel/engine/*.hpp` | flow sections: Turn, Summon, Battle, Effects, Support, Observe (included inside Engine) |
-| `config/DuelConfig.hpp` | the ruleset as configuration: LP/hand/deck limits, tribute brackets, seeded RNG, coin/die |
-| `protocol/` | `DuelProtocol` (phase walk), `BattleProtocol` (Battle/Damage steps + outcomes), `ChainProtocol` (chain walk) |
+## 3. Rules as implemented (with rulebook page pins)
 
-## 3. The action system
+* **Setup**: 8000 LP, 5-card hands, turn 1 = no draw + no Battle Phase.
+* **Summons** (p.23–25): Normal/Set once per turn (shared budget); tributes
+  1/2 for Lv5–6/7+; Flip Summon not on the Set turn, → face-up ATK; Special
+  Summons choose ATK / face-up DEF / face-down DEF (`SummonPose`); Fusion
+  materials from hand or field; Ritual tribute levels ≥ level.
+* **Battle** (p.34–43): ATK-vs-ATK (win/lose/tie), ATK-vs-DEF (destroy /
+  nothing / rebound), direct attack only vs empty field, one attack per
+  monster, face-down flip at the Damage Step, flip effects after damage,
+  held-open attack with replay re-validation (p.37) — a different re-declared
+  attacker locks the original.
+* **Position** (p.36): not on the arrival turn, once per turn, never after
+  attacking.
+* **Spells/Traps** (p.31): Set Spells may activate the same turn; Set Traps
+  may not (enforced twice: menu predicate `CanActivateSetSpellTrap` + the
+  `args.source` check in `ActivateEffect`).
+* **Chains** (p.44–47): reverse-order resolution, Spell Speed ≥ previous link,
+  costs never refunded; the p.45 response window (`chainResponseWindow`)
+  resolves only after both players pass.
+* **End Phase** (p.41): hand limit 6 — auto-discard (`autoDiscardEndPhase`) or
+  player-selected.
 
-* `openjoey::ActionId` — 213 actions (foundation); complete ruleset extraction.
-* `openjoey::ActionSpec` — `{id, timing, speed, amount, lpCost, scope, needsTarget, note}`.
-* `TargetScope` — named target selection (replaces sentinel protocols).
-* `Engine::perform(id, args)` — **exhaustive** realization switch; the
-  `perform-every-id` test fails the build if any action is unimplemented.
-* Full table: [`ACTIONS.md`](ACTIONS.md).
+## 4. Effects are catalog-driven
 
-## 4. AI seams (future `openjoey::ai`)
+`Card` has no effect list. `classicEffectsFor(name)` /
+`findClassicEffect(name)` (`engine/action/Catalog.hpp`) return the wired
+`ActionSpec`s; activations, flip triggers and standby triggers all pull from
+it. Adding a card = one catalog row.
 
-* `Engine::observe(viewer) → StateView` — visibility-correct read-only snapshot.
-* `Engine::legalActions(player) → vector<ActionSpec>` — the action space.
-* `DuelConfig` seeded RNG — deterministic episodes.
+## 5. Format switches (`engine/config/DuelConfig.hpp`)
 
-## 5. Rules notes (classic format)
+Per-duel runtime fields on `DuelConfig` (also carried in `Duel::config`):
+`chainResponseWindow` (default off — chains resolve explicitly),
+`autoDiscardEndPhase` (default on). Numeric rules (LP, hand limit, deck bounds,
+tribute counts, skips) remain `static constexpr`.
 
-* Placement truth lives in zones (`Orientation`/`Visibility`); cards carry no
-  location/position copy — derive via `Field::findCard`.
-* Tokens are owned by `Field::tokens` and cease to exist off the field.
-* Equips grant `bonusAtk/Def` additively; detach rolls back exactly; a
-  destroyed monster destroys its equips.
-* Battle math uses `effectiveAtk()/effectiveDef()` (base + modifiers, ≥ 0).
-* Synchro/Xyz/Pendulum/Link are explicit classic-format gates.
+## 6. Undo (`engine/duel/Undo.hpp`)
+
+`makeSnapshot` / `restoreSnapshot`: zones copy as pointers (deck-owned cards
+keep addresses), engine-owned **tokens deep-copy with pointer remap**
+(`IZone::replacePtr` → `Field::remapPointers`), and the `CardState` of every
+referenced external card is captured and re-applied — once-per-turn flags and
+equip bonuses survive an undo. `Engine` keeps a bounded stack (30) fed by
+`checkpoint()` in every committed action.

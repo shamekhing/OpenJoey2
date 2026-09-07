@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 223,244 ──
 TEST_CASE("Config round-trips user_settings.json", "[config]") {
     Config s;
     s.screenWidth = 1366;

@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 125,222 ──
 TEST_CASE("Single-slot Zone put / remove / contains / guards", "[zone]") {
     Zone_Monster slot;  // concrete single-slot zone (Zone/IZone is abstract)
     Card c;

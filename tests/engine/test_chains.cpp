@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 367,379 ──
 TEST_CASE("Chain resolves last-activated-first (p.41)", "[duel][chain]") {
     Chain c;
     c.push(ActionSpec{ActionId::Move_Draw, EffectType::Ignition, 1}, 0);  // activated first
@@ -14,7 +13,6 @@ TEST_CASE("Chain resolves last-activated-first (p.41)", "[duel][chain]") {
     REQUIRE(order[2]->id == ActionId::Move_Draw);  // first activated, last resolved
 }
 
-// ── from tests.cpp lines 596,629 ──
 TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
           "[engine][trap][chain]") {
     Duel d;
@@ -50,7 +48,6 @@ TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
     action::ResolveChain(d);
 }
 
-// ── from tests.cpp lines 706,724 ──
 TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mode off)",
           "[engine][chain]") {
     Duel d;
@@ -70,7 +67,6 @@ TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mo
     CHECK(d.chain.links.empty());
 }
 
-// ── from tests.cpp lines 924,968 ──
 TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
           "[engine][chain]") {
     Duel d;
@@ -116,7 +112,6 @@ TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
 
 // ── Win conditions (p.44) ────────────────────────────────────────────────────
 
-// ── from tests.cpp lines 1194,1267 ──
 TEST_CASE("Chain negation: a counter blanks the link it responds to (p.44)",
           "[engine][negate]") {
     Duel d;

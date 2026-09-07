@@ -5,7 +5,7 @@
       "name": "Debug OpenJoey2",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/openjoey-app/build/debug/OpenJoey2",
+      "program": "${workspaceFolder}/build/OpenJoey2",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

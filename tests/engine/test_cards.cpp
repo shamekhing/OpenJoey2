@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 51,124 ──
 TEST_CASE("CardDatabase loads the starter cards.json", "[card][db]") {
     CardDatabase db;
     REQUIRE(db.LoadFromFile(cardsPath()));
@@ -79,7 +78,6 @@ TEST_CASE("Card comparators are strict weak orderings", "[card][sort]") {
 
 // --- Zones ---
 
-// ── from tests.cpp lines 245,261 ──
 // ── Effects: the "zone-move" invariant ───────────────────────────────────────
 // Per the design driving this refactor: every classic effect is expressed as a
 // card moving from one zone to another. EffectsBuiltIn is the single mutator;

@@ -1,55 +1,59 @@
-# openjoey-foundation — API contract
+# Core layer — API contract (`include/Config.hpp`, `include/action/`, `include/ai/`)
 
-Version 0.3.0 · header-only · C++17 · raylib-free · PolyForm-Noncommercial-1.0.0
+Version 0.3.0 · header-only · C++17 · raylib-free · depends on nlohmann/json
+(pinned v3.12.0 when fetched) and nothing else.
 
-The bottom layer: shared vocabulary + configuration + content data. Depends on
-nothing but nlohmann/json (pinned v3.12.0 when fetched). **Must never depend
-on raylib, any UI toolkit, or any other openjoey module.**
+The root vocabulary every other layer speaks. Namespace: `openjoey`.
+Consumers: `cards` ← `engine` ← `ui`.
 
-## 1. Consumers
+## 1. `action/ActionId.hpp` — the action vocabulary
 
-```
-openjoey-foundation <- openjoey-cards <- openjoey-engine <- openjoey-app
-                                              └── openjoey::ai (future repo)
-```
+`enum class ActionId : uint16_t` — every player action **and** card effect is
+one id (213 entries, grouped by ruleset section). The numbering is part of the
+contract: `None == 0`, `Move_Draw == 5`, `Summon_Normal == 13` (pinned by
+`tests/core.cpp`).
 
-## 2. Entry point
+## 2. `action/ActionSpec.hpp` — one encoding for cards, chains and menus
 
 ```cpp
-#include <openjoey/foundation.hpp>   // ActionId + ActionSpec + ai + Config
+struct ActionSpec {
+    ActionId    id;             // what happens
+    EffectType  timing;         // Ignition / Trigger / Quick
+    uint8_t     speed;          // Spell Speed 1 / 2 / 3
+    int         amount;         // draws / damage / LP / cards moved
+    int         lpCost;         // non-refundable activation cost
+    TargetScope scope;          // Opponent / AllMonsters / PerOppMonster / …
+    bool        needsTarget;    // activation must ask for a target card
+    const char *note;           // menu label / debug hint
+};
 ```
 
-## 3. `action/ActionId.hpp` — the action vocabulary
+`ActionArgs` (`action/ActionArgs.hpp`) is the runtime parameter block:
+`target`, `source` (set-turn Trap checks), `targetPlayer`, `n`, `faceDown`,
+`materials`.
 
-`openjoey::ActionId : uint16_t` — **213 actions** (complete classic-ruleset
-extraction), one per line grouped by ruleset section. Player actions and card
-effects are the same vocabulary. Appended-only ABI (leading values pinned by
-the foundation test).
+## 3. `Config.hpp` — layered settings
 
-## 4. `action/ActionSpec.hpp`
+Load order: compiled defaults → `data/settings.json` (shipped reference) →
+`data/user_settings.json` (app-written). Groups: `window` (size/fps/fullscreen),
+`paths`, `url` (content endpoints), `app` (`downloadImages` plus the two duel
+format switches):
 
-* `openjoey::EffectType` — Ignition / Trigger / Quick / Continuous / Cost.
-* `openjoey::TargetScope` — None, Targeted, Activator, Opponent, PerOppMonster,
-  OppMonsters, AllMonsters, AllSpellsTraps, OppAttackPos.
-* `openjoey::ActionSpec` — `{id, timing, speed, amount, lpCost, scope,
-  needsTarget, note}`. Brace-init ABI is pinned by the cards test.
+| Field | Default | Meaning |
+|---|---|---|
+| `chainResponseWindow` | `false` | p.45: chains resolve only after both players pass |
+| `autoDiscardEndPhase` | `true` | p.41: `EndTurn` auto-discards down to 6 |
 
-## 5. `ai/Ai.hpp` — reserved contracts (future `openjoey::ai` repo)
+`Save()` writes `user_settings.json`; `Load(argv0)` resolves `data/` beside the
+executable (web build: the Emscripten VFS root).
 
-* **player** (RL): consumes `Engine::observe(viewer)` +
-  `Engine::legalActions(player)` + flow applies; deterministic via seeded
-  `DuelConfig`.
-* **reader**: `infer(const cards::CardDef&) → std::vector<ActionSpec>` — same
-  role as the engine's Catalog (which doubles as seed training labels).
+## 4. `ai/Ai.hpp` — reserved contracts
 
-## 6. `Config.hpp` — the ONE configuration type
+`openjoey::ai` is intentionally empty today; two agents are planned:
 
-Paths + remote provider endpoints (config-supplied, never compiled in) +
-window options (absorbed AppConfig). Layered `Load()`: compiled defaults →
-`data/settings.json` → `data/user_settings.json`. `Save()` writes the overlay.
-Statics: `exeDir`, `resolveDataFile`, `settingsFile`, `referenceFile`.
-
-## 7. Data & scripts
-
-`data/` — cards.json (release asset), classic_cards.json, decks/, settings.json.
-`scripts/` — fetch_cards.py, make_assets.py, make_classic_cards.py.
+* **player** (RL): consumes `Engine::observe(viewer)` (read-only `StateView`)
+  and `Engine::legalActions(player)` (the action space, `vector<ActionSpec>`),
+  applies actions through the same facade; deterministic episodes come from
+  `DuelConfig`'s injectable RNG seed.
+* **reader**: `infer(const cards::CardDef&) -> vector<ActionSpec>` — the same
+  role `engine/action/Catalog.hpp` plays as a pure data table.

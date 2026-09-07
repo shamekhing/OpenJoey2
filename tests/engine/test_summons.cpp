@@ -1,6 +1,5 @@
 #include "support/Fixtures.hpp"
 
-// ── from tests.cpp lines 464,595 ──
 TEST_CASE("Engine Normal Summon: once per turn, Main Phase only (p.24)", "[engine][summon]") {
     Duel d;
     Card m, m2;
@@ -133,7 +132,6 @@ TEST_CASE("Engine position change: once per turn, not on arrival turn (p.26)",
 
 // ── Battle Phase (p.34–38) ───────────────────────────────────────────────────
 
-// ── from tests.cpp lines 687,705 ──
 TEST_CASE("Special Summon may choose face-up DEF (p.25)", "[engine][summon]") {
     Duel d;
     Card m;
@@ -153,7 +151,6 @@ TEST_CASE("Special Summon may choose face-up DEF (p.25)", "[engine][summon]") {
     REQUIRE_FALSE(action::CanAttack(d, &m));
 }
 
-// ── from tests.cpp lines 1000,1193 ──
 TEST_CASE("Resolver: position changes and effect flips (classic zone ops)",
           "[resolver][classic]") {
     Duel d;
