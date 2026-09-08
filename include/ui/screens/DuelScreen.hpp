@@ -27,6 +27,7 @@
 #include "ui/duel/Action.hpp"
 #include "ui/duel/DuelActions.hpp"
 #include "ui/duel/DuelEffects.hpp"
+#include "ui/duel/DuelLayout.hpp"
 #include "ui/duel/DuelPanels.hpp"
 #include "ui/duel/DuelSetup.hpp"
 #include "ui/duel/FieldGrid.hpp"
@@ -64,7 +65,8 @@ class DuelScreen : public IScreen {
         int centerW = _SW - leftW - rightW;
         int headerH = HEADER_HEIGHT;
         int footerH = int(0.03f * _SH);
-        int fieldH = _SH - headerH - footerH;
+        const int barH = (int)DuelLayout::barH();
+        int fieldH = _SH - headerH - footerH - barH;
 
         DuelPanels::drawHeader(engine_, duel_, ui_, 0, 0, _SW, headerH);
         drawPreviewPanel(0, headerH, leftW, fieldH);
@@ -95,10 +97,46 @@ class DuelScreen : public IScreen {
             {(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH},
             fieldGrid_.cursorZone(const_cast<Field&>(field_)),
             fieldGrid_.cursorLabel(const_cast<Field&>(field_)),
-            ui_.actions, ui_.actionCursor, ui_.feedback, ui_.lastResult,
+            ui_.feedback, ui_.lastResult,
             fieldGrid_.selectedZone() != nullptr);
 
-        DuelPanels::drawFooter(0, _SH - footerH, _SW, footerH);
+        // ── Bottom action sheet: ONE menu UI for keyboard, mouse and touch ──
+        // Keyboard: arrows move actionCursor, ENTER invokes. Mouse/touch: tap
+        // a row. Rows keep a >=48px height and the window auto-centres on the
+        // cursor, so nothing is selectable-but-invisible (the old right-panel
+        // list allowed selecting entries it had scrolled out of view).
+        if (ui_.mode == DuelMode::Menu && !ui_.actions.empty()) {
+            const int visible = sheetVisible();
+            const int first = sheetFirst();
+            const Rectangle sh = DuelLayout::sheetRect(visible);
+            DrawRectangleRec(sh, {16, 16, 26, 246});
+            DrawLine((int)sh.x, (int)sh.y, (int)(sh.x + sh.width), (int)sh.y,
+                     COLOR_DIVIDER_MID);
+            const int fs = 0.026f * _SH < 15 ? 15 : (int)(0.026f * _SH);
+            for (int row = 0; row < visible; ++row) {
+                const int idx = first + row;
+                const Rectangle rr = DuelLayout::sheetRowRect(visible, row);
+                const bool sel = idx == ui_.actionCursor;
+                if (sel) DrawRectangleRec(rr, Fade(GOLD, 0.14f));
+                DrawLine((int)rr.x, (int)rr.y, (int)(rr.x + rr.width), (int)rr.y,
+                         COLOR_DIVIDER_LINE);
+                DrawText(DrawUtils::clipText(ui_.actions[idx].label,
+                                             (int)(sh.width - 24), fs)
+                             .c_str(),
+                         (int)rr.x + 12, (int)(rr.y + (rr.height - fs) / 2), fs,
+                         sel ? GOLD : RAYWHITE);
+            }
+            if (first > 0 || first + visible < (int)ui_.actions.size()) {
+                const char* hint = TextFormat("%d/%d", ui_.actionCursor + 1,
+                                              (int)ui_.actions.size());
+                DrawText(hint, (int)(sh.x + sh.width - MeasureText(hint, 13) - 10),
+                         (int)sh.y - 17, 13, COLOR_STAT_TEXT);
+            }
+        }
+        if (ui_.mode != DuelMode::Navigate) drawCancelButton();
+
+        DuelPanels::drawActionBar(engine_, duel_, ui_);
+        DuelPanels::drawFooter(0, _SH - footerH - barH, _SW, footerH);
         DuelPanels::drawOverlays(duel_, ui_);
 
         // Duel log overlay (L): the full narration, newest at the bottom.
@@ -177,6 +215,74 @@ class DuelScreen : public IScreen {
     // screen jumps straight to Main1 so every action menu is live at once.
     void advanceToMain1() { engine_.toMain1(); }
 
+    // ── Factored flows: every GUI button routes through the SAME code path ──
+    // as the keyboard shortcut it replaces, so desktop behaviour is unchanged.
+    void goBattle() {
+        ActionResult r = engine_.toBattle();
+        if (r.ok && r.msg == "Battle Phase.")
+            r.msg += " SPACE on your monster to attack — or tap it.";
+        ui_.post(r);
+    }
+    void goMain2() { ui_.post(engine_.toMain2()); }
+    void resolveChainFlow() {
+        ui_.post(engine_.chainWaiting() ? engine_.passResponse(1 - duel_.turnPlayer)
+                                        : engine_.resolveChain());
+        if (duel_.chain.links.empty()) {
+            fx_.sweepResolved();
+            ui_.chainPrompt = false;
+            ui_.mode = DuelMode::Navigate;
+        } else {
+            ui_.lastResult += " — still open, the other player may chain.";
+        }
+    }
+    void undoFlow() {
+        if (!engine_.canUndo()) {
+            ui_.lastResult = "nothing to undo.";
+            return;
+        }
+        engine_.undo();
+        fieldGrid_.setViewer(duel_.turnPlayer, field_);
+        ui_.mode = DuelMode::Navigate;
+        act_.rebuild();
+        ui_.lastResult = "undo — last action reverted.";
+    }
+    void invokeMenuAction(int idx) {
+        if (idx < 0 || idx >= (int)ui_.actions.size()) return;
+        ui_.actionCursor = idx;
+        const ActionResult r = ui_.actions[idx].invoke();
+        if (ui_.mode == DuelMode::Menu) ui_.mode = DuelMode::Navigate;
+        ui_.post(r);
+        // A targeting prompt is an instruction, not a verdict — keep it out
+        // of the green/red verdict colours.
+        if (ui_.mode != DuelMode::Navigate)
+            ui_.feedback = DuelUIState::Feedback::Info;
+    }
+    bool clicked(const Rectangle& r) const {
+        return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+               CheckCollisionPointRec(GetMousePosition(), r);
+    }
+    // ── Action-sheet scroll window (shared by Draw and input) ────────────────
+    int sheetVisible() const {
+        const int n = (int)ui_.actions.size();
+        const int maxRows = DuelLayout::sheetMaxRows();
+        return n < maxRows ? n : maxRows;
+    }
+    int sheetFirst() const {
+        int first = ui_.actionCursor - sheetVisible() / 2;
+        if (first > (int)ui_.actions.size() - sheetVisible())
+            first = (int)ui_.actions.size() - sheetVisible();
+        return first < 0 ? 0 : first;
+    }
+    void drawCancelButton() const {
+        const Rectangle r = DuelLayout::cancelRect();
+        DrawRectangleRec(r, {20, 20, 30, 230});
+        DrawRectangleLinesEx(r, 1.5f, Color{230, 90, 90, 255});
+        const char* x = "X";
+        const int fs = (int)(r.height * 0.55f);
+        DrawText(x, (int)(r.x + (r.width - MeasureText(x, fs)) / 2),
+                 (int)(r.y + (r.height - fs) / 2), fs, Color{240, 130, 130, 255});
+    }
+
     void endTurnFlow() {
         if (ui_.chainPrompt) {
             ui_.lastResult = "resolve the chain first (R).";
@@ -209,11 +315,14 @@ class DuelScreen : public IScreen {
     // SPACE confirms the pass-device gate.
     ScreenEvent handleInput() {
         if (duel_.result != DuelResult::Ongoing) {
-            if (IsKeyPressed(KEY_R)) rematch();
+            if (IsKeyPressed(KEY_R) || clicked(DuelLayout::winButton(0)))
+                rematch();
+            else if (clicked(DuelLayout::winButton(1)))
+                return ScreenEvent::replace(AppScreen::MainMenu);
             return ScreenEvent::none();
         }
         if (ui_.handoff) {
-            if (IsKeyPressed(KEY_SPACE)) {
+            if (IsKeyPressed(KEY_SPACE) || clicked(DuelLayout::handoffButton())) {
                 ui_.handoff = false;
                 ui_.lastResult = "player " + std::to_string(duel_.turnPlayer + 1) +
                                  " — your turn.";
@@ -223,21 +332,14 @@ class DuelScreen : public IScreen {
         // Chain window: the other player may respond via card menus; R passes
         // / resolves. Engine-driven mode (p.45): both must pass before the
         // chain resolves, so the prompt stays open after the first pass.
-        if (ui_.chainPrompt && IsKeyPressed(KEY_R)) {
-            ui_.post(engine_.chainWaiting()
-                         ? engine_.passResponse(1 - duel_.turnPlayer)
-                         : engine_.resolveChain());
-            if (duel_.chain.links.empty()) {
-                fx_.sweepResolved();
-                ui_.chainPrompt = false;
-                ui_.mode = DuelMode::Navigate;
-            } else {
-                ui_.lastResult += " — still open, the other player may chain.";
-            }
+        if (ui_.chainPrompt &&
+            (IsKeyPressed(KEY_R) || clicked(DuelPanels::chainButtonRect(duel_)))) {
+            resolveChainFlow();
             return ScreenEvent::none();
         }
-        if (ui_.helpOpen) {  // help modal blocks gameplay input; H closes it
-            if (IsKeyPressed(KEY_H)) ui_.helpOpen = false;
+        if (ui_.helpOpen) {  // help modal blocks gameplay input; H or GOT IT closes
+            if (IsKeyPressed(KEY_H) || clicked(DuelLayout::helpOkButton()))
+                ui_.helpOpen = false;
             return ScreenEvent::none();
         }
         if (IsKeyPressed(KEY_H)) {
@@ -248,14 +350,7 @@ class DuelScreen : public IScreen {
             ui_.logOpen = !ui_.logOpen;
             return ScreenEvent::none();
         }
-        if (IsKeyPressed(KEY_Z) && engine_.canUndo()) {  // one-step undo
-            engine_.undo();
-            fieldGrid_.setViewer(duel_.turnPlayer, field_);
-            ui_.mode = DuelMode::Navigate;
-            act_.rebuild();
-            ui_.lastResult = "undo — last action reverted.";
-            return ScreenEvent::none();
-        }
+        if (IsKeyPressed(KEY_Z)) undoFlow();  // one-step undo (button in the bar too)
 
         const bool up = IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W);
         const bool down = IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S);
@@ -268,6 +363,44 @@ class DuelScreen : public IScreen {
         const int dr = (down ? 1 : 0) - (up ? 1 : 0);
         const int dc = (rt ? 1 : 0) - (lf ? 1 : 0);
 
+        // ── GUI buttons (mouse/touch) — routed through the same flows as the
+        // keys. ✕ reuses each mode's cancel path; the action bar mirrors
+        // B/N/E/Z/L; sheet rows invoke the menu action they render. A click
+        // consumed here must not also reach the field hit-test below.
+        bool guiClick = false;
+        if (ui_.mode != DuelMode::Navigate && clicked(DuelLayout::cancelRect())) {
+            esc = true;
+            guiClick = true;
+        }
+        for (int slot = 0; slot < DuelLayout::kBarButtons; ++slot) {
+            if (!clicked(DuelLayout::barButton(slot))) continue;
+            if (!DuelPanels::barEnabled(engine_, duel_, slot))
+                return ScreenEvent::none();  // disabled buttons swallow the tap
+            if (slot == 0) {
+                if (duel_.turn.phase == Phase::Battle)
+                    goMain2();
+                else
+                    goBattle();
+            } else if (slot == 1) {
+                endTurnFlow();
+            } else if (slot == 2) {
+                undoFlow();
+            } else {
+                ui_.logOpen = !ui_.logOpen;
+            }
+            return ScreenEvent::none();
+        }
+        if (ui_.mode == DuelMode::Menu && !ui_.actions.empty()) {
+            const int visible = sheetVisible();
+            const int first = sheetFirst();
+            for (int row = 0; row < visible; ++row) {
+                if (clicked(DuelLayout::sheetRowRect(visible, row))) {
+                    invokeMenuAction(first + row);
+                    return ScreenEvent::none();
+                }
+            }
+        }
+
         // ── Mouse: click-to-cursor; every click reuses a keyboard pathway ────
         // Left click moves the keyboard cursor onto the hit zone/hand card and
         // then acts like ENTER (open menu / confirm target). Right click acts
@@ -275,7 +408,7 @@ class DuelScreen : public IScreen {
         const Vector2 mousePos = GetMousePosition();
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
             esc = true;
-        } else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        } else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !guiClick) {
             if (fieldGrid_.pointToCursor(mousePos, field_)) {
                 if (ui_.mode == DuelMode::Menu)
                     ui_.mode = DuelMode::Navigate;  // re-open fresh menu on the hit cell
@@ -290,13 +423,8 @@ class DuelScreen : public IScreen {
         }
 
         if (ui_.mode == DuelMode::Navigate) {
-            if (IsKeyPressed(KEY_B)) {
-                ActionResult r = engine_.toBattle();
-                if (r.ok && r.msg == "Battle Phase.")
-                    r.msg += " SPACE on your monster to attack.";
-                ui_.post(r);
-            }
-            if (IsKeyPressed(KEY_N)) ui_.post(engine_.toMain2());
+            if (IsKeyPressed(KEY_B)) goBattle();
+            if (IsKeyPressed(KEY_N)) goMain2();
             if (IsKeyPressed(KEY_E)) {
                 endTurnFlow();
                 return ScreenEvent::none();
@@ -340,17 +468,7 @@ class DuelScreen : public IScreen {
                     break;
                 }
                 if (ent) {
-                    if (ui_.actions.empty()) {
-                        ui_.mode = DuelMode::Navigate;
-                        break;
-                    }
-                    const ActionResult r = ui_.actions[ui_.actionCursor].invoke();
-                    if (ui_.mode == DuelMode::Menu)
-                        ui_.mode = DuelMode::Navigate;  // actions may switch mode
-                    ui_.post(r);
-                    // A targeting prompt is an instruction, not a verdict —
-                    // keep it out of the green/red verdict colours.
-                    if (ui_.mode != DuelMode::Navigate) ui_.feedback = DuelUIState::Feedback::Info;
+                    invokeMenuAction(ui_.actionCursor);
                 }
                 break;
             }

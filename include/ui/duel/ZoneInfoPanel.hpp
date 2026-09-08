@@ -15,11 +15,11 @@ using namespace openjoey::engine;
 using cards::Card;
 using cards::CardDatabase;
 
-// Right-side panel: zone state and numbered action list.
-// All sizes derived from the supplied rect — no fixed pixel values.
+// Right-side panel: zone state readout + the verdict strip. The action list
+// itself moved to the tappable bottom action sheet (DuelScreen), which is
+// shared by keyboard, mouse and touch.
 struct ZoneInfoPanel {
     static void Draw(Rectangle r, zone::IZone* zone, const char* label,
-                     const DuelActionList& actions, int actionCursor,
                      DuelUIState::Feedback feedback,
                      const std::string& lastResult, bool hasSource) {
         DrawRectangleRec(r, COLOR_PANEL_BG);
@@ -75,21 +75,11 @@ struct ZoneInfoPanel {
                  (int)(r.x + r.width - pad * 0.5f), (int)cy, COLOR_DIVIDER_LINE);
         cy += pad * 0.5f;
 
-        DrawText("Actions", (int)x, (int)cy, fsSub, COLOR_STAT_TEXT);
-        cy += lineH;
-        for (int i = 0; i < (int)actions.size(); ++i) {
-            bool sel = (i == actionCursor);
-            Color col = sel ? YELLOW : Color{180, 180, 200, 255};
-            if (sel) DrawRectangleRec({r.x, cy - 1, r.width, fsSub + 4.f}, Fade(YELLOW, 0.12f));
-            std::string line = (sel ? "> " : "  ") + std::to_string(i + 1) + ". " + actions[i].label;
-            DrawText(DrawUtils::clipText(line, (int)maxW, fsSmall).c_str(),
-                     (int)x, (int)cy, fsSmall, col);
-            cy += fsSmall * 1.5f;
-            if (cy > r.y + r.height - fsSmall * 5) {
-                DrawText("...", (int)x, (int)cy, fsSmall, DARKGRAY);
-                break;
-            }
-        }
+        // (The numbered action list lives in the bottom action sheet now —
+        // one menu UI for keyboard, mouse and touch instead of two.)
+        (void)x;
+        (void)maxW;
+        (void)fsSmall;
 
         if (!lastResult.empty()) {
             float ry = r.y + r.height - fsSub * 3.0f;
