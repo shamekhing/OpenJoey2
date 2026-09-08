@@ -100,7 +100,7 @@ struct DuelActions {
     }
 
    private:
-    void push(std::string lbl, std::function<std::string()> fn,
+    void push(std::string lbl, std::function<ActionResult()> fn,
               ActionId id = ActionId::None) {
         st.actions.push_back({std::move(lbl), std::move(fn), id});
     }
@@ -126,8 +126,8 @@ struct DuelActions {
                      st.fusionPending = st.ritualPending = false;
                      st.pendingCard   = c;
                      st.mode          = DuelMode::TributeTarget;
-                     return "pick " + std::to_string(tr) +
-                            " tributes (ENTER on your monsters)."; }, ActionId::TributeSummon);
+                     return ActionResult::Ok("pick " + std::to_string(tr) +
+                                             " tributes on your monsters."); }, ActionId::TributeSummon);
         }
     }
 
@@ -142,7 +142,7 @@ struct DuelActions {
                     st.fusionPending = true;
                     st.ritualPending = false;
                     st.mode = DuelMode::TributeTarget;
-                    return "pick 2 materials from your monster row.";
+                    return ActionResult::Ok("pick 2 materials from your monster row.");
                 });
             } else if (e->id == ActionId::Summon_Ritual) {
                 push("ritual: pick tributes (F to confirm)", [this, c] {
@@ -152,7 +152,7 @@ struct DuelActions {
                     st.ritualPending = true;
                     st.fusionPending = false;
                     st.mode = DuelMode::TributeTarget;
-                    return "pick field tributes, then press F.";
+                    return ActionResult::Ok("pick field tributes, then press F.");
                 });
             } else {
                 pushActivate(c, e);
@@ -167,17 +167,17 @@ struct DuelActions {
     // Shared activation entry: arm the pending state, then target or fire.
     void pushActivate(Card* c, const ActionSpec* e) {
         const int me = grid.viewer();
-        push(std::string("activate — ") + (e->note ? e->note : "effect"), [this, c, e, me]() -> std::string {
+        push(std::string("activate — ") + (e->note ? e->note : "effect"), [this, c, e, me]() -> ActionResult {
                  st.pendingCard   = c;
                  st.pendingFx     = *e;
                  st.pendingOwner  = me;
                  st.pendingTarget = nullptr;
                  if (e->needsTarget) {
                      st.mode = DuelMode::EffectTarget;
-                     return "pick a target (ENTER).";
+                     return ActionResult::Ok("pick a target.");
                  }
                  return fx.finishActivation(nullptr); }, c->isMonster() ? ActionId::ActivateMonsterEffect : c->isTrap() ? ActionId::ActivateTrapEffect
-                                                                                                                                                                                : ActionId::ActivateSpellEffect);
+                                                                                                                                                                                 : ActionId::ActivateSpellEffect);
     }
 
     // ── Field zones (viewer-relative rows 1–4) ───────────────────────────────
@@ -196,8 +196,9 @@ struct DuelActions {
                     st.attacker = mc;
                     st.mode = DuelMode::AttackTarget;
                     return engine.canDirectAttack(mc)
-                               ? "ENTER on the empty opponent row = direct attack."
-                               : "pick an opponent monster (ENTER).";
+                               ? ActionResult::Ok(
+                                     "tap an empty opponent zone = direct attack.")
+                               : ActionResult::Ok("pick an opponent monster.");
                 });
             }
             if (engine.canFlipSummon(mc)) {  // face-down Set, not on arrival turn
@@ -210,13 +211,15 @@ struct DuelActions {
 
         if (zst && mc) {
             const ActionSpec* e = findClassicEffect(mc->name);
-            if (st.chainPrompt && e) {  // responder window: any set S/T may chain
+            // Only offer chaining when the response window is actually ON —
+            // with it off the engine resolves immediately and "chain this
+            // card" advertised a window that did not exist.
+            if (st.chainPrompt && duel.config.chainResponseWindow && e) {
                 push("chain this card", [this, mc, e] {
                     ActionArgs ca;
                     ca.source = mc;  // engine rejects set-this-turn Traps (p.31)
-                    std::string r = engine.activateEffect(*e, mc->state.controller, ca);
-                    if (r.find("Chain Link") != std::string::npos)
-                        st.activated.push_back(mc);
+                    ActionResult r = engine.activateEffect(*e, mc->state.controller, ca);
+                    if (r.ok) st.activated.push_back(mc);
                     return r;
                 });
             } else if (e && ownZone && engine.canActivateFromZone(mc)) {
@@ -245,7 +248,7 @@ struct DuelActions {
             push(std::string("fusion summon — ") + f->name,
                  [this, f] {
                      st.fusionPending = false;
-                     std::string r = engine.fusionSummon(f, st.tributePicks);
+                     ActionResult r = engine.fusionSummon(f, st.tributePicks);
                      st.tributePicks.clear();
                      return r;
                  });
@@ -270,7 +273,7 @@ struct DuelActions {
             push(std::string("ritual summon — ") + m->name,
                  [this, m] {
                      st.ritualPending = false;
-                     std::string r = engine.ritualSummon(m, st.tributePicks);
+                     ActionResult r = engine.ritualSummon(m, st.tributePicks);
                      st.tributePicks.clear();
                      return r;
                  });

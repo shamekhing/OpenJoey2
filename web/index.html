@@ -2,25 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- WITHOUT this tag mobile browsers lay the page out at ~980px and zoom out:
+     the game rendered at ~0.3x physical scale and one fingertip covered 2-3
+     zones. viewport-fit=cover also exposes safe-area insets for the notch. -->
+<meta name="viewport" content="width=device-width, initial-scale=1,
+      maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>OpenJoey2</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #101018; color: #e8e8f0;
-               font-family: system-ui, sans-serif; display: flex;
-               flex-direction: column; align-items: center; justify-content: center; }
-  canvas { background: #101018; outline: none; }
-  #status { margin-top: 8px; font-size: 14px; color: #9a9ab0; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #101018;
+               color: #e8e8f0; font-family: system-ui, sans-serif;
+               overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; align-items: center;
+         justify-content: center; }
+  /* The canvas IS the game: fill the viewport. raylib's web resize callback
+     (enabled by FLAG_WINDOW_RESIZABLE) keeps the backing store in sync with
+     window.innerWidth/innerHeight, so game layout coordinates are CSS pixels
+     and touch targets keep their real physical size. 100dvh tracks the mobile
+     URL bar. touch-action:none stops the browser from scrolling/zooming the
+     page out from under the game. */
+  #canvas { display: block; width: 100vw; height: 100vh; height: 100dvh;
+            touch-action: none; -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent; outline: none;
+            background: #101018; }
+  #status { position: fixed; left: 0; right: 0;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            text-align: center; font-size: 14px; color: #9a9ab0;
+            pointer-events: none; }
 </style>
 </head>
 <body>
-  <canvas id="canvas" width="1280" height="720" tabindex="0"></canvas>
+  <canvas id="canvas" tabindex="0"></canvas>
   <div id="status">loading…</div>
   <script>
     const status = document.getElementById('status');
+    const canvas = document.getElementById('canvas');
+    // A finger is not a mouse: kill the context menu (right-click = cancel in
+    // game) and iOS pinch-zoom, which would otherwise fight the duel view.
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
     var Module = {
-      canvas: document.getElementById('canvas'),
+      canvas: canvas,
       setStatus(t) {
         if (t) status.textContent = t;
-        else status.textContent = 'click the canvas for keyboard focus';
+        else status.textContent = 'tap the canvas for keyboard focus';
       },
     };
   </script>

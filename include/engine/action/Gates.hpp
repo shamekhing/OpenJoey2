@@ -1,19 +1,22 @@
 #pragma once
 #include "engine/action/State.hpp"
 namespace openjoey::engine::action {
-inline std::string SynchroGate(Duel &d) {
+
+using openjoey::ActionResult;
+
+inline ActionResult SynchroGate(Duel &d) {
     (void)d;
     return ClassicGate("Synchro Summons");
 }
-inline std::string XyzGate(Duel &d) {
+inline ActionResult XyzGate(Duel &d) {
     (void)d;
     return ClassicGate("Xyz Summons");
 }
-inline std::string PendulumGate(Duel &d) {
+inline ActionResult PendulumGate(Duel &d) {
     (void)d;
     return ClassicGate("Pendulum Summons");
 }
-inline std::string LinkGate(Duel &d) {
+inline ActionResult LinkGate(Duel &d) {
     (void)d;
     return ClassicGate("Link Summons");
 }

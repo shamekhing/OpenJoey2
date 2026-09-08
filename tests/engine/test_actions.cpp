@@ -17,7 +17,7 @@ TEST_CASE("Tokens: spawned by the mat, fight, cease to exist off the field",
     fieldMonster(d, &enemy, 1, 0);
     d.turn.skipBattle = false;  // turn-1 restriction waived for the test
     d.turn.phase = Phase::Battle;
-    REQUIRE(action::DeclareAttack(d, tok, &enemy).find(" attacks ") != std::string::npos);
+    REQUIRE(action::DeclareAttack(d, tok, &enemy).msg.find(" attacks ") != std::string::npos);
     action::ResolveDamage(d);
     CHECK(d.field.monsterZones[0][0].isEmpty());
     CHECK(d.field.tokens.empty());
@@ -40,7 +40,7 @@ TEST_CASE("Equip: bonus applies in battle math and sweeps on destruction",
     action::StartTurn(d);
     d.turn.phase = Phase::Main1;
 
-    CHECK(action::EquipCard(d, &blade, &hero).find("equips") != std::string::npos);
+    CHECK(action::EquipCard(d, &blade, &hero).msg.find("equips") != std::string::npos);
     CHECK(hero.state.atkMod == 700);
     CHECK(hero.effectiveAtk() == 2200);
 
@@ -50,7 +50,7 @@ TEST_CASE("Equip: bonus applies in battle math and sweeps on destruction",
     fieldMonster(d, &enemy, 1, 0);
     d.turn.skipBattle = false;  // turn-1 restriction waived for the test
     d.turn.phase = Phase::Battle;
-    REQUIRE(action::DeclareAttack(d, &hero, &enemy).find(" attacks ") != std::string::npos);
+    REQUIRE(action::DeclareAttack(d, &hero, &enemy).msg.find(" attacks ") != std::string::npos);
     action::ResolveDamage(d);
     CHECK(d.field.monsterZones[1][0].isEmpty());
     CHECK(d.field.monsterZones[0][0].contains(&hero));
@@ -77,9 +77,9 @@ TEST_CASE("Equips detach with exact rollback when the equip itself dies",
     d.field.spellTrapZones[0][0].put(&blade);
     action::StartTurn(d);
     d.turn.phase = Phase::Main1;
-    REQUIRE(action::EquipCard(d, &blade, &hero).find("equips") != std::string::npos);
+    REQUIRE(action::EquipCard(d, &blade, &hero).msg.find("equips") != std::string::npos);
     CHECK(hero.effectiveAtk() == 2000);
-    CHECK(action::UnequipCard(d, &blade).find("unequipped") != std::string::npos);
+    CHECK(action::UnequipCard(d, &blade).msg.find("unequipped") != std::string::npos);
     CHECK(hero.state.atkMod == 0);
     CHECK(hero.effectiveAtk() == 1500);
     CHECK(hero.state.equippedCards.empty());
@@ -105,7 +105,7 @@ TEST_CASE("Search/excavate and the special-summon family", "[action][special]") 
     CHECK(revealed.empty());  // deck empty now — nothing to reveal
 
     // Special summon from the graveyard, face-down DEF this time.
-    CHECK(action::SpecialSummon(d, &gyCard, /*faceDown=*/true).find("special summons") !=
+    CHECK(action::SpecialSummon(d, &gyCard, /*faceDown=*/true).msg.find("special summons") !=
           std::string::npos);
     CHECK(d.field.monsterZones[0][0].contains(&gyCard));
     CHECK_FALSE(d.field.monsterZones[0][0].isVisible());
@@ -122,7 +122,7 @@ TEST_CASE("Tribute Set + CardEffect win + observe/legalActions seams", "[action]
     action::StartTurn(d);
     d.turn.phase = Phase::Main1;
 
-    CHECK(action::SummonTribute(d, &big, {&small}, true).find("tribute summons") != std::string::npos);
+    CHECK(action::SummonTribute(d, &big, {&small}, true).msg.find("tribute summons") != std::string::npos);
     CHECK(d.field.monsterZones[0][0].contains(&big));
     CHECK_FALSE(d.field.monsterZones[0][0].isVisible());
 
@@ -166,29 +166,64 @@ TEST_CASE("perform() realizes EVERY ActionId — no action is unimplemented",
     d.turn.phase = Phase::Main1;
     ActionArgs a;
     a.target = &gy;
-    CHECK(action::Perform(d, ActionId::SpecialSummonFromGraveyard, a)
-              .find("special summons") != std::string::npos);
+    CHECK(action::Perform(d, ActionId::SpecialSummonFromGraveyard, a).msg.find("special summons") != std::string::npos);
     CHECK(d.field.monsterZones[0][0].contains(&gy));
     // face-down special summon this turn: Flip Summon correctly illegal now
-    CHECK(action::Perform(d, ActionId::CannotFlipSummonSameTurn, a)
-              .find("cannot flip summon now") != std::string::npos);
-    CHECK(action::Perform(d, ActionId::CheckHandSize).find("hand size") != std::string::npos);
-    CHECK(action::Perform(d, ActionId::SynchroSummon).find("not legal in the classic") !=
+    CHECK(action::Perform(d, ActionId::CannotFlipSummonSameTurn, a).msg.find("cannot flip summon now") != std::string::npos);
+    CHECK(action::Perform(d, ActionId::CheckHandSize).msg.find("hand size") != std::string::npos);
+    CHECK(action::Perform(d, ActionId::SynchroSummon).msg.find("not legal in the classic") !=
           std::string::npos);
-    CHECK(action::Perform(d, ActionId::ViewGraveyard).find("GyFiller") != std::string::npos);
+    CHECK(action::Perform(d, ActionId::ViewGraveyard).msg.find("GyFiller") != std::string::npos);
 
-    // Iterate the ENTIRE enum. Each id must return a real verdict string
-    // (never "unreachable") — the exhaustive perform() switch plus this loop
-    // is the machine-checked proof that the whole ruleset is wired.
+    // ── Regression: CardEffectWin credits the ACTIVATOR (was hardcoded P0) ──
+    d.result = DuelResult::Ongoing;
+    d.turnPlayer = 1;
+    CHECK(action::Perform(d, ActionId::CardEffectWin).ok);
+    CHECK(d.result == DuelResult::Player1Win);
+    d.result = DuelResult::Ongoing;
+    d.turnPlayer = 0;
+
+    // ── Regression: tokens carry caller-supplied stats (was hardcoded 0/0) ──
+    {
+        ActionArgs ta;
+        ta.atk = 1500;
+        ta.def = 1200;
+        CHECK(action::Perform(d, ActionId::Summon_Token, ta).ok);
+        REQUIRE_FALSE(d.field.tokens.empty());
+        CHECK(d.field.tokens.back()->atk == 1500);
+        CHECK(d.field.tokens.back()->def == 1200);
+    }
+
+    // ── Regression: discard uses the safe move primitive — the card must be
+    // in the Graveyard and no longer in the hand (the old put-then-remove
+    // left it in two zones at once). ─────────────────────────────────────────
+    {
+        Card hand;
+        mkMon(&hand, 9500, 2, 800, 600);
+        hand.name = "DiscardMe";
+        d.field.handZones[0].put(&hand);
+        ActionArgs da;
+        da.target = &hand;
+        CHECK(action::Perform(d, ActionId::SelectAndDiscard, da).ok);
+        CHECK_FALSE(d.field.handZones[0].contains(&hand));
+        CHECK(d.field.graveyardZones[0].contains(&hand));
+    }
+
+    // Iterate the ENTIRE enum. The dispatcher must handle every id explicitly:
+    // the fallthrough sentinel and the chain resolver's old silent no-op are
+    // hard failures now, not strings that merely happen to be non-empty. The
+    // old loop only rejected two literals Perform never returned, so an
+    // unhandled id passed vacuously.
     for (int v = 1; v <= static_cast<int>(ActionId::ZoneBecomesPendulumZone); ++v) {
         // v=0 is None (the idle id, not an action) — excluded above.
         auto id = static_cast<ActionId>(v);
         ActionArgs args;
         args.target = nullptr;
         args.n = 1;
-        const std::string r = action::Perform(d, id, args);
-        INFO("ActionId value " << v);
-        REQUIRE(r != "unreachable.");
-        REQUIRE(r != "no such effect.");
+        const ActionResult r = action::Perform(d, id, args);
+        INFO("ActionId value " << v << " -> \"" << r.msg << "\"");
+        REQUIRE(r.msg.find("not handled") == std::string::npos);
+        REQUIRE(r.msg.find("NOT IMPLEMENTED") == std::string::npos);
+        REQUIRE_FALSE(r.msg.empty());
     }
 }

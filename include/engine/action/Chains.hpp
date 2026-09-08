@@ -6,21 +6,25 @@
 
 namespace openjoey::engine::action {
 
+using openjoey::ActionResult;
+
 // Activate a card effect: Spell Speed legality enforced; spec.lpCost charged
 // here once (never refunded, even if later negated); link pushed onto chain.
-inline std::string ActivateEffect(Duel &d, const ActionSpec &spec,
-                                  int activator, const ActionArgs &args = {}) {
+inline ActionResult ActivateEffect(Duel &d, const ActionSpec &spec,
+                                   int activator, const ActionArgs &args = {}) {
     if (d.result != DuelResult::Ongoing)
-        return "the duel is over.";
+        return ActionResult::Fail("the duel is over.");
     if (spec.id == ActionId::None)
-        return "no effect to activate.";
+        return ActionResult::Fail("no effect to activate.");
     if ((spec.id == ActionId::NegateActivation ||
          spec.id == ActionId::NegateEffect) &&
         d.chain.links.empty())
-        return "a negation must respond to an open chain — nothing to negate.";
+        return ActionResult::Fail(
+            "a negation must respond to an open chain — nothing to negate.");
     if (!d.chain.legalToChain(spec.speed))
-        return "illegal chain: Spell Speed " + std::to_string(spec.speed) +
-               " cannot join this chain.";
+        return ActionResult::Fail("illegal chain: Spell Speed " +
+                                  std::to_string(spec.speed) +
+                                  " cannot join this chain.");
     // p.31: a Trap cannot be activated the same turn it was Set. The flag is
     // stamped by SeatSpellTrap and cleared by ResetPerTurnState next turn.
     // Quick-Play Spells would need their own CardType marker before this rule
@@ -29,25 +33,36 @@ inline std::string ActivateEffect(Duel &d, const ActionSpec &spec,
         auto [sz, sp] = d.field.findCard(args.source);
         if (sz && sz->type() == zone::ZoneType::SpellTrap &&
             sp == activator)
-            return "a Trap cannot be activated the turn it was Set (p.31).";
+            return ActionResult::Fail(
+                "a Trap cannot be activated the turn it was Set (p.31).");
     }
-    if (spec.lpCost > 0)
+    if (spec.lpCost > 0) {
         Damage(d, activator, spec.lpCost);
+        // Paying the cost can drain LP to 0 — that must be able to end the
+        // duel here, not at some later win check.
+        CheckWinConditions(d);
+        if (d.result != DuelResult::Ongoing)
+            return ActionResult::Fail("the activation cost was lethal — duel over.");
+    }
     d.chain.push(spec, activator, args);
-    return "player " + std::to_string(activator) + " activates — Chain Link " +
-           std::to_string(d.chain.links.size()) + ".";
+    return ActionResult::Ok("player " + std::to_string(activator) +
+                                " activates — Chain Link " +
+                                std::to_string(d.chain.links.size()) + ".",
+                            spec.id);
 }
 
 // Resolve the chain: last link first. Each link's spec dispatches through the
 // same mat primitives the builtins use (no second dispatcher). Negation
 // blanks the responded-to link. Flipped cards' Flip effects resolve as a
 // follow-up chain.
-inline std::string ResolveChainImpl(Duel &d, int depth) {
+inline ActionResult ResolveChainImpl(Duel &d, int depth) {
     if (d.chain.links.empty())
-        return "";
+        return ActionResult::Ok("");
     if (depth > 4)
-        return "[chain depth cap reached — deeper links were not resolved.]";
+        return ActionResult::Fail(
+            "[chain depth cap reached — deeper links were not resolved.]");
     std::string log;
+    bool unimplemented = false;  // any link that had no resolution handling
     std::vector<Card *> flipped;
     auto &links = d.chain.links;
 
@@ -182,7 +197,12 @@ inline std::string ResolveChainImpl(Duel &d, int depth) {
                 break;
             }
             default:
-                log += "effect resolves (no specific handling). ";
+                // A link the resolver cannot realize must NEVER be reported as
+                // a success — that is how a silent no-op hides in the log.
+                log += "[NOT IMPLEMENTED — action id " +
+                       std::to_string(static_cast<int>(l.id)) +
+                       " resolved with no effect] ";
+                unimplemented = true;
                 break;
         }
         if (l.id == ActionId::Summon_Flip && l.args.target)
@@ -201,28 +221,34 @@ inline std::string ResolveChainImpl(Duel &d, int depth) {
                 }
         if (pushed) {
             log += "Flip effects trigger. ";
-            log += ResolveChainImpl(d, depth + 1);
+            ActionResult follow = ResolveChainImpl(d, depth + 1);
+            log += follow.msg;
+            if (!follow.ok) unimplemented = true;
         }
     }
     if (d.chain.links.empty())
         d.chain.step = protocol::ChainStep::Resolved;
-    return log;
+    return unimplemented ? ActionResult::Fail(log) : ActionResult::Ok(log);
 }
 
 // Pass the response window (p.45). With d.config.chainResponseWindow
 // enabled, a chain resolves only once BOTH players pass consecutively; any
 // new activation (ActivateEffect) reopens the window. With the flag off
 // (default), chains are resolved explicitly and passing is a no-op.
-inline std::string ResolveChain(Duel &d);  // fwd: PassResponse resolves on both-pass
+inline ActionResult ResolveChain(Duel &d);  // fwd: PassResponse resolves on both-pass
 
-inline std::string PassResponse(Duel &d, int player) {
-    if (d.result != DuelResult::Ongoing) return "the duel is over.";
+inline ActionResult PassResponse(Duel &d, int player) {
+    if (d.result != DuelResult::Ongoing)
+        return ActionResult::Fail("the duel is over.");
     if (!d.config.chainResponseWindow)
-        return "response window disabled — chains resolve explicitly.";
-    if (d.chain.links.empty()) return "no chain to respond to.";
+        return ActionResult::Fail(
+            "response window disabled — chains resolve explicitly.");
+    if (d.chain.links.empty())
+        return ActionResult::Fail("no chain to respond to.");
     ++d.chain.consecutivePasses;
     if (d.chain.consecutivePasses < 2)
-        return "player " + std::to_string(player) + " passes — chain held open.";
+        return ActionResult::Ok("player " + std::to_string(player) +
+                                " passes — chain held open.");
     return ResolveChain(d);  // both passed: resolve last-activated-first
 }
 
@@ -231,10 +257,10 @@ inline bool ChainWaiting(const Duel &d) {
            d.chain.consecutivePasses < 2;
 }
 
-inline std::string ResolveChain(Duel &d) {
-    if (d.chain.links.empty()) return "";
+inline ActionResult ResolveChain(Duel &d) {
+    if (d.chain.links.empty()) return ActionResult::Ok("");
     d.chain.step = protocol::ChainStep::Resolving;
-    std::string r = ResolveChainImpl(d, 0);
+    ActionResult r = ResolveChainImpl(d, 0);
     if (d.chain.links.empty())
         d.chain.step = protocol::ChainStep::Resolved;
     return r;

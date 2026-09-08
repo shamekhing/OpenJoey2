@@ -1,14 +1,20 @@
 #pragma once
 // ── Engine — the duel facade the app consumes (duel/Engine.hpp) ──────────────
-// A thin, stateless wrapper over one external Duel: every method delegates to
-// the action:: free functions. The app owns the Duel; the Engine only points
-// at it (re-match = `duel_ = Duel{}` keeps the reference valid).
+// Wraps one external Duel: EVERY mutator checkpoints first (one uniform undo
+// policy — phase changes and attack declarations included), then delegates to
+// the action:: free functions and returns their ActionResult, so callers can
+// tell success from a rules refusal without string-sniffing. The app owns the
+// Duel; the Engine only points at it. The undo stack lives here (not in Duel)
+// because a snapshot embeds a full Duel copy — history inside Duel would
+// recurse.
 #include <string>
 #include <vector>
 
 #include "action/ActionArgs.hpp"
+#include "action/ActionResult.hpp"
 #include "engine/action/Battle.hpp"
 #include "engine/action/Chains.hpp"
+#include "engine/action/Perform.hpp"
 #include "engine/action/State.hpp"
 #include "engine/action/Summons.hpp"
 #include "engine/action/Turn.hpp"
@@ -20,14 +26,13 @@ namespace openjoey::engine {
 // The app says `using namespace openjoey::engine;` — pull the action
 // vocabulary (findClassicEffect, classicEffectsFor, …) into that scope.
 using namespace action;
+using openjoey::ActionResult;
 
 class Engine {
    public:
     explicit Engine(Duel &d) : duel(d) {}
 
-    Duel &duel;
-
-    // ── setup ────────────────────────────────────────────────────────────────
+    // ── setup (not part of the undo flow — no checkpoints) ───────────────────
     void setDeck(int player, const std::vector<Card *> &cards) {
         // Seal the backing: zones hold non-owning Card* into this vector, so
         // it must not be copied/resized afterwards (deckBackingMatches fails
@@ -57,90 +62,105 @@ class Engine {
     void drawOpeningHands(int n = DuelConfig::START_HAND) {
         action::DrawOpeningHands(duel, n);
     }
+    // Full reset by value-assignment — no hand-maintained field list, so a new
+    // Duel member can never be missed. Also clears stale undo snapshots so a
+    // rematch can never undo into the previous duel.
     void hardReset() {
-        duel.field = zone::Field{};
-        duel.chain.clear();
-        duel.lp = {DuelConfig::START_LP, DuelConfig::START_LP};
-        duel.result = DuelResult::Ongoing;
-        duel.winReason = WinReason::None;
-        duel.turnState = TurnState{};
-        duel.battleTrace.clear();
-        duel.battleStep = protocol::BattleStep::Idle;
-        duel.damageStep = protocol::DamageStep::None;
-        duel.lastDamageOutcome = protocol::DamageOutcome::None;
+        duel = Duel{};
+        clearUndo();
     }
 
     // ── turn flow ────────────────────────────────────────────────────────────
-    std::string startTurn() { return action::StartTurn(duel); }
-    std::string endTurn() {
-        checkpoint();
-        return action::EndTurn(duel);
+    ActionResult startTurn() {
+        return commit([&] { return action::StartTurn(duel); });
     }
-    std::string toMain1() { return action::ToMain1S(duel); }
-    std::string toMain2() { return action::ToMain2S(duel); }
-    std::string toBattle() { return action::ToBattleS(duel); }
+    ActionResult endTurn() {
+        return commit([&] { return action::EndTurn(duel); });
+    }
+    ActionResult toMain1() {
+        return commit([&] { return action::ToMain1S(duel); });
+    }
+    ActionResult toMain2() {
+        return commit([&] { return action::ToMain2S(duel); });
+    }
+    ActionResult toBattle() {
+        return commit([&] { return action::ToBattleS(duel); });
+    }
 
     // ── battle ───────────────────────────────────────────────────────────────
-    bool canAttack(Card *c) { return action::CanAttack(duel, c); }
-    bool canDirectAttack(Card *c) { return action::CanDirectAttack(duel, c); }
-    bool canFlipSummon(Card *c) { return action::CanFlipSummon(duel, c); }
-    bool canChangePosition(Card *c) { return action::CanChangePosition(duel, c); }
+    bool canAttack(const Card *c) const { return action::CanAttack(duel, const_cast<Card *>(c)); }
+    bool canDirectAttack(const Card *c) const {
+        return action::CanDirectAttack(duel, const_cast<Card *>(c));
+    }
+    bool canFlipSummon(const Card *c) const {
+        return action::CanFlipSummon(duel, const_cast<Card *>(c));
+    }
+    bool canChangePosition(const Card *c) const {
+        return action::CanChangePosition(duel, const_cast<Card *>(c));
+    }
     bool canActivateFromZone(const Card *c) const {
         return action::CanActivateSetSpellTrap(duel, c);
     }
-    std::string declareAttack(Card *c, Card *target) {
-        return action::DeclareAttack(duel, c, target);
+    ActionResult declareAttack(Card *c, Card *target) {
+        return commit([&] { return action::DeclareAttack(duel, c, target); });
     }
     bool confirmAttack() { return action::ConfirmAttack(duel); }
-    void cancelAttack() { action::CancelAttack(duel); }
-    std::string resolveDamage() {
+    void cancelAttack() {
         checkpoint();
-        return action::ResolveDamage(duel);
+        action::CancelAttack(duel);
+    }
+    ActionResult resolveDamage() {
+        return commit([&] { return action::ResolveDamage(duel); });
     }
 
     // ── summons / positions ──────────────────────────────────────────────────
-    bool canNormalSummon() { return action::CanNormalSummon(duel); }
+    bool canNormalSummon() const { return action::CanNormalSummon(duel); }
     static int tributesRequired(const Card *c) { return action::TributesRequired(c); }
-    std::string normalSummon(Card *c) {
-        checkpoint();
-        return action::SummonNormal(duel, c);
+    ActionResult normalSummon(Card *c) {
+        return commit([&] { return action::SummonNormal(duel, c); });
     }
-    std::string normalSet(Card *c) {
-        checkpoint();
-        return action::SummonSet(duel, c);
+    ActionResult normalSet(Card *c) {
+        return commit([&] { return action::SummonSet(duel, c); });
     }
-    std::string tributeSummon(Card *c, const std::vector<Card *> &tributes) {
-        checkpoint();
-        return action::SummonTribute(duel, c, tributes, /*faceDown=*/false);
+    ActionResult tributeSummon(Card *c, const std::vector<Card *> &tributes) {
+        return commit(
+            [&] { return action::SummonTribute(duel, c, tributes, /*faceDown=*/false); });
     }
-    std::string flipSummon(Card *c) {
-        checkpoint();
-        return action::FlipSummon(duel, c);
+    ActionResult flipSummon(Card *c) {
+        return commit([&] { return action::FlipSummon(duel, c); });
     }
-    std::string changePosition(Card *c) {
-        checkpoint();
-        return action::ChangePosition(duel, c);
+    ActionResult changePosition(Card *c) {
+        return commit([&] { return action::ChangePosition(duel, c); });
     }
-    std::string fusionSummon(Card *f, const std::vector<Card *> &materials) {
-        checkpoint();
-        return action::FusionSummon(duel, f, materials);
+    ActionResult fusionSummon(Card *f, const std::vector<Card *> &materials) {
+        return commit([&] { return action::FusionSummon(duel, f, materials); });
     }
-    std::string ritualSummon(Card *m, const std::vector<Card *> &tributes) {
-        checkpoint();
-        return action::RitualSummon(duel, m, tributes);
+    ActionResult ritualSummon(Card *m, const std::vector<Card *> &tributes) {
+        return commit([&] { return action::RitualSummon(duel, m, tributes); });
+    }
+    // Set a hand spell/trap face-down. One engine-owned implementation
+    // (SeatSpellTrap via Perform) — it also stamps setThisTurn, which the
+    // p.31 same-turn trap rule needs and which the old UI-side copy forgot.
+    ActionResult setSpellTrap(Card *c, ActionId id) {
+        return commit([&] {
+            ActionArgs a;
+            a.target = c;
+            return action::Perform(duel, id, a);
+        });
     }
 
     // ── effects / chains ─────────────────────────────────────────────────────
-    std::string activateEffect(const openjoey::ActionSpec &spec, int activator,
-                               const ActionArgs &args = {}) {
-        checkpoint();
-        return action::ActivateEffect(duel, spec, activator, args);
+    ActionResult activateEffect(const openjoey::ActionSpec &spec, int activator,
+                                const ActionArgs &args = {}) {
+        return commit(
+            [&] { return action::ActivateEffect(duel, spec, activator, args); });
     }
-    std::string passResponse(int player) { return action::PassResponse(duel, player); }
+    ActionResult passResponse(int player) {
+        return commit([&] { return action::PassResponse(duel, player); });
+    }
     bool chainWaiting() const { return action::ChainWaiting(duel); }
-    std::string resolveChain() {
-        checkpoint();
-        return action::ResolveChain(duel);
+    ActionResult resolveChain() {
+        return commit([&] { return action::ResolveChain(duel); });
     }
 
     // ── readouts ─────────────────────────────────────────────────────────────
@@ -163,6 +183,16 @@ class Engine {
     void clearUndo() { undo_.clear(); }
 
    private:
+    // One uniform undo policy: snapshot BEFORE the action runs. Every
+    // mutator goes through this — the old facade checkpointed an arbitrary
+    // subset, so phase changes and attack declarations were un-undoable.
+    template <typename F>
+    ActionResult commit(F &&fn) {
+        checkpoint();
+        return fn();
+    }
+
+    Duel &duel;  // app-owned; intentionally NOT public any more
     std::vector<DuelSnapshot> undo_;
 };
 

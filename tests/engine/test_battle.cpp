@@ -6,12 +6,12 @@ TEST_CASE("Engine position change: an attacked monster cannot switch (p.36)",
     Card &a = fix.a;
     Duel &d = fix.d;
 
-    REQUIRE(action::DeclareAttack(d, &a, &fix.t).find("attacks") != std::string::npos);
-    REQUIRE(action::ResolveDamage(d).find("destroys") != std::string::npos);
+    REQUIRE(action::DeclareAttack(d, &a, &fix.t).msg.find("attacks") != std::string::npos);
+    REQUIRE(action::ResolveDamage(d).msg.find("destroys") != std::string::npos);
 
     // p.36: cannot change position in Main Phase 2 after attacking.
     d.turn.phase = Phase::Main2;
-    REQUIRE(action::ChangePosition(d, &a).find("after attacking") != std::string::npos);
+    REQUIRE(action::ChangePosition(d, &a).msg.find("after attacking") != std::string::npos);
     REQUIRE(d.field.monsterZones[0][0].position() == Orientation::Vertical);
     REQUIRE_FALSE(action::CanChangePosition(d, &a));
 }
@@ -23,7 +23,7 @@ TEST_CASE("Replay: re-declaring with a DIFFERENT monster locks the first (p.37)"
     mkMon(&a2, 9003, 4, 1500, 900);
     fieldMonster(fix.d, &a2, 0, 1);
 
-    REQUIRE(action::DeclareAttack(fix.d, &fix.a, &fix.t).find("attacks") !=
+    REQUIRE(action::DeclareAttack(fix.d, &fix.a, &fix.t).msg.find("attacks") !=
             std::string::npos);
     // Replay trigger: the attack target leaves the field before the Damage Step.
     action::MoveDestroyToGY(fix.d.field, &fix.t);
@@ -31,7 +31,7 @@ TEST_CASE("Replay: re-declaring with a DIFFERENT monster locks the first (p.37)"
     REQUIRE(action::CanAttack(fix.d, &fix.a));  // refund: may still re-declare
 
     // Re-declare with a different monster -> the first attacker is locked.
-    REQUIRE(action::DeclareAttack(fix.d, &a2, nullptr).find("direct") !=
+    REQUIRE(action::DeclareAttack(fix.d, &a2, nullptr).msg.find("direct") !=
             std::string::npos);
     REQUIRE_FALSE(action::CanAttack(fix.d, &fix.a));
 }
@@ -52,7 +52,7 @@ TEST_CASE("Undo: snapshot/restore rolls back a summon, incl. tokens",
     d.turn.phase = Phase::Main1;
 
     e.checkpoint();
-    REQUIRE(action::SummonNormal(d, &deck[0]).find("summons") != std::string::npos);
+    REQUIRE(action::SummonNormal(d, &deck[0]).msg.find("summons") != std::string::npos);
     REQUIRE(d.field.monsterZones[0][0].contains(&deck[0]));
     REQUIRE(d.turnState.normalSummonUsed);
     REQUIRE_FALSE(action::CanNormalSummon(d));
@@ -78,7 +78,7 @@ TEST_CASE("Engine battle entry guards (p.34-35)", "[engine][battle]") {
         BattleFix f{1800, 1400};
         f.d.turn.skipBattle = true;
         REQUIRE_FALSE(action::CanAttack(f.d, &f.a));
-        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("attack not possible") !=
+        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("attack not possible") !=
                 std::string::npos);
     }
     SECTION("DEF-position monsters cannot attack") {
@@ -92,17 +92,17 @@ TEST_CASE("Engine battle entry guards (p.34-35)", "[engine][battle]") {
     }
     SECTION("Direct attack requires an empty opponent field (p.34)") {
         BattleFix f{1800, 1400};
-        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find("empty opponent field") != std::string::npos);
+        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).msg.find("empty opponent field") != std::string::npos);
     }
 }
 
 TEST_CASE("Engine attack declaration + held-open state (p.35)", "[engine][battle]") {
     BattleFix f{1800, 1400};
-    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("attacks M9002") !=
+    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("attacks M9002") !=
             std::string::npos);
 
     // Only one attack held open at a time.
-    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("already held open") !=
+    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("already held open") !=
             std::string::npos);
 
     // Calling the attack off clears it.
@@ -113,21 +113,21 @@ TEST_CASE("Engine attack declaration + held-open state (p.35)", "[engine][battle
     Card mine;
     mkMon(&mine, 9003, 4, 500, 500);
     fieldMonster(f.d, &mine, 0, 2);
-    REQUIRE(action::DeclareAttack(f.d, &f.a, &mine).find("invalid attack target") !=
+    REQUIRE(action::DeclareAttack(f.d, &f.a, &mine).msg.find("invalid attack target") !=
             std::string::npos);
 }
 
 TEST_CASE("Engine replay: state change cancels the held attack (p.37)",
           "[engine][replay]") {
     BattleFix f{1800, 1400};
-    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("attacks") != std::string::npos);
+    REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("attacks") != std::string::npos);
 
     // Target left the field-side of the replay contract: make it "no longer
     // an opponent's monster" (e.g. it changed controllers / left play).
     f.t.state.controller = 0;
 
     // resolveDamage() itself detects the replay and cancels the held attack.
-    REQUIRE(action::ResolveDamage(f.d).find("replay! attack cancelled") !=
+    REQUIRE(action::ResolveDamage(f.d).msg.find("replay! attack cancelled") !=
             std::string::npos);
 
     // The attack was never committed: the attacker may still attack.
@@ -139,7 +139,7 @@ TEST_CASE("Engine replay: state change cancels the held attack (p.37)",
 TEST_CASE("Engine damage: ATK vs ATK (p.38)", "[engine][battle]") {
     SECTION("attacker stronger: defender destroyed, difference pierces") {
         BattleFix f{1800, 1400};
-        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("attacks") !=
+        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("attacks") !=
                 std::string::npos);
         action::ResolveDamage(f.d);
         CHECK(f.d.lp[1] == DuelConfig::START_LP - 400);
@@ -192,7 +192,7 @@ TEST_CASE("Engine damage: ATK vs DEF (p.38)", "[engine][battle]") {
         // flip — Horizontal+Limited → Vertical+Visible — not a "set" op).
         f.d.field.monsterZones[1][1].changeOrientation(Orientation::Horizontal);
         f.d.field.monsterZones[1][1].changeVisibility(Visibility::Limited);
-        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).find("attacks") !=
+        REQUIRE(action::DeclareAttack(f.d, &f.a, &f.t).msg.find("attacks") !=
                 std::string::npos);
         action::ResolveDamage(f.d);
         // Flipped face-up for damage calculation, but orientation stayed DEF.
@@ -222,22 +222,22 @@ TEST_CASE("Direct attack deals full ATK and can win the duel (p.34, p.44)",
         BattleFix f{1000};
         f.d.field.monsterZones[1][1].remove();  // opponent field now empty
         REQUIRE(action::CanAttack(f.d, &f.a));
-        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find("attacks") !=
+        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).msg.find("attacks") !=
                 std::string::npos);
-        std::string log = action::ResolveDamage(f.d);
+        std::string log = action::ResolveDamage(f.d).msg;
         CHECK(log.find("directly") != std::string::npos);
         CHECK(f.d.lp[1] == DuelConfig::START_LP - 1000);
         CHECK(f.d.lp[0] == DuelConfig::START_LP);
         CHECK(f.d.result == DuelResult::Ongoing);
         // One attack per monster per turn: a second declaration is refused.
-        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).find("attack not possible") !=
+        REQUIRE(action::DeclareAttack(f.d, &f.a, nullptr).msg.find("attack not possible") !=
                 std::string::npos);
     }
     SECTION("LP reaching 0 ends the duel (p.44)") {
         BattleFix f{1000};
         f.d.field.monsterZones[1][1].remove();
         f.d.lp[1] = 500;  // lethal
-        action::DeclareAttack(f.d, &f.a, nullptr);
+        action::DeclareAttack(f.d, &f.a, nullptr).msg;
         action::ResolveDamage(f.d);
         CHECK(f.d.lp[1] <= 0);
         CHECK(f.d.result == DuelResult::Player0Win);

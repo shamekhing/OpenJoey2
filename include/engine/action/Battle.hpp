@@ -10,12 +10,15 @@ namespace openjoey::engine::action {
 // Battle Step (p.35): declare an attack; target == nullptr -> direct attack.
 // The attack is HELD OPEN (d.turnState.pending): ResolveDamage finishes it,
 // ConfirmAttack re-validates (Replay rules, p.37).
-inline std::string DeclareAttack(Duel &d, Card *c, Card *target) {
+inline ActionResult DeclareAttack(Duel &d, Card *c, Card *target) {
     d.traceBattle(protocol::BattleStep::AttackerChosen);
     if (!CanAttack(d, c))
-        return "attack not possible (Battle Phase, your face-up ATK monster, once per Battle Phase).";
+        return ActionResult::Fail(
+            "attack not possible (Battle Phase, your face-up ATK monster, "
+            "once per Battle Phase).");
     if (d.turnState.pending.attacker)
-        return "an attack is already held open — resolve or cancel it first.";
+        return ActionResult::Fail(
+            "an attack is already held open — resolve or cancel it first.");
     // p.37 replay: the attack is refunded until re-declared. If the re-declared
     // attack uses a DIFFERENT monster, the original attacker has still declared
     // an attack this turn and cannot attack again.
@@ -27,17 +30,20 @@ inline std::string DeclareAttack(Duel &d, Card *c, Card *target) {
     if (target) {
         zone::Zone_Monster *tz = d.field.monsterZoneOf(target);
         if (!tz || target->state.controller == c->state.controller)
-            return "invalid attack target: an opponent's monster only.";
+            return ActionResult::Fail(
+                "invalid attack target: an opponent's monster only.");
         d.turnState.pending = PendingAttack{c, target, false};
     } else {
         if (!OpponentFieldEmpty(d, c->state.controller))
-            return "direct attack requires an empty opponent field (p.34).";
+            return ActionResult::Fail(
+                "direct attack requires an empty opponent field (p.34).");
         d.turnState.pending = PendingAttack{c, nullptr, true};
     }
     d.traceBattle(target ? protocol::BattleStep::TargetChosen
                          : protocol::BattleStep::DirectDeclared);
-    return c->name +
-           (target ? " attacks " + target->name + "." : " attacks directly.");
+    return ActionResult::Ok(
+        c->name +
+        (target ? " attacks " + target->name + "." : " attacks directly."));
 }
 
 // Cancel a held-open attack (player calls the attack off).
@@ -70,11 +76,11 @@ inline bool ConfirmAttack(Duel &d) {
 
 // Damage Step (p.38), classic math on effective stats. Face-down defenders
 // flip face-up first (visibility only); Flip effects enter the chain.
-inline std::string ResolveDamage(Duel &d) {
+inline ActionResult ResolveDamage(Duel &d) {
     auto &pending = d.turnState.pending;
-    if (!pending.attacker) return "no attack to resolve.";
+    if (!pending.attacker) return ActionResult::Fail("no attack to resolve.");
     if (!ConfirmAttack(d))
-        return "replay! attack cancelled — re-declare.";
+        return ActionResult::Fail("replay! attack cancelled — re-declare.");
     Card *a = pending.attacker;
     const int ap = a->state.controller;
     d.turnState.attacked.insert(a);  // the attack is now committed
@@ -91,7 +97,8 @@ inline std::string ResolveDamage(Duel &d) {
         d.damageStep = protocol::DamageStep::End;
         d.traceBattle(protocol::BattleStep::Resolved);
         CheckWinConditions(d);
-        return log + " attacks directly for " + std::to_string(a->effectiveAtk()) + ".";
+        return ActionResult::Ok(log + " attacks directly for " +
+                                std::to_string(a->effectiveAtk()) + ".");
     }
 
     Card *t = pending.target;
@@ -156,7 +163,7 @@ inline std::string ResolveDamage(Duel &d) {
         ResolveChain(d);  // legacy: Flip effects (and responses) resolve now —
                           // p.45 mode leaves them to the response window
     CheckWinConditions(d);
-    return log;
+    return ActionResult::Ok(log);
 }
 
 }  // namespace openjoey::engine::action

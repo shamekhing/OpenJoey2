@@ -17,6 +17,8 @@ struct ActionArgs {
     int targetPlayer = -1;                 // explicit player override (>= 0)
     int n = 1;                             // count (draws / damage / counters)
     bool faceDown = false;                 // set / face-down banish variants
+    int atk = 0;                           // token stats (Summon_Token)
+    int def = 0;                           // token stats (Summon_Token)
     ActionSpec spec;                       // Activate* actions: the spec to run
     std::vector<cards::Card *> materials;  // fusion / ritual materials
 };

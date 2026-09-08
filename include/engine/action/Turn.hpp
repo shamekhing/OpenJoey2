@@ -5,6 +5,8 @@
 
 namespace openjoey::engine::action {
 
+using openjoey::ActionResult;
+
 inline void ResetPerTurnState(Duel &d) {
     d.turnState = TurnState{};
     for (int p = 0; p < zone::Field::PLAYERS; ++p) {
@@ -21,69 +23,80 @@ inline void ToMain1(Duel &d) { d.turn.phase = Phase::Main1; }
 inline void ToBattle(Duel &d) { d.turn.phase = Phase::Battle; }
 inline void ToMain2(Duel &d) { d.turn.phase = Phase::Main2; }
 
-inline std::string ToMain1S(Duel &d) {
-    if (d.result != DuelResult::Ongoing) return "the duel is over.";
-    if (d.turn.phase == Phase::Main1) return "already in Main Phase 1.";
-    if (d.turn.phase != Phase::Draw) return "cannot return to Main Phase 1.";
+inline ActionResult ToMain1S(Duel &d) {
+    if (d.result != DuelResult::Ongoing)
+        return ActionResult::Fail("the duel is over.");
+    if (d.turn.phase == Phase::Main1)
+        return ActionResult::Fail("already in Main Phase 1.");
+    if (d.turn.phase != Phase::Draw)
+        return ActionResult::Fail("cannot return to Main Phase 1.");
     ToMain1(d);
-    return "Main Phase 1.";
+    return ActionResult::Ok("Main Phase 1.");
 }
-inline std::string ToBattleS(Duel &d) {
-    if (d.result != DuelResult::Ongoing) return "the duel is over.";
+inline ActionResult ToBattleS(Duel &d) {
+    if (d.result != DuelResult::Ongoing)
+        return ActionResult::Fail("the duel is over.");
     if (d.turn.phase != Phase::Main1)
-        return "Battle Phase is entered from Main Phase 1.";
-    if (d.turn.skipBattle) return "no Battle Phase on the opening turn.";
+        return ActionResult::Fail("Battle Phase is entered from Main Phase 1.");
+    if (d.turn.skipBattle)
+        return ActionResult::Fail("no Battle Phase on the opening turn.");
     ToBattle(d);
-    return "Battle Phase.";
+    return ActionResult::Ok("Battle Phase.");
 }
-inline std::string ToMain2S(Duel &d) {
-    if (d.result != DuelResult::Ongoing) return "the duel is over.";
+inline ActionResult ToMain2S(Duel &d) {
+    if (d.result != DuelResult::Ongoing)
+        return ActionResult::Fail("the duel is over.");
     if (d.turn.phase != Phase::Battle)
-        return "Main Phase 2 follows the Battle Phase.";
+        return ActionResult::Fail("Main Phase 2 follows the Battle Phase.");
     ToMain2(d);
-    return "Main Phase 2.";
+    return ActionResult::Ok("Main Phase 2.");
 }
 
-inline std::string DrawForTurn(Duel &d) {
+inline ActionResult DrawForTurn(Duel &d) {
     int p = d.turnPlayer;
     if (d.field.deckZones[p].isEmpty()) {
         d.result = (p == 0) ? DuelResult::Player1Win : DuelResult::Player0Win;
         d.winReason = WinReason::DeckOut;
-        return "deck out — player " + std::to_string(p) + " loses.";
+        return ActionResult::Fail("deck out — player " + std::to_string(p) +
+                                  " loses.");
     }
     int n = MoveDraw(d.field, p, 1);
-    return "player " + std::to_string(p) + " draws " + std::to_string(n) + ".";
+    return ActionResult::Ok("player " + std::to_string(p) + " draws " +
+                            std::to_string(n) + ".");
 }
 
-inline std::string StartTurn(Duel &d) {
+inline ActionResult StartTurn(Duel &d) {
     ResetPerTurnState(d);
     d.turn.phase = Phase::Draw;
     if (d.turn.turnNumber == 1) {
         d.turn.skipDraw = true;
         d.turn.skipBattle = true;
-        return "turn 1: draw skipped (starting player).";
+        return ActionResult::Ok("turn 1: draw skipped (starting player).");
     }
-    if (d.turn.skipDraw) return "draw skipped.";
+    if (d.turn.skipDraw) return ActionResult::Ok("draw skipped.");
     return DrawForTurn(d);
 }
 
-inline std::string EndTurn(Duel &d) {
+inline ActionResult EndTurn(Duel &d) {
     int p = d.turnPlayer;
     if (!d.config.autoDiscardEndPhase && OverHandLimit(d, p))
-        return "cannot end turn — discard down to 6 cards first (p.41).";
+        return ActionResult::Fail(
+            "cannot end turn — discard down to 6 cards first (p.41).");
     int discarded = d.config.autoDiscardEndPhase ? DiscardToHandLimit(d, p) : 0;
     std::string msg = OverHandLimit(d, p)
                           ? "cannot end turn — hand limit unresolved."
                           : "hand limit OK";
     if (discarded) msg += " (" + std::to_string(discarded) + " discarded)";
     msg += ".";
+    if (OverHandLimit(d, p))  // refusal: the turn does NOT pass
+        return ActionResult::Fail(msg);
     d.turnPlayer = 1 - d.turnPlayer;
     d.turn.phase = Phase::Draw;
     ++d.turn.turnNumber;
     d.turn.skipDraw = false;
     d.turn.skipBattle = false;
     ResetPerTurnState(d);
-    return msg;
+    return ActionResult::Ok(msg);
 }
 
 inline void SetDeck(Duel &d, int player, const std::vector<Card *> &cards) {

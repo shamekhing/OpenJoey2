@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "cards/Card.hpp"
+#include "engine/action/Catalog.hpp"  // which cards have wired effects
 #include "ui/widgets/DrawUtils.hpp"
 #include "ui/widgets/StyleSheet.hpp"
 
@@ -90,6 +91,14 @@ class CardPreview {
                  : card_->isSpell() ? COLOR_SPELL_STAT
                                     : COLOR_TRAP_STAT);
         cy += FONT_CARD_STAT + 3;
+        // Honesty marker: a Spell/Trap with no wired classic effect can only be
+        // SET, never activated — say so instead of silently ignoring its text.
+        if ((card_->isSpell() || card_->isTrap()) &&
+            !openjoey::engine::action::findClassicEffect(card_->name)) {
+            DrawText("[effect not wired in this build]", x + pad, cy, FONT_CARD_STAT,
+                     Color{230, 170, 60, 255});
+            cy += FONT_CARD_STAT + 3;
+        }
         if (card_->isMonster()) {
             DrawText(card_->statLine().c_str(), x + pad, cy, FONT_CARD_STAT, COLOR_STAT_TEXT);
             cy += FONT_CARD_STAT + 4;

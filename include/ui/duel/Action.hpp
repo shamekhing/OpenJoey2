@@ -13,8 +13,10 @@
 #include <vector>
 
 #include "action/ActionId.hpp"
+#include "action/ActionResult.hpp"
 #include "cards/Card.hpp"
 #include "engine/action/Catalog.hpp"  // ActionSpec (pending activation)
+#include "ui/platform/Haptics.hpp"
 
 namespace openjoey::ui {
 using namespace openjoey::engine;
@@ -31,11 +33,11 @@ enum class DuelMode : uint8_t {
 };
 
 // One entry of the zone action menu: a label for the list UI, the engine
-// call it runs (returns the log line shown in the result strip), and the
-// rules vocabulary entry it realizes.
+// call it runs (returns the structured verdict shown in the result strip),
+// and the rules vocabulary entry it realizes.
 struct DuelAction {
     std::string label;
-    std::function<std::string()> invoke;
+    std::function<ActionResult()> invoke;
     ActionId id = ActionId::None;
 };
 
@@ -76,17 +78,29 @@ struct DuelUIState {
     bool fusionPending = false;
     bool ritualPending = false;
 
-    // Status line (bottom of the info panel).
+    // Status line (bottom of the info panel) + its verdict kind, which drives
+    // the strip colour: engine refusals are red, successes green, UI prompts
+    // neutral. The old code sniffed the text for "OK"/"true"/"Moved" — none of
+    // the engine's result strings contained those, so every successful summon
+    // rendered in the failure colour.
+    enum class Feedback : uint8_t { Info,
+                                    Ok,
+                                    Fail };
     std::string lastResult;
+    Feedback feedback = Feedback::Info;
 
-    // Record an engine result string; opens the chain responder window when
-    // the engine reports a new chain link.
-    // ── Duel log (L toggles the overlay) ─────────────────────────────────────
-    // Every engine narration line lands here; a duel becomes followable.
-    std::vector<std::string> log;
-    bool logOpen = false;
-
+    // Record an engine verdict; opens the chain responder window when the
+    // engine reports a new chain link.
+    void post(const ActionResult& r) {
+        post(r.msg);
+        feedback = r.msg.empty() ? Feedback::Info
+                                 : (r.ok ? Feedback::Ok : Feedback::Fail);
+        if (!r.msg.empty())
+            openjoey::ui::platform::hapticPulse(r.ok ? 12 : 35);
+    }
+    // Informational prompt (targeting hints etc.) — never a verdict colour.
     void post(const std::string& r) {
+        feedback = Feedback::Info;
         lastResult = r;
         if (!r.empty()) {
             log.push_back(r);
@@ -95,6 +109,11 @@ struct DuelUIState {
         }
         if (r.find("Chain Link") != std::string::npos) chainPrompt = true;
     }
+
+    // ── Duel log (L toggles the overlay) ─────────────────────────────────────
+    // Every engine narration line lands here; a duel becomes followable.
+    std::vector<std::string> log;
+    bool logOpen = false;
 };
 
 }  // namespace openjoey::ui

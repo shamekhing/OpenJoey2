@@ -2,11 +2,13 @@
 // ── act/state — duel-state queries and ops (all take Duel& explicitly) ──────
 #include <string>
 
+#include "action/ActionResult.hpp"
 #include "engine/duel/Duel.hpp"
 
 namespace openjoey::engine::action {
 
 using cards::Card;
+using openjoey::ActionResult;
 
 // ── Life Points ─────────────────────────────────────────────────────────────
 inline int Lp(const Duel &d, int player) { return d.lp[player]; }
@@ -44,8 +46,9 @@ inline void SetResult(Duel &d, DuelResult r, WinReason w) {
         d.winReason = w;
     }
 }
-inline std::string ClassicGate(const char *mechanic) {
-    return std::string(mechanic) + " are not legal in the classic format.";
+inline ActionResult ClassicGate(const char *mechanic) {
+    return ActionResult::Fail(std::string(mechanic) +
+                              " are not legal in the classic format.");
 }
 
 // ── Legality predicates ─────────────────────────────────────────────────────
@@ -144,23 +147,24 @@ inline bool CanEndTurn(const Duel &d, int player) {
 inline int DiscardToHandLimit(Duel &d, int player) {
     auto &hand = d.field.handZones[player];
     int n = 0;
+    // Remove-then-put (the invariant moveCard/moveTo uphold): the card must
+    // never sit in two zones at once, even transiently.
     while (hand.count() > DuelConfig::HAND_LIMIT) {
         Card *c = hand.peek(-1);
-        if (!c)
+        if (!c || !hand.remove(c))
             break;
         d.field.graveyardZones[player].put(c);
-        hand.remove(c);
         ++n;
     }
     return n;
 }
-inline std::string ViewGraveyard(const Duel &d, int player) {
+inline ActionResult ViewGraveyard(const Duel &d, int player) {
     std::string out = "Graveyard (" +
                       std::to_string(d.field.graveyardZones[player].count()) + "):";
     for (int i = 0; i < d.field.graveyardZones[player].count(); ++i)
         if (Card *c = d.field.graveyardZones[player].peek(i))
             out += " " + c->name;
-    return out + ".";
+    return ActionResult::Ok(out + ".");
 }
 
 }  // namespace openjoey::engine::action

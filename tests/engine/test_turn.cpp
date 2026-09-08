@@ -43,7 +43,7 @@ TEST_CASE("Engine setup: opening hand + first-turn skips (p.27)", "[engine][turn
     REQUIRE(d.field.handZones[1].count() == DuelConfig::START_HAND);
 
     // Starting player (P0): no draw, no Battle Phase.
-    REQUIRE(action::StartTurn(d).find("turn 1") != std::string::npos);
+    REQUIRE(action::StartTurn(d).msg.find("turn 1") != std::string::npos);
     REQUIRE(d.field.handZones[0].count() == DuelConfig::START_HAND);  // no draw
     REQUIRE(d.turn.skipBattle);
     d.turn.phase = Phase::Battle;
@@ -58,7 +58,7 @@ TEST_CASE("Engine turn swap + End Phase hand limit of 6 (p.44)", "[engine][turn]
         d.field.handZones[0].put(&extra[i]);  // 8 in hand = 2 over the limit
     }
 
-    REQUIRE(action::EndTurn(d).find("2 discarded") != std::string::npos);
+    REQUIRE(action::EndTurn(d).msg.find("2 discarded") != std::string::npos);
     REQUIRE(d.field.handZones[0].count() == DuelConfig::HAND_LIMIT);
     REQUIRE(d.turnPlayer == 1);  // players swapped
     REQUIRE(d.turn.turnNumber == 2);
@@ -71,7 +71,7 @@ TEST_CASE("Deck-out at the mandatory draw loses the duel (p.44)",
     Duel d;
     d.turnPlayer = 1;  // P1 must draw from an empty deck
     d.turn.skipDraw = false;
-    REQUIRE(action::DrawForTurn(d).find("deck out") != std::string::npos);
+    REQUIRE(action::DrawForTurn(d).msg.find("deck out") != std::string::npos);
     CHECK(d.result == DuelResult::Player0Win);
     CHECK(d.winReason == WinReason::DeckOut);
     // A decided duel is never overwritten.

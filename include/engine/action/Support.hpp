@@ -5,23 +5,28 @@
 
 namespace openjoey::engine::action {
 
-inline std::string EquipCard(Duel &d, Card *equip, Card *monster) {
-    if (!equip || !monster) return "equip needs an equip card and a monster.";
+using openjoey::ActionResult;
+
+inline ActionResult EquipCard(Duel &d, Card *equip, Card *monster) {
+    if (!equip || !monster)
+        return ActionResult::Fail("equip needs an equip card and a monster.");
     auto [z, p] = d.field.findCard(equip);
     if (!z || z->type() != zone::ZoneType::SpellTrap)
-        return "the equip card must be set/activated in a spell/trap zone.";
+        return ActionResult::Fail(
+            "the equip card must be set/activated in a spell/trap zone.");
     zone::Zone_Monster *mz = d.field.monsterZoneOf(monster);
     if (!mz || monster->state.controller != d.turnPlayer)
-        return "equip target must be your monster on the field.";
+        return ActionResult::Fail("equip target must be your monster on the field.");
     if (!EquipAttach(equip, monster))
-        return "already equipped to that monster.";
-    return equip->name + " equips " + monster->name + " (ATK +" +
-           std::to_string(equip->state.bonusAtk) + ").";
+        return ActionResult::Fail("already equipped to that monster.");
+    return ActionResult::Ok(equip->name + " equips " + monster->name + " (ATK +" +
+                            std::to_string(equip->state.bonusAtk) + ").");
 }
-inline std::string UnequipCard(Duel &d, Card *equip) {
+inline ActionResult UnequipCard(Duel &d, Card *equip) {
     (void)d;
-    if (!equip || !EquipDetach(equip)) return "that card equips nothing.";
-    return equip->name + " unequipped.";
+    if (!equip || !EquipDetach(equip))
+        return ActionResult::Fail("that card equips nothing.");
+    return ActionResult::Ok(equip->name + " unequipped.");
 }
 inline void PlaceCounterD(Duel &d, Card *c, const std::string &ctr, int n = 1) {
     (void)d;
@@ -37,9 +42,9 @@ inline int SearchDeck(Duel &d, const std::function<bool(const Card &)> &pred) {
 inline std::vector<Card *> Excavate(Duel &d, int n) {
     return MoveExcavate(d.field, d.turnPlayer, n);
 }
-inline std::string ResolveStandby(Duel &d) {
+inline ActionResult ResolveStandby(Duel &d) {
     if (d.turn.phase != Phase::Standby)
-        return "standby triggers resolve in the Standby Phase.";
+        return ActionResult::Fail("standby triggers resolve in the Standby Phase.");
     bool pushed = false;
     for (auto &mz : d.field.monsterZones[d.turnPlayer])
         if (Card *c = mz.peek())
@@ -49,8 +54,9 @@ inline std::string ResolveStandby(Duel &d) {
                         d.chain.push(e, c->state.controller);
                         pushed = true;
                     }
-    if (!pushed) return "no standby triggers.";
-    if (d.config.chainResponseWindow) return "standby triggers wait on the chain.";
+    if (!pushed) return ActionResult::Ok("no standby triggers.");
+    if (d.config.chainResponseWindow)
+        return ActionResult::Ok("standby triggers wait on the chain.");
     return ResolveChain(d);
 }
 

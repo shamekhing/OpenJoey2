@@ -2,15 +2,14 @@
 // ── Effect-activation plumbing for the duel screen (openjoey::ui) ────────────
 // Builds resolver arguments from the classic catalog entry, pushes
 // activations onto the chain, seats spells/traps that activate from the
-// hand, and sweeps resolved cards to the Graveyard. Operates purely on the
-// engine/field + DuelUIState — no raylib, no cursor.
+// hand, and sweeps resolved cards to the Graveyard. All state mutation goes
+// through the Engine — this layer owns no rules of its own.
 
 #include <string>
 
 #include "action/ActionArgs.hpp"  // ActionArgs
 #include "cards/Card.hpp"
 #include "engine/action/Catalog.hpp"
-#include "engine/action/Moves.hpp"  // action::detail::moveCard
 #include "engine/duel/Engine.hpp"
 #include "engine/field/Field.hpp"
 #include "ui/duel/Action.hpp"
@@ -31,15 +30,15 @@ struct DuelEffects {
     // Push a spell/trap activation onto the chain: pay the cost, open the
     // chain link, park the card for the Graveyard after resolution, and open
     // the responder window.
-    std::string finishActivation(Card* target) {
+    ActionResult finishActivation(Card* target) {
         // The engine charges spec.lpCost at activation (one place, never
         // refunded); scope on the spec derives mass targets — no sentinels.
         ActionArgs a;
         a.target = target;
         a.source = st.pendingCard;  // engine checks set-turn Traps (p.31)
-        const std::string r =
+        const ActionResult r =
             engine.activateEffect(st.pendingFx, st.pendingOwner, a);
-        if (r.find("Chain Link") != std::string::npos) {
+        if (r.ok) {
             auto [hz, hp] = field.findCard(st.pendingCard);
             if (hz && hz->type() == zone::ZoneType::Hand)
                 setSpellTrap(st.pendingCard);  // spells sit in the S/T row while resolving
@@ -51,21 +50,12 @@ struct DuelEffects {
         return r;
     }
 
-    // Set a hand spell/trap face-down into its controller's first empty S/T zone.
-    std::string setSpellTrap(Card* c) {
-        if (!c) return "no card.";
-        auto [z, p] = field.findCard(c);
-        if (!z || z->type() != zone::ZoneType::Hand) return "card is not in your hand.";
-        const int slot = field.firstEmptySpellTrapZone(c->state.controller);
-        if (slot < 0) return "no free spell/trap zone.";
-        if (!z->remove(c)) return "remove from hand failed.";
-        auto& stz = field.spellTrapZones[c->state.controller][slot];
-        if (!stz.put(c)) {
-            z->put(c);
-            return "set failed — zone rejected the card.";
-        }
-        stz.changeVisibility(zone::Visibility::Limited);  // face-down: owner only
-        return c->name + " set face-down.";
+    // Set a hand spell/trap face-down via the ENGINE (one implementation —
+    // the old copy here forgot the setThisTurn stamp the p.31 rule needs).
+    ActionResult setSpellTrap(Card* c) {
+        if (!c) return ActionResult::Fail("no card.");
+        return engine.setSpellTrap(
+            c, c->isTrap() ? ActionId::SetTrapCard : ActionId::SetSpellCard);
     }
 
     // Spells/Traps that resolved sit in the S/T row until they hit the GY.

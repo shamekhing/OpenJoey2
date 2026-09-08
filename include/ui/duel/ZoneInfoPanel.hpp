@@ -20,6 +20,7 @@ using cards::CardDatabase;
 struct ZoneInfoPanel {
     static void Draw(Rectangle r, zone::IZone* zone, const char* label,
                      const DuelActionList& actions, int actionCursor,
+                     DuelUIState::Feedback feedback,
                      const std::string& lastResult, bool hasSource) {
         DrawRectangleRec(r, COLOR_PANEL_BG);
         DrawRectangleLinesEx(r, 1.f, COLOR_PANEL_BORDER);
@@ -95,11 +96,13 @@ struct ZoneInfoPanel {
             DrawLine((int)(r.x + pad * 0.5f), (int)ry,
                      (int)(r.x + r.width - pad * 0.5f), (int)ry, COLOR_DIVIDER_LINE);
             ry += pad * 0.3f;
-            bool ok = lastResult.find("OK") != std::string::npos ||
-                      lastResult.find("true") != std::string::npos ||
-                      lastResult.find("Moved") != std::string::npos;
-            DrawText(lastResult.c_str(), (int)x, (int)ry, fsSub,
-                     ok ? GREEN : Color{220, 80, 80, 255});
+            // Verdict colour comes from the structured engine result, not from
+            // sniffing the text.
+            using FB = DuelUIState::Feedback;
+            Color col = feedback == FB::Ok     ? GREEN
+                        : feedback == FB::Fail ? Color{220, 80, 80, 255}
+                                               : COLOR_STAT_TEXT;
+            DrawText(lastResult.c_str(), (int)x, (int)ry, fsSub, col);
         }
     }
 

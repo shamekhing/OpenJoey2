@@ -95,7 +95,7 @@ class DuelScreen : public IScreen {
             {(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH},
             fieldGrid_.cursorZone(const_cast<Field&>(field_)),
             fieldGrid_.cursorLabel(const_cast<Field&>(field_)),
-            ui_.actions, ui_.actionCursor, ui_.lastResult,
+            ui_.actions, ui_.actionCursor, ui_.feedback, ui_.lastResult,
             fieldGrid_.selectedZone() != nullptr);
 
         DuelPanels::drawFooter(0, _SH - footerH, _SW, footerH);
@@ -186,12 +186,20 @@ class DuelScreen : public IScreen {
             ui_.lastResult = "cancel the attack first (ESC).";
             return;
         }
-        std::string r = engine_.endTurn();
-        r += " " + engine_.startTurn();
+        const ActionResult ended = engine_.endTurn();
+        if (!ended.ok) {
+            // Refused (hand limit unresolved, duel over) — the turn does NOT
+            // pass, so the next player's turn must not start either. The old
+            // code started it anyway, silently re-dealing the same player's turn.
+            ui_.post(ended);
+            return;
+        }
+        const ActionResult started = engine_.startTurn();
         advanceToMain1();
         fieldGrid_.setViewer(duel_.turnPlayer, field_);
         ui_.handoff = true;  // SPACE gate hides the next player's hand
-        ui_.lastResult = r;
+        ui_.post(ActionResult(ended.ok && started.ok,
+                              ended.msg + " " + started.msg));
     }
 
     // ── Input state machine ──────────────────────────────────────────────────
@@ -283,8 +291,9 @@ class DuelScreen : public IScreen {
 
         if (ui_.mode == DuelMode::Navigate) {
             if (IsKeyPressed(KEY_B)) {
-                std::string r = engine_.toBattle();
-                if (r == "Battle Phase.") r += " SPACE on your monster to attack.";
+                ActionResult r = engine_.toBattle();
+                if (r.ok && r.msg == "Battle Phase.")
+                    r.msg += " SPACE on your monster to attack.";
                 ui_.post(r);
             }
             if (IsKeyPressed(KEY_N)) ui_.post(engine_.toMain2());
@@ -335,10 +344,13 @@ class DuelScreen : public IScreen {
                         ui_.mode = DuelMode::Navigate;
                         break;
                     }
-                    const std::string r = ui_.actions[ui_.actionCursor].invoke();
+                    const ActionResult r = ui_.actions[ui_.actionCursor].invoke();
                     if (ui_.mode == DuelMode::Menu)
                         ui_.mode = DuelMode::Navigate;  // actions may switch mode
                     ui_.post(r);
+                    // A targeting prompt is an instruction, not a verdict —
+                    // keep it out of the green/red verdict colours.
+                    if (ui_.mode != DuelMode::Navigate) ui_.feedback = DuelUIState::Feedback::Info;
                 }
                 break;
             }
