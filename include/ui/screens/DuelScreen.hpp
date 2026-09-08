@@ -14,6 +14,7 @@
 
 #include <raylib.h>
 
+#include <cmath>
 #include <string>
 #include <ui/cards/CardPreview.hpp>
 #include <vector>
@@ -33,6 +34,7 @@
 #include "ui/duel/FieldGrid.hpp"
 #include "ui/duel/FieldRows.hpp"
 #include "ui/duel/ZoneInfoPanel.hpp"
+#include "ui/input/TouchInput.hpp"
 #include "ui/screens/IScreen.hpp"
 #include "ui/widgets/StyleSheet.hpp"
 
@@ -60,8 +62,12 @@ class DuelScreen : public IScreen {
     void Draw() const override {
         ClearBackground(COLOR_BG_DARK);
 
-        int leftW = _SW * DUEL_LEFT_W_PCT / 100;
-        int rightW = _SW * DUEL_RIGHT_W_PCT / 100;
+        // Compact screens (phones): the side panels would squeeze the mat to
+        // ~66px zones. The mat takes the full width; card details live on
+        // long-press and the verdict strip stays in the action sheet.
+        const bool compact = _SW < 820;
+        int leftW = compact ? 0 : _SW * DUEL_LEFT_W_PCT / 100;
+        int rightW = compact ? 0 : _SW * DUEL_RIGHT_W_PCT / 100;
         int centerW = _SW - leftW - rightW;
         int headerH = HEADER_HEIGHT;
         int footerH = int(0.03f * _SH);
@@ -77,6 +83,15 @@ class DuelScreen : public IScreen {
         if (ui_.mode == DuelMode::AttackTarget) {
             for (auto& mz : field_.monsterZones[1 - fieldGrid_.viewer()])
                 if (!mz.isEmpty()) fieldGrid_.addHighlight(&mz, RED);
+            // Direct attack: the empty opponent row is a legal target too —
+            // light it up, otherwise the one cell you must tap has no
+            // affordance at all (the old code highlighted only occupants).
+            if (ui_.attacker && engine_.canDirectAttack(ui_.attacker)) {
+                const unsigned char a =
+                    (unsigned char)(140 + 110 * (0.5f + 0.5f * sinf((float)GetTime() * 6.f)));
+                for (auto& mz : field_.monsterZones[1 - fieldGrid_.viewer()])
+                    if (mz.isEmpty()) fieldGrid_.addHighlight(&mz, {250, 200, 40, a});
+            }
         } else if (ui_.mode == DuelMode::EffectTarget) {
             for (int p = 0; p < 2; ++p) {
                 for (auto& mz : field_.monsterZones[p])
@@ -90,8 +105,12 @@ class DuelScreen : public IScreen {
         }
 
         const Texture2D* cb = cardBack_.id ? &cardBack_ : nullptr;
+        const bool peekHand =
+            IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+            fieldGrid_.ownHandHit(GetMousePosition());
         fieldGrid_.draw({(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
-                        const_cast<Field&>(field_), ctx_.imageCache, cb);
+                        const_cast<Field&>(field_), ctx_.imageCache, cb,
+                        ui_.hideHand && !peekHand);
 
         ZoneInfoPanel::Draw(
             {(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH},
@@ -161,6 +180,28 @@ class DuelScreen : public IScreen {
                          ly + 34 + (i - start) * lineH, fs, c);
             }
         }
+
+        // ── Long-press card detail: hold any card ~0.35s to read it full-screen
+        // (the touch replacement for hover-inspect; works on hands, fields and
+        // list overlays). Entitlement rules still apply — face-down opponent
+        // cards stay unreadable.
+        if (press_.held()) {
+            Card* c =
+                fieldGrid_.cardAt(GetMousePosition(), const_cast<Field&>(field_));
+            if (c && canView(c)) {
+                DrawRectangle(0, 0, (float)_SW, (float)_SH, {0, 0, 0, 215});
+                const float w = _SW * 0.86f, h = _SH * 0.80f;
+                const Rectangle r{(float)(_SW - w) / 2.f, (float)(_SH - h) / 2.f, w, h};
+                detail_.SetCardBack(cardBack_.id ? &cardBack_ : nullptr);
+                detail_.SetCard(c, false);
+                detail_.Draw(r, ctx_.imageCache);
+                const char* hint = "release to close";
+                DrawText(hint,
+                         (int)((_SW - MeasureText(hint, FONT_HELP_SMALL)) / 2),
+                         (int)(r.y + r.height + 8), FONT_HELP_SMALL,
+                         COLOR_STAT_TEXT);
+            }
+        }
     }
 
    private:
@@ -176,6 +217,9 @@ class DuelScreen : public IScreen {
     DuelEffects fx_;   // effect-activation plumbing
     DuelActions act_;  // contextual action menu
     mutable CardPreview preview_;
+    // Full-screen card inspector for the long-press gesture (Stage 2).
+    mutable CardPreview detail_;
+    PressTracker press_;
 
     // ── Setup / turn flow ─────────────────────────────────────────────────────
     void setupDuel() {
@@ -314,6 +358,7 @@ class DuelScreen : public IScreen {
     // B Battle Phase · N Main2 · E end turn · R resolve chain / rematch
     // SPACE confirms the pass-device gate.
     ScreenEvent handleInput() {
+        press_.update();  // long-press tracking (card detail overlay)
         if (duel_.result != DuelResult::Ongoing) {
             if (IsKeyPressed(KEY_R) || clicked(DuelLayout::winButton(0)))
                 rematch();
@@ -385,8 +430,10 @@ class DuelScreen : public IScreen {
                 endTurnFlow();
             } else if (slot == 2) {
                 undoFlow();
-            } else {
+            } else if (slot == 3) {
                 ui_.logOpen = !ui_.logOpen;
+            } else {
+                ui_.hideHand = !ui_.hideHand;
             }
             return ScreenEvent::none();
         }
@@ -485,8 +532,8 @@ class DuelScreen : public IScreen {
                     Card* t = cursorCard();
                     if (!gridRow(FieldRow::OppMonster)) {
                         ui_.lastResult =
-                            "pick a target on the OPPONENT's monster row "
-                            "(ENTER on the empty row = direct attack).";
+                            "tap an opponent monster (an empty row = direct "
+                            "attack).";
                         break;
                     }
                     if (!t && !engine_.canDirectAttack(ui_.attacker)) {
@@ -559,7 +606,7 @@ class DuelScreen : public IScreen {
     void attackFlow() {
         Card* c = cursorCard();
         if (!c || !gridRow(FieldRow::OwnMonster)) {
-            ui_.lastResult = "attack: cursor must be on YOUR monster row (A).";
+            ui_.lastResult = "attack: select a monster in YOUR monster row.";
             return;
         }
         if (!engine_.canAttack(c)) {

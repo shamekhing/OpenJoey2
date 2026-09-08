@@ -236,7 +236,8 @@ class FieldGrid {
 
     // ── Draw the entire field area (center panel).
     void draw(Rectangle bounds, Field& field,
-              CardImageCache& cache, const Texture2D* cardBack) const {
+              CardImageCache& cache, const Texture2D* cardBack,
+              bool hideHandFaces = false) const {
         int fx = (int)bounds.x, fy = (int)bounds.y;
         int fw = (int)bounds.width, fh = (int)bounds.height;
 
@@ -286,7 +287,28 @@ class FieldGrid {
                    {(float)(startX + gridW), (float)divY}, 2.f, COLOR_DIVIDER_MID);
 
         drawOwnHand({(float)fx, (float)(fy + fh - handH), (float)fw, (float)handH},
-                    field, cache, cardBack);
+                    field, cache, cardBack, hideHandFaces);
+    }
+
+    // ── Const probes for the long-press detail overlay / hand privacy ───────
+    // The card under a point WITHOUT moving the cursor: field cells resolve
+    // to their top card, own-hand rects to the hand card at that index.
+    Card* cardAt(Vector2 m, Field& field) const {
+        for (int row = 1; row < ROWS; ++row)
+            for (int col = 0; col < COLS; ++col) {
+                const Rectangle& r = cellRects_[row][col];
+                if (r.width > 0 && CheckCollisionPointRec(m, r))
+                    return peekZone(grid_[row][col]);
+            }
+        for (std::size_t i = 0; i < handRects_[1].size(); ++i)
+            if (CheckCollisionPointRec(m, handRects_[1][i]))
+                return field.handZones[viewer_].peek((int)i);
+        return nullptr;
+    }
+    bool ownHandHit(Vector2 m) const {
+        for (const auto& r : handRects_[1])
+            if (CheckCollisionPointRec(m, r)) return true;
+        return false;
     }
 
    private:
@@ -356,8 +378,10 @@ class FieldGrid {
     }
 
     void drawOwnHand(Rectangle bounds, Field& field,
-                     CardImageCache& cache, const Texture2D* cardBack) const {
-        (void)cardBack;  // own hand renders faces (or fallbacks), never backs
+                     CardImageCache& cache, const Texture2D* cardBack,
+                     bool hideFaces) const {
+        // hideFaces: hotseat privacy — render backs so the second player can't
+        // read the hand over your shoulder. cardBack is used again here.
         int fx = (int)bounds.x, fy = (int)bounds.y;
         int fw = (int)bounds.width, fh = (int)bounds.height;
         DrawRectangle(fx, fy, fw, fh, COLOR_BG_DARK);
@@ -388,17 +412,26 @@ class FieldGrid {
             Rectangle cr = {(float)cx, (float)cy2, (float)cw, (float)ch};
             handRects_[1].push_back(cr);
 
-            const Texture2D* tex = cache.Get(*c);
-            if (tex && tex->id) {
-                DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                               cr, {0, 0}, 0.f, WHITE);
+            if (hideFaces) {
+                if (cardBack && cardBack->id)
+                    DrawUtils::blitCard(cr, *cardBack, false);
+                else {
+                    DrawRectangleRec(cr, COLOR_BG_DARK);
+                    DrawRectangleLinesEx(cr, 1.f, COLOR_CARD_BACK_GOLD);
+                }
             } else {
-                Color fc = c->isMonster() ? COLOR_MONSTER_STAT
-                           : c->isSpell() ? COLOR_SPELL_STAT
-                                          : COLOR_TRAP_STAT;
-                DrawRectangleRec(cr, Fade(fc, 0.6f));
-                DrawText(c->name.substr(0, 6).c_str(), (int)cx + 2, (int)cy2 + 2,
-                         FONT_HELP_TEXT, WHITE);
+                const Texture2D* tex = cache.Get(*c);
+                if (tex && tex->id) {
+                    DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
+                                   cr, {0, 0}, 0.f, WHITE);
+                } else {
+                    Color fc = c->isMonster() ? COLOR_MONSTER_STAT
+                               : c->isSpell() ? COLOR_SPELL_STAT
+                                              : COLOR_TRAP_STAT;
+                    DrawRectangleRec(cr, Fade(fc, 0.6f));
+                    DrawText(c->name.substr(0, 6).c_str(), (int)cx + 2, (int)cy2 + 2,
+                             FONT_HELP_TEXT, WHITE);
+                }
             }
             float thick = (cur || sel) ? 2.5f : 1.f;
             Color border = cur ? YELLOW : sel ? GREEN

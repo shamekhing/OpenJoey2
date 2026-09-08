@@ -111,7 +111,7 @@ struct DuelPanels {
     // Slots: 0 = phase action (BATTLE or MAIN 2) · 1 = END TURN · 2 = UNDO ·
     // 3 = LOG. Labels and enabled states live here so Draw() and
     // DuelScreen::handleInput() agree through the same functions.
-    static const char* barLabel(const Duel& duel, int slot) {
+    static const char* barLabel(const Duel& duel, const DuelUIState& st, int slot) {
         switch (slot) {
             case 0:
                 return duel.turn.phase == Phase::Battle ? "MAIN 2" : "BATTLE";
@@ -119,8 +119,10 @@ struct DuelPanels {
                 return "END TURN";
             case 2:
                 return "UNDO";
-            default:
+            case 3:
                 return "LOG";
+            default:
+                return st.hideHand ? "PEEK" : "HIDE";
         }
     }
     static bool barEnabled(const Engine& engine, const Duel& duel, int slot) {
@@ -166,7 +168,7 @@ struct DuelPanels {
                                  active ? GOLD
                                  : on   ? COLOR_PANEL_BORDER
                                         : Fade(COLOR_PANEL_BORDER, 0.4f));
-            const char* label = barLabel(duel, slot);
+            const char* label = barLabel(duel, st, slot);
             DrawText(label, (int)(r.x + (r.width - MeasureText(label, fs)) / 2),
                      (int)(r.y + (r.height - fs) / 2), fs, fg);
         }

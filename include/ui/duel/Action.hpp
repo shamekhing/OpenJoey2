@@ -89,6 +89,10 @@ struct DuelUIState {
     std::string lastResult;
     Feedback feedback = Feedback::Info;
 
+    // Hotseat privacy: own hand renders as backs while on; press-and-hold the
+    // hand strip peeks. (The HAND bar button toggles it.)
+    bool hideHand = false;
+
     // Record an engine verdict; opens the chain responder window when the
     // engine reports a new chain link.
     void post(const ActionResult& r) {

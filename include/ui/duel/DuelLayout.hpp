@@ -13,9 +13,10 @@ namespace openjoey::ui {
 struct DuelLayout {
     // ── Action bar (bottom strip) ────────────────────────────────────────────
     // Slots: 0 = phase action (BATTLE / MAIN 2) · 1 = END TURN · 2 = UNDO ·
-    // 3 = LOG. The bar overlays the bottom of the duel layout; DuelScreen
-    // shrinks the field by barH() so nothing underneath is hidden.
-    static constexpr int kBarButtons = 4;
+    // 3 = LOG · 4 = HAND privacy. The bar overlays the bottom of the duel
+    // layout; DuelScreen shrinks the field by barH() so nothing underneath is
+    // hidden.
+    static constexpr int kBarButtons = 5;
     static float barH() {
         const float h = 0.07f * _SH;
         return h < 48.f ? 48.f : h;
