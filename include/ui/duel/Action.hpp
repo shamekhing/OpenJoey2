@@ -83,9 +83,7 @@ struct DuelUIState {
     // neutral. The old code sniffed the text for "OK"/"true"/"Moved" — none of
     // the engine's result strings contained those, so every successful summon
     // rendered in the failure colour.
-    enum class Feedback : uint8_t { Info,
-                                    Ok,
-                                    Fail };
+    enum class Feedback : uint8_t { Info, Ok, Fail };
     std::string lastResult;
     Feedback feedback = Feedback::Info;
 
@@ -93,14 +91,19 @@ struct DuelUIState {
     // hand strip peeks. (The HAND bar button toggles it.)
     bool hideHand = false;
 
+    // ── Card-list overlay (compact chips: GY / banished / extra / deck) ──────
+    // A snapshot of the zone at open time — input is blocked while it shows.
+    bool listOpen = false;
+    std::string listTitle;
+    std::vector<Card*> listCards;
+    int listScroll = 0;
+
     // Record an engine verdict; opens the chain responder window when the
     // engine reports a new chain link.
     void post(const ActionResult& r) {
         post(r.msg);
-        feedback = r.msg.empty() ? Feedback::Info
-                                 : (r.ok ? Feedback::Ok : Feedback::Fail);
-        if (!r.msg.empty())
-            openjoey::ui::platform::hapticPulse(r.ok ? 12 : 35);
+        feedback = r.msg.empty() ? Feedback::Info : (r.ok ? Feedback::Ok : Feedback::Fail);
+        if (!r.msg.empty()) openjoey::ui::platform::hapticPulse(r.ok ? 12 : 35);
     }
     // Informational prompt (targeting hints etc.) — never a verdict colour.
     void post(const std::string& r) {
@@ -108,8 +111,7 @@ struct DuelUIState {
         lastResult = r;
         if (!r.empty()) {
             log.push_back(r);
-            if (log.size() > 200)
-                log.erase(log.begin(), log.begin() + (log.size() - 200));
+            if (log.size() > 200) log.erase(log.begin(), log.begin() + (log.size() - 200));
         }
         if (r.find("Chain Link") != std::string::npos) chainPrompt = true;
     }

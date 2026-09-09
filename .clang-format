@@ -2,8 +2,15 @@
 # DerivePointerAlignment keeps each file's existing * / & placement.
 BasedOnStyle: Google
 IndentWidth: 4
-ColumnLimit: 0
+ColumnLimit: 1000
 DerivePointerAlignment: true
 BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+BreakStringLiterals: false
 BinPackArguments: true
 BinPackParameters: true

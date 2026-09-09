@@ -20,40 +20,29 @@ using namespace openjoey::engine;
 struct DuelPanels {
     static const char* phaseName(Phase p) {
         switch (p) {
-            case Phase::Draw:
-                return "Draw";
-            case Phase::Standby:
-                return "Standby";
-            case Phase::Main1:
-                return "Main 1";
-            case Phase::Battle:
-                return "Battle";
-            case Phase::Main2:
-                return "Main 2";
-            case Phase::End:
-                return "End";
+            case Phase::Draw: return "Draw";
+            case Phase::Standby: return "Standby";
+            case Phase::Main1: return "Main 1";
+            case Phase::Battle: return "Battle";
+            case Phase::Main2: return "Main 2";
+            case Phase::End: return "End";
         }
         return "?";
     }
 
     // Top strip: LP / turn / phase (left) and a state hint (center/right).
-    static void drawHeader(const Engine& engine, const Duel& duel,
-                           const DuelUIState& st, int x, int y, int w, int h) {
+    static void drawHeader(const Engine& engine, const Duel& duel, const DuelUIState& st, int x, int y, int w, int h) {
         DrawRectangle(x, y, w, h, COLOR_HEADER_BG);
         DrawLine(x, y + h - 1, x + w, y + h - 1, COLOR_DIVIDER_LINE);
         int fs = FONT_SCREEN_TITLE;
 
-        std::string l = "P1 " + std::to_string(engine.lp(0)) + "   P2 " +
-                        std::to_string(engine.lp(1)) + "   T:P" +
-                        std::to_string(duel.turnPlayer + 1) + "  " +
-                        phaseName(duel.turn.phase);
+        std::string l = "P1 " + std::to_string(engine.lp(0)) + "   P2 " + std::to_string(engine.lp(1)) + "   T:P" + std::to_string(duel.turnPlayer + 1) + "  " + phaseName(duel.turn.phase);
         DrawText(l.c_str(), x + HEADER_TITLE_X, y + (h - fs) / 2, fs, COLOR_STAT_TEXT);
 
         // Phase timeline (right side): Draw · MP1 · BP · MP2 · End — current lit.
         {
             static constexpr const char* kPhases[] = {"Draw", "MP1", "BP", "MP2", "End"};
-            const Phase kMap[] = {Phase::Draw, Phase::Main1, Phase::Battle,
-                                  Phase::Main2, Phase::End};
+            const Phase kMap[] = {Phase::Draw, Phase::Main1, Phase::Battle, Phase::Main2, Phase::End};
             const int pw = 46, gap = 8, fs2 = 16, py = y + (h - fs2) / 2;
             int px = x + w - (5 * pw + 4 * gap) - 20;
             for (int i = 0; i < 5; ++i) {
@@ -72,11 +61,7 @@ struct DuelPanels {
         const char* msg = nullptr;
         Color mc = YELLOW;
         if (duel.result != DuelResult::Ongoing) {
-            msg = duel.result == DuelResult::Draw
-                      ? "DRAW!  [R = rematch]"
-                      : (duel.result == DuelResult::Player0Win
-                             ? "PLAYER 1 WINS!  [R = rematch]"
-                             : "PLAYER 2 WINS!  [R = rematch]");
+            msg = duel.result == DuelResult::Draw ? "DRAW!  [R = rematch]" : (duel.result == DuelResult::Player0Win ? "PLAYER 1 WINS!  [R = rematch]" : "PLAYER 2 WINS!  [R = rematch]");
             mc = GOLD;
         } else if (st.handoff) {
             msg = "PASS THE DEVICE  [SPACE = start turn]";
@@ -86,8 +71,7 @@ struct DuelPanels {
             msg = "ACTION?  [ENTER = run, ESC = back]";
         } else if (st.mode == DuelMode::AttackTarget) {
             msg = "PICK TARGET  [ENTER = confirm, ESC = cancel]";
-        } else if (st.mode == DuelMode::EffectTarget ||
-                   st.mode == DuelMode::TributeTarget) {
+        } else if (st.mode == DuelMode::EffectTarget || st.mode == DuelMode::TributeTarget) {
             msg = "PICK TARGET  [ENTER = pick, F = confirm tributes, ESC = cancel]";
         } else {
             msg = "NAVIGATE  [ENTER = menu, SPACE = attack, H = help]";
@@ -113,16 +97,11 @@ struct DuelPanels {
     // DuelScreen::handleInput() agree through the same functions.
     static const char* barLabel(const Duel& duel, const DuelUIState& st, int slot) {
         switch (slot) {
-            case 0:
-                return duel.turn.phase == Phase::Battle ? "MAIN 2" : "BATTLE";
-            case 1:
-                return "END TURN";
-            case 2:
-                return "UNDO";
-            case 3:
-                return "LOG";
-            default:
-                return st.hideHand ? "PEEK" : "HIDE";
+            case 0: return duel.turn.phase == Phase::Battle ? "MAIN 2" : "BATTLE";
+            case 1: return "END TURN";
+            case 2: return "UNDO";
+            case 3: return "LOG";
+            default: return st.hideHand ? "PEEK" : "HIDE";
         }
     }
     static bool barEnabled(const Engine& engine, const Duel& duel, int slot) {
@@ -132,45 +111,32 @@ struct DuelPanels {
                 if (duel.turn.phase == Phase::Main1) return !duel.turn.skipBattle;
                 if (duel.turn.phase == Phase::Battle) return true;
                 return false;
-            case 1:
-                return duel.canAct();
-            case 2:
-                return engine.canUndo();
-            default:
-                return true;
+            case 1: return duel.canAct();
+            case 2: return engine.canUndo();
+            default: return true;
         }
     }
-    static void drawOverlayButton(const Rectangle& r, const char* label,
-                                  Color border, Color text) {
+    static void drawOverlayButton(const Rectangle& r, const char* label, Color border, Color text) {
         DrawRectangleRec(r, COLOR_PANEL_BG);
         DrawRectangleLinesEx(r, 2.f, border);
         const int fs = FONT_PANEL_TITLE;
-        DrawText(label, (int)(r.x + (r.width - MeasureText(label, fs)) / 2),
-                 (int)(r.y + (r.height - fs) / 2), fs, text);
+        DrawText(label, (int)(r.x + (r.width - MeasureText(label, fs)) / 2), (int)(r.y + (r.height - fs) / 2), fs, text);
     }
-    static void drawActionBar(const Engine& engine, const Duel& duel,
-                              const DuelUIState& st) {
+    static void drawActionBar(const Engine& engine, const Duel& duel, const DuelUIState& st) {
         const Rectangle bar = DuelLayout::barRect();
         DrawRectangleRec(bar, COLOR_HEADER_BG);
-        DrawLine((int)bar.x, (int)bar.y, (int)(bar.x + bar.width), (int)bar.y,
-                 COLOR_DIVIDER_LINE);
+        DrawLine((int)bar.x, (int)bar.y, (int)(bar.x + bar.width), (int)bar.y, COLOR_DIVIDER_LINE);
         const int fs = 0.028f * _SH < 14 ? 14 : (int)(0.028f * _SH);
         for (int slot = 0; slot < DuelLayout::kBarButtons; ++slot) {
             const Rectangle r = DuelLayout::barButton(slot);
             const bool on = barEnabled(engine, duel, slot);
             const bool active = slot == 3 && st.logOpen;
-            Color fg = !on      ? Color{105, 105, 128, 255}
-                       : active ? GOLD
-                                : RAYWHITE;
+            Color fg = !on ? Color{105, 105, 128, 255} : active ? GOLD : RAYWHITE;
             Rectangle inner{r.x + 4, r.y + 5, r.width - 8, r.height - 10};
             DrawRectangleRec(inner, on ? COLOR_PANEL_BG : Fade(COLOR_PANEL_BG, 0.55f));
-            DrawRectangleLinesEx(inner, 1.5f,
-                                 active ? GOLD
-                                 : on   ? COLOR_PANEL_BORDER
-                                        : Fade(COLOR_PANEL_BORDER, 0.4f));
+            DrawRectangleLinesEx(inner, 1.5f, active ? GOLD : on ? COLOR_PANEL_BORDER : Fade(COLOR_PANEL_BORDER, 0.4f));
             const char* label = barLabel(duel, st, slot);
-            DrawText(label, (int)(r.x + (r.width - MeasureText(label, fs)) / 2),
-                     (int)(r.y + (r.height - fs) / 2), fs, fg);
+            DrawText(label, (int)(r.x + (r.width - MeasureText(label, fs)) / 2), (int)(r.y + (r.height - fs) / 2), fs, fg);
         }
     }
 
@@ -179,12 +145,10 @@ struct DuelPanels {
     // ── Overlays: handoff gate, chain window, win banner, help panel ─────────
     // Chain banner geometry shared by the overlay draw and input hit-testing.
     static Rectangle chainBannerRect(const Duel& duel) {
-        const char* msg =
-            TextFormat(
-                "Chain open (%d link%s) — the other player may respond "
-                "(activate a set card)",
-                (int)duel.chain.links.size(),
-                duel.chain.links.size() == 1 ? "" : "s");
+        const char* msg = TextFormat(
+            "Chain open (%d link%s) — the other player may respond "
+            "(activate a set card)",
+            (int)duel.chain.links.size(), duel.chain.links.size() == 1 ? "" : "s");
         const int fs = FONT_CARD_NAME;
         const float btnW = DuelLayout::bannerButton(0, 0, 0, 0).width + 12.f;
         const float bw = (float)MeasureText(msg, fs) + 40.f + btnW;
@@ -197,16 +161,11 @@ struct DuelPanels {
     static void drawOverlays(const Duel& duel, const DuelUIState& st) {
         if (st.handoff) {
             DrawRectangle(0, 0, _SW, _SH, {0, 0, 0, 220});
-            const char* msg =
-                TextFormat("PASS THE DEVICE TO PLAYER %d", duel.turnPlayer + 1);
-            DrawText(msg, _SW / 2 - MeasureText(msg, TITLE_FONT_SIZE) / 2,
-                     _SH / 2 - TITLE_FONT_SIZE, TITLE_FONT_SIZE, RAYWHITE);
-            const char* sub =
-                "your hands stay hidden until you claim the turn (SPACE works too)";
-            DrawText(sub, _SW / 2 - MeasureText(sub, FONT_HELP_SMALL) / 2, _SH / 2,
-                     FONT_HELP_SMALL, GRAY);
-            drawOverlayButton(DuelLayout::handoffButton(),
-                              "I'M PLAYER 2 — SHOW MY TURN", GOLD, RAYWHITE);
+            const char* msg = TextFormat("PASS THE DEVICE TO PLAYER %d", duel.turnPlayer + 1);
+            DrawText(msg, _SW / 2 - MeasureText(msg, TITLE_FONT_SIZE) / 2, _SH / 2 - TITLE_FONT_SIZE, TITLE_FONT_SIZE, RAYWHITE);
+            const char* sub = "your hands stay hidden until you claim the turn (SPACE works too)";
+            DrawText(sub, _SW / 2 - MeasureText(sub, FONT_HELP_SMALL) / 2, _SH / 2, FONT_HELP_SMALL, GRAY);
+            drawOverlayButton(DuelLayout::handoffButton(), "I'M PLAYER 2 — SHOW MY TURN", GOLD, RAYWHITE);
             return;
         }
         if (duel.result != DuelResult::Ongoing) {
@@ -214,30 +173,24 @@ struct DuelPanels {
             const bool p1 = duel.result == DuelResult::Player0Win;
             const char* msg = p1 ? "PLAYER 1 WINS!" : "PLAYER 2 WINS!";
             const int fs = FONT_MAIN_TITLE;
-            DrawText(msg, _SW / 2 - MeasureText(msg, fs) / 2, _SH / 2 - fs,
-                     fs, p1 ? GOLD : SKYBLUE);
+            DrawText(msg, _SW / 2 - MeasureText(msg, fs) / 2, _SH / 2 - fs, fs, p1 ? GOLD : SKYBLUE);
             const char* sub = "or press R for a rematch";
-            DrawText(sub, _SW / 2 - MeasureText(sub, FONT_CARD_NAME) / 2,
-                     _SH / 2 + FONT_CARD_NAME, FONT_CARD_NAME, RAYWHITE);
+            DrawText(sub, _SW / 2 - MeasureText(sub, FONT_CARD_NAME) / 2, _SH / 2 + FONT_CARD_NAME, FONT_CARD_NAME, RAYWHITE);
             drawOverlayButton(DuelLayout::winButton(0), "REMATCH", GOLD, RAYWHITE);
-            drawOverlayButton(DuelLayout::winButton(1), "MAIN MENU",
-                              COLOR_PANEL_BORDER, RAYWHITE);
+            drawOverlayButton(DuelLayout::winButton(1), "MAIN MENU", COLOR_PANEL_BORDER, RAYWHITE);
             return;
         }
         if (st.chainPrompt) {
             const char* msg = TextFormat(
                 "Chain open (%d link%s) — the other player may respond "
                 "(activate a set card)",
-                (int)duel.chain.links.size(),
-                duel.chain.links.size() == 1 ? "" : "s");
+                (int)duel.chain.links.size(), duel.chain.links.size() == 1 ? "" : "s");
             const int fs = FONT_CARD_NAME;
-            const bool waiting =
-                duel.config.chainResponseWindow && duel.chain.consecutivePasses < 2;
+            const bool waiting = duel.config.chainResponseWindow && duel.chain.consecutivePasses < 2;
             const Rectangle banner = chainBannerRect(duel);
             DrawRectangleRec(banner, {20, 20, 30, 230});
             DrawText(msg, (int)(banner.x + 20), 14, fs, ORANGE);
-            drawOverlayButton(chainButtonRect(duel), waiting ? "PASS" : "RESOLVE",
-                              ORANGE, RAYWHITE);
+            drawOverlayButton(chainButtonRect(duel), waiting ? "PASS" : "RESOLVE", ORANGE, RAYWHITE);
         }
         if (st.helpOpen) {  // modal controls panel — H or GOT IT closes it
             DrawRectangle(0, 0, _SW, _SH, {0, 0, 0, 200});

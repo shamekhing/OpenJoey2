@@ -23,25 +23,16 @@ class ZoneStack : public IZone {
 
     int count() const override { return static_cast<int>(cards_.size()); }
     // Peek at a card by index (-1 = top/back).
-    Card *peek(int index = -1) const {
-        return cards_.empty() || count() <= index ? nullptr
-               : index < 0                        ? cards_.back()
-                                                  : cards_[index];
-    }
+    Card *peek(int index = -1) const { return cards_.empty() || count() <= index ? nullptr : index < 0 ? cards_.back() : cards_[index]; }
 
     // Push to top (back).
-    bool put(Card *c) override {
-        return !c ? false : (cards_.push_back(c), true);
-    }
+    bool put(Card *c) override { return !c ? false : (cards_.push_back(c), true); }
 
-    bool contains(const Card *c) const override {
-        return std::find(cards_.begin(), cards_.end(), c) != cards_.end();
-    }
+    bool contains(const Card *c) const override { return std::find(cards_.begin(), cards_.end(), c) != cards_.end(); }
 
     // nullptr → remove top (back); non-null → remove that specific card.
     Card *remove(Card *c = nullptr) override {
-        if (cards_.empty())
-            return nullptr;
+        if (cards_.empty()) return nullptr;
 
         if (!c) {
             c = cards_.back();
@@ -51,8 +42,7 @@ class ZoneStack : public IZone {
 
         auto it = std::find(cards_.begin(), cards_.end(), c);
 
-        if (it == cards_.end())
-            return nullptr;
+        if (it == cards_.end()) return nullptr;
 
         cards_.erase(it);
         return c;
@@ -62,8 +52,7 @@ class ZoneStack : public IZone {
     std::vector<Card *> findAll(std::function<bool(const Card *)> pred) const {
         std::vector<Card *> result;
         for (Card *c : cards_)
-            if (pred(c))
-                result.push_back(c);
+            if (pred(c)) result.push_back(c);
         return result;
     }
 

@@ -28,9 +28,7 @@ class CardPreview {
 
     void SetCardBack(const Texture2D* cb) { cardBack_ = cb; }
 
-    void scroll(int delta) {
-        scrollLines_ = std::max(0, scrollLines_ - delta);
-    }
+    void scroll(int delta) { scrollLines_ = std::max(0, scrollLines_ - delta); }
 
     // Draw the preview panel into bounds. cache must be the shared AppContext cache.
     void Draw(Rectangle bounds, CardImageCache& cache) const {
@@ -52,26 +50,18 @@ class CardPreview {
             cardH = h * 48 / 100;
             cardW = (int)(cardH * aspect);
         }
-        Rectangle cardR = {(float)(x + (w - cardW) / 2), (float)cy,
-                           (float)cardW, (float)cardH};
+        Rectangle cardR = {(float)(x + (w - cardW) / 2), (float)cy, (float)cardW, (float)cardH};
 
         if (faceDown_) {
-            if (cardBack_ && cardBack_->id)
-                DrawTexturePro(*cardBack_,
-                               {0, 0, (float)cardBack_->width, (float)cardBack_->height},
-                               cardR, {0, 0}, 0.f, WHITE);
-            else
-                DrawRectangleRec(cardR, COLOR_CARD_BACK_FG);
+            if (cardBack_ && cardBack_->id) DrawTexturePro(*cardBack_, {0, 0, (float)cardBack_->width, (float)cardBack_->height}, cardR, {0, 0}, 0.f, WHITE);
+            else DrawRectangleRec(cardR, COLOR_CARD_BACK_FG);
             DrawRectangleLinesEx(cardR, 1.5f, Color{210, 170, 40, 255});
         } else if (card_) {
             const Texture2D* tex = cache.Get(*card_);
             if (tex && tex->id) {
-                DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                               cardR, {0, 0}, 0.f, WHITE);
+                DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height}, cardR, {0, 0}, 0.f, WHITE);
             } else {
-                Color fc = card_->isMonster() ? COLOR_MONSTER_STAT
-                           : card_->isSpell() ? COLOR_SPELL_STAT
-                                              : COLOR_TRAP_STAT;
+                Color fc = card_->isMonster() ? COLOR_MONSTER_STAT : card_->isSpell() ? COLOR_SPELL_STAT : COLOR_TRAP_STAT;
                 DrawRectangleRec(cardR, Fade(fc, 0.4f));
             }
             DrawRectangleLinesEx(cardR, 1.2f, Color{200, 180, 100, 255});
@@ -86,17 +76,12 @@ class CardPreview {
         // ── Card text
         DrawText(card_->name.c_str(), x + pad, cy, FONT_CARD_NAME, WHITE);
         cy += FONT_CARD_NAME + 3;
-        DrawText(card_->cardTypeTag().c_str(), x + pad, cy, FONT_CARD_STAT,
-                 card_->isMonster() ? COLOR_MONSTER_STAT
-                 : card_->isSpell() ? COLOR_SPELL_STAT
-                                    : COLOR_TRAP_STAT);
+        DrawText(card_->cardTypeTag().c_str(), x + pad, cy, FONT_CARD_STAT, card_->isMonster() ? COLOR_MONSTER_STAT : card_->isSpell() ? COLOR_SPELL_STAT : COLOR_TRAP_STAT);
         cy += FONT_CARD_STAT + 3;
         // Honesty marker: a Spell/Trap with no wired classic effect can only be
         // SET, never activated — say so instead of silently ignoring its text.
-        if ((card_->isSpell() || card_->isTrap()) &&
-            !openjoey::engine::action::findClassicEffect(card_->name)) {
-            DrawText("[effect not wired in this build]", x + pad, cy, FONT_CARD_STAT,
-                     Color{230, 170, 60, 255});
+        if ((card_->isSpell() || card_->isTrap()) && !openjoey::engine::action::findClassicEffect(card_->name)) {
+            DrawText("[effect not wired in this build]", x + pad, cy, FONT_CARD_STAT, Color{230, 170, 60, 255});
             cy += FONT_CARD_STAT + 3;
         }
         if (card_->isMonster()) {

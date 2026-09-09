@@ -68,9 +68,7 @@ struct Card : CardDef {
     int effectiveDef() const { return std::max(0, def + state.defMod); }
 
     // ── presentation helpers (raylib-free string formatting) ──────────────────
-    std::string cardTypeTag() const { return isMonster() ? "[MON]" : isSpell() ? "[SPL]"
-                                                                 : isTrap()    ? "[TRP]"
-                                                                               : "[UNK]"; }
+    std::string cardTypeTag() const { return isMonster() ? "[MON]" : isSpell() ? "[SPL]" : isTrap() ? "[TRP]" : "[UNK]"; }
     std::string statLine() const { return isMonster() ? "Level " + std::to_string(level) + "  ATK " + std::to_string(atk) + "  DEF " + std::to_string(def) : ""; }
     std::string shortStat() const { return isMonster() ? "L" + std::to_string(level) + " " + std::to_string(atk) + "/" + std::to_string(def) : ""; }
 };

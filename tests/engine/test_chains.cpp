@@ -13,8 +13,7 @@ TEST_CASE("Chain resolves last-activated-first (p.41)", "[duel][chain]") {
     REQUIRE(order[2]->id == ActionId::Move_Draw);  // first activated, last resolved
 }
 
-TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
-          "[engine][trap][chain]") {
+TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)", "[engine][trap][chain]") {
     Duel d;
     Card trap;
     trap.id = 700;
@@ -46,8 +45,7 @@ TEST_CASE("Trap set this turn cannot be activated; next turn it can (p.31)",
     action::ResolveChain(d);
 }
 
-TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mode off)",
-          "[engine][chain]") {
+TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mode off)", "[engine][chain]") {
     Duel d;
     d.turnPlayer = 0;
     d.turn.turnNumber = 2;
@@ -65,8 +63,7 @@ TEST_CASE("PassResponse: disabled flag no-ops; ChainWaiting stays false (p.45 mo
     CHECK(d.chain.links.empty());
 }
 
-TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
-          "[engine][chain]") {
+TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)", "[engine][chain]") {
     Duel d;
 
     // Link 1: any Spell Speed may lead a new chain.
@@ -79,10 +76,7 @@ TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
     // SS3 may answer SS2; then SS2 may NOT answer SS3.
     ActionArgs hitP1;  // explicit victim: player 1
     hitP1.targetPlayer = 1;
-    REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Damage, EffectType::Ignition, 3, 100}, 0,
-                                   hitP1)
-                .msg
-                .find("Chain Link 3") != std::string::npos);
+    REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Damage, EffectType::Ignition, 3, 100}, 0, hitP1).msg.find("Chain Link 3") != std::string::npos);
     REQUIRE(action::ActivateEffect(d, ActionSpec{ActionId::LP_Gain, EffectType::Ignition, 2}, 1).msg.find("illegal chain") != std::string::npos);
 
     // Resolve: last link first — the -100 (link 3) fires before the -300 (link 1).
@@ -105,8 +99,7 @@ TEST_CASE("Chain Spell Speed rule + LP effects mutate Life Points (p.41)",
 
 // ── Win conditions (p.44) ────────────────────────────────────────────────────
 
-TEST_CASE("Chain negation: a counter blanks the link it responds to (p.44)",
-          "[engine][negate]") {
+TEST_CASE("Chain negation: a counter blanks the link it responds to (p.44)", "[engine][negate]") {
     Duel d;
     Card deck0[6], deck1[6];
     std::vector<Card *> dv0, dv1;
@@ -141,8 +134,7 @@ TEST_CASE("Chain negation: a counter blanks the link it responds to (p.44)",
     CHECK(d.lp[0] == DuelConfig::START_LP - 1000);
 }
 
-TEST_CASE("Summon_Flip link triggers the flipped card's effect (Man-Eater)",
-          "[engine][flip]") {
+TEST_CASE("Summon_Flip link triggers the flipped card's effect (Man-Eater)", "[engine][flip]") {
     Duel d;
     Card flipper;
     mkMon(&flipper, 700, 3, 450, 600);

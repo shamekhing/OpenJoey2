@@ -20,9 +20,7 @@ using cards::CardDatabase;
 
 struct CardList {
     // Single card row renderer (was ListItem).
-    static void DrawItem(const openjoey::cards::Card& card, CardImageCache& cache,
-                         int x, int y, int w,
-                         bool selected, int copies, int maxCopies) {
+    static void DrawItem(const openjoey::cards::Card& card, CardImageCache& cache, int x, int y, int w, bool selected, int copies, int maxCopies) {
         const int itemH = CARD_ITEM_HEIGHT;
         const int txW = THUMBNAIL_WIDTH;
         const int txPad = THUMBNAIL_PAD;
@@ -39,26 +37,19 @@ struct CardList {
         DrawText(card.cardTypeTag().c_str(), textX, y + CARD_TYPE_Y, FONT_CARD_TYPE, typeCol);
 
         std::string stat = card.shortStat();
-        if (!stat.empty())
-            DrawText(stat.c_str(), textX, y + CARD_STAT_Y, FONT_CARD_STAT, COLOR_STAT_TEXT);
+        if (!stat.empty()) DrawText(stat.c_str(), textX, y + CARD_STAT_Y, FONT_CARD_STAT, COLOR_STAT_TEXT);
 
         std::string name = fitText(card.name, w - textX - nmRight, FONT_CARD_NAME);
         DrawText(name.c_str(), textX, y + CARD_NAME_Y, FONT_CARD_NAME, selected ? YELLOW : WHITE);
 
         Color cpCol = (copies >= maxCopies) ? RED : (copies > 0 ? GREEN : GRAY);
-        DrawText((std::to_string(copies) + "/" + std::to_string(maxCopies)).c_str(),
-                 x + w - cpXOff, y + CARD_TYPE_Y, FONT_CARD_TYPE, cpCol);
+        DrawText((std::to_string(copies) + "/" + std::to_string(maxCopies)).c_str(), x + w - cpXOff, y + CARD_TYPE_Y, FONT_CARD_TYPE, cpCol);
 
-        if (selected)
-            DrawRectangleLines(x + selBdr, y, w - selBdr * 2, itemH, YELLOW);
+        if (selected) DrawRectangleLines(x + selBdr, y, w - selBdr * 2, itemH, YELLOW);
     }
 
     // Full scrollable list (was List::Draw).
-    static void Draw(const std::vector<const openjoey::cards::Card*>& cards,
-                     CardImageCache& cache,
-                     int x, int y, int w, int h,
-                     int cursor, bool focused, int maxCopies,
-                     std::function<int(uint32_t)> countFn) {
+    static void Draw(const std::vector<const openjoey::cards::Card*>& cards, CardImageCache& cache, int x, int y, int w, int h, int cursor, bool focused, int maxCopies, std::function<int(uint32_t)> countFn) {
         const int itemH = CARD_ITEM_HEIGHT;
         const int sbW = SCROLLBAR_WIDTH;
         const int sbXOff = SCROLLBAR_X_OFFSET;
@@ -70,8 +61,7 @@ struct CardList {
 
         for (int i = 0; i < maxVis && scroll + i < (int)cards.size(); ++i) {
             int idx = scroll + i;
-            DrawItem(*cards[idx], cache, x, y + i * itemH, w,
-                     focused && idx == cursor, countFn(cards[idx]->id), maxCopies);
+            DrawItem(*cards[idx], cache, x, y + i * itemH, w, focused && idx == cursor, countFn(cards[idx]->id), maxCopies);
         }
 
         if ((int)cards.size() > maxVis) {
@@ -85,9 +75,7 @@ struct CardList {
         }
     }
 
-    static Color cardTypeColor(const openjoey::cards::Card& c) {
-        return c.isMonster() ? MAROON : (c.isSpell() ? GREEN : PINK);
-    }
+    static Color cardTypeColor(const openjoey::cards::Card& c) { return c.isMonster() ? MAROON : (c.isSpell() ? GREEN : PINK); }
 };
 
 }  // namespace openjoey::ui

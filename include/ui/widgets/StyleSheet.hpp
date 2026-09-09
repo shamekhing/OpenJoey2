@@ -16,10 +16,8 @@
 #define CHAR_WIDTH(h) MeasureText("W", int(0.8f * (h)))
 #define TEXT_PAD(h) CHAR_WIDTH(h)
 #define TEXT_WIDTH(text, h) MeasureText(text, int(0.8f * (h)))
-#define CLIP_WIDTH(text, w, h) \
-    (TEXT_WIDTH(text, h) - ((w) - TEXT_PAD(h) * 4)) / CHAR_WIDTH(h)
-#define ALLIGN_RIGHT(text, w, h) \
-    ((w) - TEXT_WIDTH((text), h) - TEXT_PAD(h) * 8)
+#define CLIP_WIDTH(text, w, h) (TEXT_WIDTH(text, h) - ((w) - TEXT_PAD(h) * 4)) / CHAR_WIDTH(h)
+#define ALLIGN_RIGHT(text, w, h) ((w) - TEXT_WIDTH((text), h) - TEXT_PAD(h) * 8)
 
 // Legacy proportional sizes kept for TextInput / Header (panel-height relative)
 #define TITLE_FONT_SIZE int(0.06f * GetScreenHeight())

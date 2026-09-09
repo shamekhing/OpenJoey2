@@ -1,15 +1,13 @@
 #include "support/Fixtures.hpp"
 
-TEST_CASE("classicEffectsFor maps wired classic cards and skips the rest",
-          "[classic][catalog]") {
+TEST_CASE("classicEffectsFor maps wired classic cards and skips the rest", "[classic][catalog]") {
     CHECK(classicEffectsFor("Pot of Greed").size() == 1);
     CHECK(classicEffectsFor("Pot of Greed")[0].id == ActionId::Move_Draw);
     CHECK(classicEffectsFor("Pot of Greed")[0].amount == 2);
     CHECK(classicEffectsFor("Graceful Charity").size() == 2);
     CHECK(classicEffectsFor("Solemn Judgment")[0].speed == 3);
     CHECK(classicEffectsFor("Solemn Judgment")[0].lpCost == 2000);
-    CHECK(classicEffectsFor("Man-Eater Bug")[0].timing ==
-          EffectType::Trigger);
+    CHECK(classicEffectsFor("Man-Eater Bug")[0].timing == EffectType::Trigger);
     CHECK(classicEffectsFor("Raigeki")[0].scope == TargetScope::OppMonsters);
     CHECK(classicEffectsFor("Dark Hole")[0].scope == TargetScope::AllMonsters);
     CHECK(classicEffectsFor("Heavy Storm")[0].scope == TargetScope::AllSpellsTraps);
@@ -19,13 +17,11 @@ TEST_CASE("classicEffectsFor maps wired classic cards and skips the rest",
     CHECK(classicEffectsFor("Not A Real Card").empty());
 }
 
-TEST_CASE("Catalog scopes: damage targets the opponent, gains self",
-          "[classic][catalog]") {
+TEST_CASE("Catalog scopes: damage targets the opponent, gains self", "[classic][catalog]") {
     // Scope replaces the old classicChainArgs sentinel protocol.
     CHECK(classicEffectsFor("Ookazi")[0].scope == TargetScope::Opponent);
     CHECK(classicEffectsFor("Ookazi")[0].amount == 800);
-    CHECK(classicEffectsFor("Dian Keto the Cure Master")[0].scope ==
-          TargetScope::Activator);
+    CHECK(classicEffectsFor("Dian Keto the Cure Master")[0].scope == TargetScope::Activator);
     CHECK(classicEffectsFor("Dian Keto the Cure Master")[0].amount == 1000);
     // Graceful Charity: draw 3 (self) then Cost-discard (self).
     const auto charity = classicEffectsFor("Graceful Charity");
@@ -45,8 +41,7 @@ TEST_CASE("Catalog scopes: damage targets the opponent, gains self",
     CHECK(raigeki.needsTarget == false);
 }
 
-TEST_CASE("Mass destruction via the resolver: Raigeki / Dark Hole / Heavy Storm",
-          "[classic][mass]") {
+TEST_CASE("Mass destruction via the resolver: Raigeki / Dark Hole / Heavy Storm", "[classic][mass]") {
     SECTION("Raigeki clears the opponent's monsters only") {
         Duel d;
         Card a1, a2, b1;

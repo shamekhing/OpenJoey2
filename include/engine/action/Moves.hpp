@@ -32,9 +32,7 @@ inline bool moveTo(Field &f, Card *c, zone::IZone &dest) {
 }
 
 namespace detail {  // UI-facing relocation (resolved spells/traps -> Graveyard)
-inline bool moveCard(Field &f, Card *c, zone::IZone &dest) {
-    return moveTo(f, c, dest);
-}
+inline bool moveCard(Field &f, Card *c, zone::IZone &dest) { return moveTo(f, c, dest); }
 }  // namespace detail
 
 inline void detachEquip(Card *equip) {
@@ -63,10 +61,8 @@ inline bool sweepOffField(Field &f, Card *c) {
     if (!c) return false;
     detachEquip(c);
     while (!c->state.equippedCards.empty())
-        if (Card *e = c->state.equippedCards.back())
-            MoveDestroyToGY(f, e);
-        else
-            c->state.equippedCards.pop_back();
+        if (Card *e = c->state.equippedCards.back()) MoveDestroyToGY(f, e);
+        else c->state.equippedCards.pop_back();
     return eraseToken(f, c);
 }
 
@@ -84,10 +80,8 @@ inline bool MoveBanish(Field &f, Card *c, bool faceDown = false) {
     int owner = c->state.owner >= 0 ? c->state.owner : 0;
     auto [z, p] = f.findCard(c);
     if (!z || !z->remove(c)) return false;
-    if (faceDown)
-        f.banishedZones[owner].putFaceDown(c);
-    else
-        f.banishedZones[owner].put(c);
+    if (faceDown) f.banishedZones[owner].putFaceDown(c);
+    else f.banishedZones[owner].put(c);
     return true;
 }
 inline bool MoveReturnHand(Field &f, Card *c) {
@@ -118,10 +112,8 @@ inline int MoveMillToGY(Field &f, int player, int n = 1) {
     int done = 0;
     for (int i = 0; i < n; ++i) {
         if (f.deckZones[player].isEmpty()) break;
-        if (f.deckZones[player].moveTo(f.graveyardZones[player]))
-            ++done;
-        else
-            break;
+        if (f.deckZones[player].moveTo(f.graveyardZones[player])) ++done;
+        else break;
     }
     return done;
 }
@@ -137,8 +129,7 @@ inline int MoveMaterialsToGY(Field &f, const std::vector<Card *> &mats) {
         if (MoveDestroyToGY(f, m)) ++n;
     return n;
 }
-inline int MoveSearchToHand(Field &f, int player,
-                            const std::function<bool(const Card &)> &pred) {
+inline int MoveSearchToHand(Field &f, int player, const std::function<bool(const Card &)> &pred) {
     for (int i = 0; i < f.deckZones[player].count(); ++i)
         if (Card *c = f.deckZones[player].peek(i))
             if (pred(*c)) return moveTo(f, c, f.handZones[player]) ? 1 : 0;
@@ -153,19 +144,28 @@ inline std::vector<Card *> MoveExcavate(Field &f, int player, int n) {
 }
 inline int MoveDestroyMass(Field &f, openjoey::TargetScope scope, int me) {
     int n = 0;
-    auto row = [&](int p) { for (auto &mz : f.monsterZones[p]) if (Card *c = mz.peek()) { MoveDestroyToGY(f, c); ++n; } };
-    auto st = [&] { for (int p = 0; p < 2; ++p) for (auto &z : f.spellTrapZones[p]) if (Card *c = z.peek()) { MoveDestroyToGY(f, c); ++n; } };
+    auto row = [&](int p) {
+        for (auto &mz : f.monsterZones[p])
+            if (Card *c = mz.peek()) {
+                MoveDestroyToGY(f, c);
+                ++n;
+            }
+    };
+    auto st = [&] {
+        for (int p = 0; p < 2; ++p)
+            for (auto &z : f.spellTrapZones[p])
+                if (Card *c = z.peek()) {
+                    MoveDestroyToGY(f, c);
+                    ++n;
+                }
+    };
     switch (scope) {
-        case openjoey::TargetScope::OppMonsters:
-            row(1 - me);
-            break;
+        case openjoey::TargetScope::OppMonsters: row(1 - me); break;
         case openjoey::TargetScope::AllMonsters:
             row(0);
             row(1);
             break;
-        case openjoey::TargetScope::AllSpellsTraps:
-            st();
-            break;
+        case openjoey::TargetScope::AllSpellsTraps: st(); break;
         case openjoey::TargetScope::OppAttackPos:
             for (auto &mz : f.monsterZones[1 - me])
                 if (Card *c = mz.peek())
@@ -174,8 +174,7 @@ inline int MoveDestroyMass(Field &f, openjoey::TargetScope scope, int me) {
                         ++n;
                     }
             break;
-        default:
-            break;
+        default: break;
     }
     return n;
 }
@@ -183,9 +182,7 @@ inline int MoveDestroyMass(Field &f, openjoey::TargetScope scope, int me) {
 // ── placement ───────────────────────────────────────────────────────────────
 // Summon pose: p.24 — Normal Summon is ATK-only / Set is face-down DEF;
 // p.25 — Special Summons may choose face-up ATK, face-up DEF, or face-down DEF.
-enum class SummonPose { Atk,
-                        DefUp,
-                        DefDown };
+enum class SummonPose { Atk, DefUp, DefDown };
 
 inline bool SummonToMMZ(Field &f, Card *c, int player, SummonPose pose) {
     if (!c) return false;
@@ -201,19 +198,13 @@ inline bool SummonToMMZ(Field &f, Card *c, int player, SummonPose pose) {
         z->put(c);
         return false;
     }
-    mz.changeOrientation(pose == SummonPose::Atk ? zone::Orientation::Vertical
-                                                 : zone::Orientation::Horizontal);
-    mz.changeVisibility(pose == SummonPose::DefDown ? zone::Visibility::Limited
-                                                    : zone::Visibility::Visible);
+    mz.changeOrientation(pose == SummonPose::Atk ? zone::Orientation::Vertical : zone::Orientation::Horizontal);
+    mz.changeVisibility(pose == SummonPose::DefDown ? zone::Visibility::Limited : zone::Visibility::Visible);
     return true;
 }
 // bool overloads kept for the classic summon paths (ATK or face-down DEF).
-inline bool SummonToMMZ(Field &f, Card *c, int player, bool faceDown) {
-    return SummonToMMZ(f, c, player,
-                       faceDown ? SummonPose::DefDown : SummonPose::Atk);
-}
-inline bool SummonFromZone(Field &f, Card *c, int player, bool toEMZ,
-                           SummonPose pose) {
+inline bool SummonToMMZ(Field &f, Card *c, int player, bool faceDown) { return SummonToMMZ(f, c, player, faceDown ? SummonPose::DefDown : SummonPose::Atk); }
+inline bool SummonFromZone(Field &f, Card *c, int player, bool toEMZ, SummonPose pose) {
     if (!c) return false;
     auto [z, p] = f.findCard(c);
     if (!z || !z->remove(c)) return false;
@@ -241,19 +232,13 @@ inline bool SummonFromZone(Field &f, Card *c, int player, bool toEMZ,
             z->put(c);
             return false;
         }
-        mz.changeOrientation(pose == SummonPose::Atk ? zone::Orientation::Vertical
-                                                     : zone::Orientation::Horizontal);
-        mz.changeVisibility(pose == SummonPose::DefDown ? zone::Visibility::Limited
-                                                        : zone::Visibility::Visible);
+        mz.changeOrientation(pose == SummonPose::Atk ? zone::Orientation::Vertical : zone::Orientation::Horizontal);
+        mz.changeVisibility(pose == SummonPose::DefDown ? zone::Visibility::Limited : zone::Visibility::Visible);
     }
     return true;
 }
 // bool overload kept for classic paths (ATK or face-down DEF).
-inline bool SummonFromZone(Field &f, Card *c, int player, bool toEMZ,
-                           bool faceDown = false) {
-    return SummonFromZone(f, c, player, toEMZ,
-                          faceDown ? SummonPose::DefDown : SummonPose::Atk);
-}
+inline bool SummonFromZone(Field &f, Card *c, int player, bool toEMZ, bool faceDown = false) { return SummonFromZone(f, c, player, toEMZ, faceDown ? SummonPose::DefDown : SummonPose::Atk); }
 inline bool PlaceFusion(Field &f, Card *extra) {
     if (!extra) return false;
     auto [z, p] = f.findCard(extra);

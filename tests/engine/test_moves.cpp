@@ -36,8 +36,7 @@ TEST_CASE("MoveMillToGY sends the deck top card to the Graveyard", "[effect]") {
     REQUIRE(f.graveyardZones[0].peek(-1) == &b);
 }
 
-TEST_CASE("MoveDestroyToGY resolves to the controller's Graveyard (not owner's)",
-          "[effect]") {
+TEST_CASE("MoveDestroyToGY resolves to the controller's Graveyard (not owner's)", "[effect]") {
     Field f;
     Card m{};
     m.id = 42;
@@ -52,8 +51,7 @@ TEST_CASE("MoveDestroyToGY resolves to the controller's Graveyard (not owner's)"
     REQUIRE(f.monsterZones[1][0].isEmpty());
 }
 
-TEST_CASE("MoveBanish (face-down) hides the card but stays countable+findable",
-          "[effect]") {
+TEST_CASE("MoveBanish (face-down) hides the card but stays countable+findable", "[effect]") {
     Field f;
     Card m{};
     m.id = 7;

@@ -9,7 +9,11 @@
 namespace openjoey::ui::platform {
 
 inline void hapticPulse(int ms) {
-    EM_ASM({ if (navigator.vibrate) navigator.vibrate($0); }, ms);
+    EM_ASM(
+        {
+            if (navigator.vibrate) navigator.vibrate($0);
+        },
+        ms);
 }
 
 }  // namespace openjoey::ui::platform

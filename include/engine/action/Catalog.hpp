@@ -17,20 +17,16 @@ using cards::Card;
 
 inline std::string lowerName(const std::string &s) {
     std::string r;
-    for (char c : s)
-        r += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    for (char c : s) r += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return r;
 }
 
-inline const std::unordered_map<std::string, std::vector<ActionSpec>> &
-classicActions() {
+inline const std::unordered_map<std::string, std::vector<ActionSpec>> &classicActions() {
     using ET = EffectType;
     using TS = TargetScope;
     static const std::unordered_map<std::string, std::vector<ActionSpec>> m = {
         {"pot of greed", {{ActionId::Move_Draw, ET::Ignition, 1, 2, 0, TS::None, false, "draw 2"}}},
-        {"graceful charity",
-         {{ActionId::Move_Draw, ET::Ignition, 1, 3, 0, TS::None, false, "draw 3"},
-          {ActionId::Cost_Discard, ET::Cost, 1, 2, 0, TS::Activator, false, "discard 2"}}},
+        {"graceful charity", {{ActionId::Move_Draw, ET::Ignition, 1, 3, 0, TS::None, false, "draw 3"}, {ActionId::Cost_Discard, ET::Cost, 1, 2, 0, TS::Activator, false, "discard 2"}}},
         {"jar of greed", {{ActionId::Move_Draw, ET::Quick, 2, 1, 0, TS::None, false, "draw 1"}}},
         {"raigeki", {{ActionId::Move_DestroyToGY, ET::Ignition, 1, 1, 0, TS::OppMonsters, false, "all opponent monsters"}}},
         {"dark hole", {{ActionId::Move_DestroyToGY, ET::Ignition, 1, 1, 0, TS::AllMonsters, false, "all monsters"}}},
@@ -42,9 +38,7 @@ classicActions() {
         {"ookazi", {{ActionId::LP_Damage, ET::Ignition, 1, 800, 0, TS::Opponent, false, "800 to opponent"}}},
         {"just desserts", {{ActionId::LP_Damage, ET::Quick, 2, 500, 0, TS::PerOppMonster, false, "500 per opponent monster"}}},
         {"solemn judgment", {{ActionId::NegateActivation, ET::Quick, 3, 0, 2000, TS::None, false, "negate an activation; pay 2000 LP"}}},
-        {"delinquent duo",
-         {{ActionId::Cost_PayLP, ET::Cost, 1, 0, 1000, TS::Activator, false, "pay 1000 LP"},
-          {ActionId::Cost_Discard, ET::Ignition, 1, 1, 0, TS::Opponent, false, "discard 1 from opponent's hand"}}},
+        {"delinquent duo", {{ActionId::Cost_PayLP, ET::Cost, 1, 0, 1000, TS::Activator, false, "pay 1000 LP"}, {ActionId::Cost_Discard, ET::Ignition, 1, 1, 0, TS::Opponent, false, "discard 1 from opponent's hand"}}},
         {"monster reborn", {{ActionId::Summon_Special, ET::Ignition, 1, 1, 0, TS::Targeted, true, "special summon 1 monster from any graveyard"}}},
         {"man-eater bug", {{ActionId::LP_Damage, ET::Trigger, 1, 500, 0, TS::Opponent, false, "FLIP: 500 damage"}}},
         {"hane-hane", {{ActionId::Move_ReturnHand, ET::Trigger, 1, 1, 0, TS::Targeted, true, "FLIP: return 1 monster to hand"}}},
@@ -52,9 +46,7 @@ classicActions() {
         {"premature burial", {{ActionId::Summon_Special, ET::Quick, 2, 1, 800, TS::Targeted, true, "special summon 1 monster from your GY"}}},
         {"polymerization", {{ActionId::Summon_Fusion, ET::Ignition, 1, 1, 0, TS::None, false, "fusion summon"}}},
         {"black illusion ritual", {{ActionId::Summon_Ritual, ET::Ignition, 1, 1, 0, TS::None, false, "ritual summon"}}},
-        {"cyber-stein",
-         {{ActionId::Cost_PayLP, ET::Cost, 1, 0, 5000, TS::Activator, false, "pay 5000 LP"},
-          {ActionId::Summon_Special, ET::Ignition, 1, 1, 0, TS::Targeted, false, "1 Fusion from your Extra Deck"}}},
+        {"cyber-stein", {{ActionId::Cost_PayLP, ET::Cost, 1, 0, 5000, TS::Activator, false, "pay 5000 LP"}, {ActionId::Summon_Special, ET::Ignition, 1, 1, 0, TS::Targeted, false, "1 Fusion from your Extra Deck"}}},
         {"trap hole", {{ActionId::Move_DestroyToGY, ET::Trigger, 2, 1, 0, TS::Targeted, true, "1 summoned monster with ATK >= 1000"}}},
         {"mirror force", {{ActionId::Move_DestroyToGY, ET::Trigger, 2, 1, 0, TS::OppAttackPos, false, "destroy all attacking (ATK-pos) opponent monsters"}}},
     };

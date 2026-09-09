@@ -28,8 +28,7 @@ struct Chain {
     protocol::ChainStep step = protocol::ChainStep::Idle;  // resolution walk state
     int consecutivePasses = 0;                             // p.45 response window: both pass -> resolve
 
-    void push(const ActionSpec &spec, int activator,
-              const ActionArgs &args = {}) {
+    void push(const ActionSpec &spec, int activator, const ActionArgs &args = {}) {
         links.push_back({spec.id, activator, spec.speed, spec, args});
         step = protocol::ChainStep::Building;
         consecutivePasses = 0;  // a new activation reopens the response window
@@ -45,8 +44,7 @@ struct Chain {
     std::vector<const Link *> resolutionOrder() const {
         std::vector<const Link *> order;
         order.reserve(links.size());
-        for (auto it = links.rbegin(); it != links.rend(); ++it)
-            order.push_back(&*it);
+        for (auto it = links.rbegin(); it != links.rend(); ++it) order.push_back(&*it);
         return order;
     }
 
@@ -55,8 +53,7 @@ struct Chain {
     // * A response must have Spell Speed equal to or higher than the link it
     //   responds to (Spell Speed 3 / Counter Traps can respond to anything).
     bool legalToChain(uint8_t speed) const {
-        if (links.empty())
-            return true;  // starting a new chain: any Spell Speed may lead
+        if (links.empty()) return true;  // starting a new chain: any Spell Speed may lead
         return speed > 1 && speed >= links.back().speed;
     }
 };

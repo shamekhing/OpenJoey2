@@ -95,23 +95,16 @@ struct Config {
     }
 
     // Shipped-defaults reference (in git): data/settings.json — Load() layer 1.
-    static std::filesystem::path referenceFile(const char* argv0) {
-        return resolveDataFile(argv0, "settings.json");
-    }
+    static std::filesystem::path referenceFile(const char* argv0) { return resolveDataFile(argv0, "settings.json"); }
 
     // App-written overrides (gitignored): data/user_settings.json — what
     // Save() produces and Load() applies last (layer 2).
-    static std::filesystem::path settingsFile(const char* argv0) {
-        return resolveDataFile(argv0, "user_settings.json");
-    }
+    static std::filesystem::path settingsFile(const char* argv0) { return resolveDataFile(argv0, "user_settings.json"); }
 
-    std::filesystem::path settingsFile() const {
-        return baseDir_ / "user_settings.json";
-    }
+    std::filesystem::path settingsFile() const { return baseDir_ / "user_settings.json"; }
 
     // ── JSON plumbing: nested settings.json schema + legacy flat fallback ────
-    static const nlohmann::json* findKey(const nlohmann::json& j, const char* group,
-                                         const char* key) {
+    static const nlohmann::json* findKey(const nlohmann::json& j, const char* group, const char* key) {
         const nlohmann::json* scope = &j;
         if (group) {
             auto g = j.find(group);
@@ -132,8 +125,7 @@ struct Config {
     // or to the data dir itself (bare overrides). Absolute values win; a
     // leading "data/" segment is content-root relative and collapses onto
     // baseDir.
-    static std::filesystem::path resolveEntry(const std::string& raw,
-                                              const std::filesystem::path& baseDir) {
+    static std::filesystem::path resolveEntry(const std::string& raw, const std::filesystem::path& baseDir) {
         namespace fs = std::filesystem;
         if (raw.empty()) return {};
         fs::path p(raw);
@@ -142,9 +134,8 @@ struct Config {
         fs::path rest;
         bool first = true;
         for (auto it = p.begin(); it != p.end(); ++it) {
-            if (it->empty()) continue;  // drop separator artifacts (e.g. "dir/")
-            if (!(first && !dataName.empty() && *it == fs::path(dataName)))
-                rest /= *it;  // content-root relative: skip "data"
+            if (it->empty()) continue;                                                    // drop separator artifacts (e.g. "dir/")
+            if (!(first && !dataName.empty() && *it == fs::path(dataName))) rest /= *it;  // content-root relative: skip "data"
             first = false;
         }
         return baseDir / rest;
@@ -171,12 +162,9 @@ struct Config {
             c.targetFps = pick(j, nullptr, "targetFps", c.targetFps);
             c.downloadImages = pick(j, nullptr, "downloadImages", c.downloadImages);
             // Content paths: `file` / `dir` groups, then the legacy `paths` group.
-            auto pathEntry = [&](const char* group, const char* key,
-                                 std::filesystem::path& dst) {
-                if (auto v = findKey(j, group, key))
-                    dst = resolveEntry(v->get<std::string>(), c.baseDir_);
-                else if (auto v2 = findKey(j, "paths", key))
-                    dst = resolveEntry(v2->get<std::string>(), c.baseDir_);
+            auto pathEntry = [&](const char* group, const char* key, std::filesystem::path& dst) {
+                if (auto v = findKey(j, group, key)) dst = resolveEntry(v->get<std::string>(), c.baseDir_);
+                else if (auto v2 = findKey(j, "paths", key)) dst = resolveEntry(v2->get<std::string>(), c.baseDir_);
             };
             pathEntry("file", "cardsJson", c.paths.cardsJson);
             pathEntry("file", "banlistJson", c.paths.banlistJson);
@@ -184,15 +172,12 @@ struct Config {
             pathEntry("file", "cardBackImg", c.paths.cardBackImg);
             // URLs come from the `url` group — the content layer owns them.
             auto urlEntry = [&](const char* key, std::string& dst) {
-                if (auto v = findKey(j, "url", key))
-                    dst = v->get<std::string>();
+                if (auto v = findKey(j, "url", key)) dst = v->get<std::string>();
             };
             urlEntry("cardsJsonUrl", c.paths.cardsJsonUrl);
             urlEntry("cardImgUrl", c.paths.cardImgUrl);
             urlEntry("cardImgSmallUrl", c.paths.cardImgSmallUrl);
-        } catch (const std::exception& e) {
-            std::cerr << "[Config] failed to load " << path << ": " << e.what() << "\n";
-        }
+        } catch (const std::exception& e) { std::cerr << "[Config] failed to load " << path << ": " << e.what() << "\n"; }
     }
 
     // Layered load: compiled-in defaults → data/settings.json (shipped

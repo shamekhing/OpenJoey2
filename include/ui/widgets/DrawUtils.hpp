@@ -50,15 +50,12 @@ struct DrawUtils {
     static std::string clipText(const std::string& s, int maxPx, int fs) {
         if (MeasureText(s.c_str(), fs) <= maxPx) return s;
         std::string t = s;
-        while (t.size() > 1 &&
-               MeasureText((t + "..").c_str(), fs) > maxPx)
-            t.pop_back();
+        while (t.size() > 1 && MeasureText((t + "..").c_str(), fs) > maxPx) t.pop_back();
         return t + "..";
     }
 
     // Word-wrap desc into lines no wider than maxPx at font size fs.
-    static std::vector<std::string> wrapText(const std::string& desc,
-                                             int maxPx, int fs) {
+    static std::vector<std::string> wrapText(const std::string& desc, int maxPx, int fs) {
         std::vector<std::string> lines;
         size_t pos = 0;
         while (pos < desc.size()) {

@@ -2,6 +2,7 @@
 #include <raylib.h>
 
 #include <algorithm>
+#include <string>
 #include <ui/cards/CardImageCache.hpp>
 
 #include "engine/field/Field.hpp"
@@ -108,6 +109,23 @@ class FieldGrid {
     }
     int viewer() const { return viewer_; }
 
+    // ── Compact (phone) layout ───────────────────────────────────────────────
+    // Phones get a 5-column mat: monster and spell/trap rows span the full
+    // width; the peripheral zones (deck/extra/GY/banished/field) render as a
+    // chip strip per player around the mid-line. Tap a chip → card list.
+    struct Chip {
+        Rectangle r;
+        IZone* zone;
+        const char* label;
+    };
+    void setCompact(bool c) { compact_ = c; }
+    bool compact() const { return compact_; }
+    const Chip* chipHit(Vector2 m) const {
+        for (const auto& c : chips_)
+            if (CheckCollisionPointRec(m, c.r)) return &c;
+        return nullptr;
+    }
+
     // ── State accessors (hands are viewer-relative: row 5 = own hand) ────────
     IZone* cursorZone(Field& field) const {
         if (cursorRow_ == 0) return &field.handZones[1 - viewer_];
@@ -202,16 +220,14 @@ class FieldGrid {
             if (dc) {
                 int p = (cursorRow_ == 5) ? viewer_ : 1 - viewer_;
                 int cnt = field.handZones[p].count();
-                if (cnt > 0)
-                    handCursor_ = (handCursor_ + dc + cnt) % cnt;
+                if (cnt > 0) handCursor_ = (handCursor_ + dc + cnt) % cnt;
                 return;
             }
             if (dr) {
                 int nr = std::clamp(cursorRow_ + dr, 0, ROWS - 1);
                 if (nr != cursorRow_) {
                     cursorRow_ = nr;
-                    if (nr > 0 && nr < 5)
-                        snapCol();  // entering the field: land on a zone
+                    if (nr > 0 && nr < 5) snapCol();  // entering the field: land on a zone
                 }
             }
             return;
@@ -227,17 +243,20 @@ class FieldGrid {
         // Field rows 1–4 in grid space = rows 0–3 in nav space.
         nav_.row = cursorRow_ - 1;
         nav_.col = cursorCol_;
-        nav_.move(dr, dc, ROWS - 2, COLS, [this](int r, int c) {
-            return grid_[r + 1][c] != nullptr;
-        });
+        nav_.move(dr, dc, ROWS - 2, COLS, [this](int r, int c) { return grid_[r + 1][c] != nullptr; });
         cursorRow_ = nav_.row + 1;
         cursorCol_ = nav_.col;
     }
 
     // ── Draw the entire field area (center panel).
-    void draw(Rectangle bounds, Field& field,
-              CardImageCache& cache, const Texture2D* cardBack,
-              bool hideHandFaces = false) const {
+    // Compact mode (phones): 5-zone rows full width; peripheral zones become
+    // chip strips around the mid-line (tap = card-list overlay).
+    void draw(Rectangle bounds, Field& field, CardImageCache& cache, const Texture2D* cardBack, bool hideHandFaces = false) const {
+        chips_.clear();
+        if (compact_) {
+            drawCompact(bounds, field, cache, cardBack, hideHandFaces);
+            return;
+        }
         int fx = (int)bounds.x, fy = (int)bounds.y;
         int fw = (int)bounds.width, fh = (int)bounds.height;
 
@@ -262,32 +281,23 @@ class FieldGrid {
         drawOppHand({(float)fx, (float)fy, (float)fw, (float)handH}, field, cache, cardBack);
 
         for (int gridRow = 1; gridRow <= 4; ++gridRow) {
-            DrawRectangle(startX, rowY[gridRow - 1], gridW, zoneH,
-                          Fade(COLOR_BG_MAIN, 0.85f));
+            DrawRectangle(startX, rowY[gridRow - 1], gridW, zoneH, Fade(COLOR_BG_MAIN, 0.85f));
             for (int col = 0; col < COLS; ++col) {
                 Rectangle r = cellRect(col, rowY[gridRow - 1], startX, zoneW, zoneH, gapX);
                 cellRects_[gridRow][col] = grid_[gridRow][col] ? r : Rectangle{};
                 bool isCur = (cursorRow_ == gridRow && cursorCol_ == col);
-                bool isSel = (grid_[gridRow][col] != nullptr &&
-                              grid_[gridRow][col] == selectedZone_);
-                if (grid_[gridRow][col])
-                    ZoneCell::Draw(r, grid_[gridRow][col], labels_[gridRow][col],
-                                   isCur, isSel, cache, cardBack);
+                bool isSel = (grid_[gridRow][col] != nullptr && grid_[gridRow][col] == selectedZone_);
+                if (grid_[gridRow][col]) ZoneCell::Draw(r, grid_[gridRow][col], labels_[gridRow][col], isCur, isSel, cache, cardBack);
                 for (auto& [hz, hc] : highlights_)
-                    if (grid_[gridRow][col] == hz)
-                        DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4,
-                                              r.height + 4},
-                                             3.f, hc);
+                    if (grid_[gridRow][col] == hz) DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4, r.height + 4}, 3.f, hc);
             }
         }
 
         // Divider between P2 and P1 spell/trap rows
         int divY = rowY[1] + zoneH + gapY / 2;
-        DrawLineEx({(float)startX, (float)divY},
-                   {(float)(startX + gridW), (float)divY}, 2.f, COLOR_DIVIDER_MID);
+        DrawLineEx({(float)startX, (float)divY}, {(float)(startX + gridW), (float)divY}, 2.f, COLOR_DIVIDER_MID);
 
-        drawOwnHand({(float)fx, (float)(fy + fh - handH), (float)fw, (float)handH},
-                    field, cache, cardBack, hideHandFaces);
+        drawOwnHand({(float)fx, (float)(fy + fh - handH), (float)fw, (float)handH}, field, cache, cardBack, hideHandFaces);
     }
 
     // ── Const probes for the long-press detail overlay / hand privacy ───────
@@ -297,12 +307,10 @@ class FieldGrid {
         for (int row = 1; row < ROWS; ++row)
             for (int col = 0; col < COLS; ++col) {
                 const Rectangle& r = cellRects_[row][col];
-                if (r.width > 0 && CheckCollisionPointRec(m, r))
-                    return peekZone(grid_[row][col]);
+                if (r.width > 0 && CheckCollisionPointRec(m, r)) return peekZone(grid_[row][col]);
             }
         for (std::size_t i = 0; i < handRects_[1].size(); ++i)
-            if (CheckCollisionPointRec(m, handRects_[1][i]))
-                return field.handZones[viewer_].peek((int)i);
+            if (CheckCollisionPointRec(m, handRects_[1][i])) return field.handZones[viewer_].peek((int)i);
         return nullptr;
     }
     bool ownHandHit(Vector2 m) const {
@@ -311,7 +319,79 @@ class FieldGrid {
         return false;
     }
 
+    // ── Compact (phone) mat: 5-zone rows + peripheral chip strips ────────────
+    // grid_ rows 1..4 hold each row's five zones in columns 2..6; the flank
+    // piles (cols 0,1,7,8) are re-homed as chips so every cell stays wide
+    // enough to tap. Geometry keeps 4 zone rows + 2 chip rows + 2 hand strips.
+    void drawCompact(Rectangle bounds, Field& field, CardImageCache& cache, const Texture2D* cardBack, bool hideHandFaces) const {
+        const int fx = (int)bounds.x, fy = (int)bounds.y;
+        const int fw = (int)bounds.width, fh = (int)bounds.height;
+
+        DrawRectangle(fx, fy, fw, fh, COLOR_FIELD_MAT);
+
+        const int gapX = fw * 5 / 1000;
+        const int gapY = fh * 6 / 1000;
+        const int handH = fh * 9 / 100;
+        const int chipH = fh * 7 / 100 < 44 ? 44 : fh * 7 / 100;
+        const int cols = 5;
+        const int zoneH = (fh - handH * 2 - chipH * 2 - gapY * 7) / 4;
+        const int zoneW = (fw - gapX * (cols + 1)) / cols;
+        const int startX = fx + (fw - (cols * zoneW + (cols + 1) * gapX)) / 2;
+
+        drawOppHand({(float)fx, (float)fy, (float)fw, (float)handH}, field, cache, cardBack);
+
+        int y = fy + handH + gapY;
+        for (int row = 1; row <= 4; ++row) {
+            for (int j = 0; j < cols; ++j) {
+                const int col = 2 + j;
+                const Rectangle r{(float)(startX + j * (zoneW + gapX)), (float)y, (float)zoneW, (float)zoneH};
+                cellRects_[row][col] = grid_[row][col] ? r : Rectangle{};
+                const bool isCur = (cursorRow_ == row && cursorCol_ == col);
+                const bool isSel = (grid_[row][col] && grid_[row][col] == selectedZone_);
+                ZoneCell::Draw(r, grid_[row][col], labels_[row][col], isCur, isSel, cache, cardBack);
+                for (auto& [hz, hc] : highlights_)
+                    if (grid_[row][col] == hz) DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4, r.height + 4}, 3.f, hc);
+            }
+            y += zoneH + gapY;
+            // Peripheral chip strips flank the mid-line: opponent's above it,
+            // yours below, so each player's piles sit on their own side.
+            if (row == 2) {
+                drawChipStrip(field, fx, fw, y, chipH, /*opponent=*/true);
+                y += chipH + gapY;
+                DrawLineEx({(float)fx, (float)(y - gapY / 2)}, {(float)(fx + fw), (float)(y - gapY / 2)}, 2.f, COLOR_DIVIDER_MID);
+                drawChipStrip(field, fx, fw, y, chipH, /*opponent=*/false);
+                y += chipH + gapY;
+            }
+        }
+
+        drawOwnHand({(float)fx, (float)(fy + fh - handH), (float)fw, (float)handH}, field, cache, cardBack, hideHandFaces);
+
+        // The flank columns have no rects in this layout — never hit-testable.
+        for (int row = 0; row < ROWS; ++row)
+            for (int col : {0, 1, 7, 8}) cellRects_[row][col] = Rectangle{};
+    }
+
+    void drawChipStrip(Field& field, int fx, int fw, int y, int chipH, bool opponent) const {
+        const int gapX = fw * 5 / 1000;
+        const int p = opponent ? 1 - viewer_ : viewer_;
+        IZone* zones[5] = {&field.deckZones[p], &field.extraDeckZones[p], &field.graveyardZones[p], &field.banishedZones[p], &field.fieldZones[p]};
+        static const char* kLabels[5] = {"DECK", "EXTRA", "GY", "BANISH", "FIELD"};
+        const int chipW = (fw - gapX * 6) / 5;
+        const int fs = chipH * 34 / 100 < 13 ? 13 : chipH * 34 / 100;
+        for (int i = 0; i < 5; ++i) {
+            const Rectangle r{(float)(fx + gapX + i * (chipW + gapX)), (float)y, (float)chipW, (float)chipH};
+            chips_.push_back({r, zones[i], kLabels[i]});
+            DrawRectangleRec(r, COLOR_PANEL_BG);
+            DrawRectangleLinesEx(r, 1.f, COLOR_PANEL_BORDER);
+            DrawText(kLabels[i], (int)(r.x + (r.width - MeasureText(kLabels[i], fs)) / 2), (int)(r.y + chipH * 0.10f), fs, COLOR_STAT_TEXT);
+            const std::string cnt = std::to_string(zones[i]->count());
+            DrawText(cnt.c_str(), (int)(r.x + (r.width - MeasureText(cnt.c_str(), fs)) / 2), (int)(r.y + chipH * 0.52f), fs, YELLOW);
+        }
+    }
+
    private:
+    bool compact_ = false;             // phone layout (see drawCompact)
+    mutable std::vector<Chip> chips_;  // rebuilt every draw
     IZone* grid_[ROWS][COLS] = {};
 
     static Card* peekZone(IZone* z) {
@@ -332,9 +412,7 @@ class FieldGrid {
     KeyboardNav2D nav_;  // shared uikit cursor math for field rows 1–4
 
     void snapCol() {
-        const int best = KeyboardNav2D::nearestOccupiedCol(
-            cursorRow_, cursorCol_, COLS,
-            [this](int r, int c) { return grid_[r][c] != nullptr; });
+        const int best = KeyboardNav2D::nearestOccupiedCol(cursorRow_, cursorCol_, COLS, [this](int r, int c) { return grid_[r][c] != nullptr; });
         if (best >= 0) cursorCol_ = best;
     }
 
@@ -343,8 +421,7 @@ class FieldGrid {
         return {(float)cx, (float)ry, (float)zoneW, (float)zoneH};
     }
 
-    void drawOppHand(Rectangle bounds, Field& field,
-                     CardImageCache& cache, const Texture2D* cardBack) const {
+    void drawOppHand(Rectangle bounds, Field& field, CardImageCache& cache, const Texture2D* cardBack) const {
         (void)cache;  // opponent hand shows card backs only
         int fx = (int)bounds.x, fy = (int)bounds.y;
         int fw = (int)bounds.width, fh = (int)bounds.height;
@@ -355,8 +432,7 @@ class FieldGrid {
         int cnt = hand.count();
         int fs = FONT_CARD_STAT;
         handRects_[0].clear();
-        DrawText(TextFormat("%s: %d (card backs)", kHand[1 - viewer_], cnt),
-                 fx + MAIN_PAD_X, fy + (fh - fs) / 2, fs, COLOR_STAT_TEXT);
+        DrawText(TextFormat("%s: %d (card backs)", kHand[1 - viewer_], cnt), fx + MAIN_PAD_X, fy + (fh - fs) / 2, fs, COLOR_STAT_TEXT);
         if (cnt == 0) return;
 
         int cw = (int)(fh * 0.75f * (59.f / 86.f));
@@ -367,9 +443,7 @@ class FieldGrid {
             int cx = startX + i * (cw + 3);
             int cy2 = fy + (fh - ch) / 2;
             handRects_[0].push_back({(float)cx, (float)cy2, (float)cw, (float)ch});
-            if (cardBack && cardBack->id)
-                DrawTexturePro(*cardBack, {0, 0, (float)cardBack->width, (float)cardBack->height},
-                               {(float)cx, (float)cy2, (float)cw, (float)ch}, {0, 0}, 0.f, WHITE);
+            if (cardBack && cardBack->id) DrawTexturePro(*cardBack, {0, 0, (float)cardBack->width, (float)cardBack->height}, {(float)cx, (float)cy2, (float)cw, (float)ch}, {0, 0}, 0.f, WHITE);
             else {
                 DrawRectangle(cx, cy2, cw, ch, COLOR_BG_DARK);
                 DrawRectangleLines(cx, cy2, cw, ch, Color{210, 170, 40, 255});
@@ -377,9 +451,7 @@ class FieldGrid {
         }
     }
 
-    void drawOwnHand(Rectangle bounds, Field& field,
-                     CardImageCache& cache, const Texture2D* cardBack,
-                     bool hideFaces) const {
+    void drawOwnHand(Rectangle bounds, Field& field, CardImageCache& cache, const Texture2D* cardBack, bool hideFaces) const {
         // hideFaces: hotseat privacy — render backs so the second player can't
         // read the hand over your shoulder. cardBack is used again here.
         int fx = (int)bounds.x, fy = (int)bounds.y;
@@ -391,8 +463,7 @@ class FieldGrid {
         int cnt = hand.count();
         int fs = FONT_CARD_STAT;
         handRects_[1].clear();
-        DrawText(TextFormat("%s: %d", kHand[viewer_], cnt),
-                 fx + MAIN_PAD_X, fy + 3, fs, COLOR_STAT_TEXT);
+        DrawText(TextFormat("%s: %d", kHand[viewer_], cnt), fx + MAIN_PAD_X, fy + 3, fs, COLOR_STAT_TEXT);
         if (cnt == 0) {
             DrawText("(empty)", fx + fw / 2, fy + (fh - fs) / 2, fs, DARKGRAY);
             return;
@@ -413,8 +484,7 @@ class FieldGrid {
             handRects_[1].push_back(cr);
 
             if (hideFaces) {
-                if (cardBack && cardBack->id)
-                    DrawUtils::blitCard(cr, *cardBack, false);
+                if (cardBack && cardBack->id) DrawUtils::blitCard(cr, *cardBack, false);
                 else {
                     DrawRectangleRec(cr, COLOR_BG_DARK);
                     DrawRectangleLinesEx(cr, 1.f, COLOR_CARD_BACK_GOLD);
@@ -422,20 +492,15 @@ class FieldGrid {
             } else {
                 const Texture2D* tex = cache.Get(*c);
                 if (tex && tex->id) {
-                    DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height},
-                                   cr, {0, 0}, 0.f, WHITE);
+                    DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height}, cr, {0, 0}, 0.f, WHITE);
                 } else {
-                    Color fc = c->isMonster() ? COLOR_MONSTER_STAT
-                               : c->isSpell() ? COLOR_SPELL_STAT
-                                              : COLOR_TRAP_STAT;
+                    Color fc = c->isMonster() ? COLOR_MONSTER_STAT : c->isSpell() ? COLOR_SPELL_STAT : COLOR_TRAP_STAT;
                     DrawRectangleRec(cr, Fade(fc, 0.6f));
-                    DrawText(c->name.substr(0, 6).c_str(), (int)cx + 2, (int)cy2 + 2,
-                             FONT_HELP_TEXT, WHITE);
+                    DrawText(c->name.substr(0, 6).c_str(), (int)cx + 2, (int)cy2 + 2, FONT_HELP_TEXT, WHITE);
                 }
             }
             float thick = (cur || sel) ? 2.5f : 1.f;
-            Color border = cur ? YELLOW : sel ? GREEN
-                                              : Color{180, 180, 210, 200};
+            Color border = cur ? YELLOW : sel ? GREEN : Color{180, 180, 210, 200};
             DrawRectangleLinesEx(cr, thick, border);
         }
     }

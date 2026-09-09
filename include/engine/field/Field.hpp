@@ -82,35 +82,18 @@ class Field {
     // The zone at (player, type, slot) — nullptr if out of range. Slot indexes
     // match the arrays (0..4); for single/stack zones the slot is ignored.
     IZone *zoneAt(int player, ZoneType t, int i) {
-        if (player < 0 || player >= PLAYERS)
-            return nullptr;
+        if (player < 0 || player >= PLAYERS) return nullptr;
         switch (t) {
-            case ZoneType::Monster:
-                return (i >= 0 && i < MONSTER_ZONES)
-                           ? &monsterZones[player][i]
-                           : nullptr;
-            case ZoneType::SpellTrap:
-                return (i >= 0 && i < ST_ZONES)
-                           ? &spellTrapZones[player][i]
-                           : nullptr;
-            case ZoneType::Field:
-                return &fieldZones[player];
-            case ZoneType::ExtraMonster:
-                return (i >= 0 && i < EMZ_COUNT)
-                           ? &extraMonsterZones[i]
-                           : nullptr;
-            case ZoneType::Hand:
-                return &handZones[player];
-            case ZoneType::Deck:
-                return &deckZones[player];
-            case ZoneType::ExtraDeck:
-                return &extraDeckZones[player];
-            case ZoneType::Graveyard:
-                return &graveyardZones[player];
-            case ZoneType::Banished:
-                return &banishedZones[player];
-            case ZoneType::SideDeck:
-                return &sideDeckZones[player];
+            case ZoneType::Monster: return (i >= 0 && i < MONSTER_ZONES) ? &monsterZones[player][i] : nullptr;
+            case ZoneType::SpellTrap: return (i >= 0 && i < ST_ZONES) ? &spellTrapZones[player][i] : nullptr;
+            case ZoneType::Field: return &fieldZones[player];
+            case ZoneType::ExtraMonster: return (i >= 0 && i < EMZ_COUNT) ? &extraMonsterZones[i] : nullptr;
+            case ZoneType::Hand: return &handZones[player];
+            case ZoneType::Deck: return &deckZones[player];
+            case ZoneType::ExtraDeck: return &extraDeckZones[player];
+            case ZoneType::Graveyard: return &graveyardZones[player];
+            case ZoneType::Banished: return &banishedZones[player];
+            case ZoneType::SideDeck: return &sideDeckZones[player];
         }
         return nullptr;
     }
@@ -118,21 +101,15 @@ class Field {
     // The main monster zone holding `c`, or nullptr. (Classic scope: the Extra
     // Monster Zone is not consulted.)
     Zone_Monster *monsterZoneOf(Card *c) {
-        if (!c)
-            return nullptr;
+        if (!c) return nullptr;
         for (int p = 0; p < PLAYERS; ++p)
             for (int z = 0; z < MONSTER_ZONES; ++z)
-                if (monsterZones[p][z].contains(c))
-                    return &monsterZones[p][z];
+                if (monsterZones[p][z].contains(c)) return &monsterZones[p][z];
         return nullptr;
     }
 
-    const IZone *zoneAt(int player, ZoneType t, int i) const {
-        return const_cast<Field *>(this)->zoneAt(player, t, i);
-    }
-    const Zone_Monster *monsterZoneOf(const Card *c) const {
-        return const_cast<Field *>(this)->monsterZoneOf(const_cast<Card *>(c));
-    }
+    const IZone *zoneAt(int player, ZoneType t, int i) const { return const_cast<Field *>(this)->zoneAt(player, t, i); }
+    const Zone_Monster *monsterZoneOf(const Card *c) const { return const_cast<Field *>(this)->monsterZoneOf(const_cast<Card *>(c)); }
 
     // ── Location lookup ────────────────────────────────────────────────────
     // Find which zone (and which player index) currently holds `c`.
@@ -155,42 +132,36 @@ inline void Field::clearField() {
 
 inline int Field::firstEmptyMonsterZone(int player) const {
     for (int z = 0; z < MONSTER_ZONES; ++z)
-        if (monsterZones[player][z].isEmpty())
-            return z;
+        if (monsterZones[player][z].isEmpty()) return z;
     return -1;
 }
 
 inline int Field::firstEmptySpellTrapZone(int player) const {
     for (int z = 0; z < ST_ZONES; ++z)
-        if (spellTrapZones[player][z].isEmpty())
-            return z;
+        if (spellTrapZones[player][z].isEmpty()) return z;
     return -1;
 }
 
 inline int Field::firstOccupiedMonsterZone(int player) const {
     for (int z = 0; z < MONSTER_ZONES; ++z)
-        if (!monsterZones[player][z].isEmpty())
-            return z;
+        if (!monsterZones[player][z].isEmpty()) return z;
     return -1;
 }
 
 inline int Field::countMonsters(int player) const {
     int n = 0;
     for (int z = 0; z < MONSTER_ZONES; ++z)
-        if (!monsterZones[player][z].isEmpty())
-            ++n;
+        if (!monsterZones[player][z].isEmpty()) ++n;
     for (int z = 0; z < EMZ_COUNT; ++z) {
         Card *c = extraMonsterZones[z].peek();
-        if (c && c->state.controller == player)
-            ++n;
+        if (c && c->state.controller == player) ++n;
     }
     return n;
 }
 
 inline int Field::firstEmptyExtraMonsterZone() const {
     for (int z = 0; z < EMZ_COUNT; ++z)
-        if (extraMonsterZones[z].isEmpty())
-            return z;
+        if (extraMonsterZones[z].isEmpty()) return z;
     return -1;
 }
 
@@ -198,13 +169,10 @@ inline int Field::firstEmptyExtraMonsterZone() const {
 // External (deck-owned) cards keep their addresses across a Duel clone, so
 // only engine-owned tokens need remapping.
 inline void Field::remapPointers(const std::map<Card *, Card *> &m) {
-    if (m.empty())
-        return;
+    if (m.empty()) return;
     auto sw = [&](IZone *z) {
-        if (!z)
-            return;
-        for (auto &[from, to] : m)
-            z->replacePtr(from, to);
+        if (!z) return;
+        for (auto &[from, to] : m) z->replacePtr(from, to);
     };
     for (int p = 0; p < PLAYERS; ++p) {
         for (auto &z : monsterZones[p]) sw(&z);

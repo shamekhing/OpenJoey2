@@ -1,7 +1,6 @@
 #include "support/Fixtures.hpp"
 
-TEST_CASE("TurnManager walks Draw->Standby->Main1->Battle->Main2->End (p.30)",
-          "[duel][turn]") {
+TEST_CASE("TurnManager walks Draw->Standby->Main1->Battle->Main2->End (p.30)", "[duel][turn]") {
     DuelProtocol t;
     REQUIRE(t.phase == Phase::Draw);
     REQUIRE_FALSE(t.canAct());  // Draw step is not an action window
@@ -66,8 +65,7 @@ TEST_CASE("Engine turn swap + End Phase hand limit of 6 (p.44)", "[engine][turn]
     REQUIRE_FALSE(d.turn.skipDraw);
 }
 
-TEST_CASE("Deck-out at the mandatory draw loses the duel (p.44)",
-          "[engine][win]") {
+TEST_CASE("Deck-out at the mandatory draw loses the duel (p.44)", "[engine][win]") {
     Duel d;
     d.turnPlayer = 1;  // P1 must draw from an empty deck
     d.turn.skipDraw = false;
@@ -78,8 +76,7 @@ TEST_CASE("Deck-out at the mandatory draw loses the duel (p.44)",
     CHECK(action::CheckWinConditions(d) == DuelResult::Player0Win);
 }
 
-TEST_CASE("LP depletion: one player at 0 loses, both at 0 is a Draw (p.44)",
-          "[engine][win]") {
+TEST_CASE("LP depletion: one player at 0 loses, both at 0 is a Draw (p.44)", "[engine][win]") {
     SECTION("only P1 at 0") {
         Duel d;
         d.lp[1] = 0;

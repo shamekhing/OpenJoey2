@@ -37,31 +37,21 @@ class Engine {
         // Seal the backing: zones hold non-owning Card* into this vector, so
         // it must not be copied/resized afterwards (deckBackingMatches fails
         // if the address changes — see Duel::deckBackings).
-        auto it = std::find_if(duel.deckBackings.begin(), duel.deckBackings.end(),
-                               [player](const auto &b) { return b.first == player; });
-        if (it != duel.deckBackings.end())
-            it->second = &cards;
-        else
-            duel.deckBackings.push_back({player, &cards});
+        auto it = std::find_if(duel.deckBackings.begin(), duel.deckBackings.end(), [player](const auto &b) { return b.first == player; });
+        if (it != duel.deckBackings.end()) it->second = &cards;
+        else duel.deckBackings.push_back({player, &cards});
         action::SetDeck(duel, player, cards);
     }
-    bool deckBackingMatches(int player, const void *vec) const {
-        return duel.deckBackingMatches(player, vec);
-    }
+    bool deckBackingMatches(int player, const void *vec) const { return duel.deckBackingMatches(player, vec); }
     // Re-point the seal at the vector that actually owns the cards (the app's
     // deck), e.g. when setDeck was fed a temporary pointer projection.
     void sealDeckBacking(int player, const void *vec) {
-        auto it = std::find_if(duel.deckBackings.begin(), duel.deckBackings.end(),
-                               [player](const auto &b) { return b.first == player; });
-        if (it != duel.deckBackings.end())
-            it->second = vec;
-        else
-            duel.deckBackings.push_back({player, vec});
+        auto it = std::find_if(duel.deckBackings.begin(), duel.deckBackings.end(), [player](const auto &b) { return b.first == player; });
+        if (it != duel.deckBackings.end()) it->second = vec;
+        else duel.deckBackings.push_back({player, vec});
     }
     void shuffleDecks() { action::ShuffleDecks(duel); }
-    void drawOpeningHands(int n = DuelConfig::START_HAND) {
-        action::DrawOpeningHands(duel, n);
-    }
+    void drawOpeningHands(int n = DuelConfig::START_HAND) { action::DrawOpeningHands(duel, n); }
     // Full reset by value-assignment — no hand-maintained field list, so a new
     // Duel member can never be missed. Also clears stale undo snapshots so a
     // rematch can never undo into the previous duel.
@@ -89,18 +79,10 @@ class Engine {
 
     // ── battle ───────────────────────────────────────────────────────────────
     bool canAttack(const Card *c) const { return action::CanAttack(duel, const_cast<Card *>(c)); }
-    bool canDirectAttack(const Card *c) const {
-        return action::CanDirectAttack(duel, const_cast<Card *>(c));
-    }
-    bool canFlipSummon(const Card *c) const {
-        return action::CanFlipSummon(duel, const_cast<Card *>(c));
-    }
-    bool canChangePosition(const Card *c) const {
-        return action::CanChangePosition(duel, const_cast<Card *>(c));
-    }
-    bool canActivateFromZone(const Card *c) const {
-        return action::CanActivateSetSpellTrap(duel, c);
-    }
+    bool canDirectAttack(const Card *c) const { return action::CanDirectAttack(duel, const_cast<Card *>(c)); }
+    bool canFlipSummon(const Card *c) const { return action::CanFlipSummon(duel, const_cast<Card *>(c)); }
+    bool canChangePosition(const Card *c) const { return action::CanChangePosition(duel, const_cast<Card *>(c)); }
+    bool canActivateFromZone(const Card *c) const { return action::CanActivateSetSpellTrap(duel, c); }
     ActionResult declareAttack(Card *c, Card *target) {
         return commit([&] { return action::DeclareAttack(duel, c, target); });
     }
@@ -123,8 +105,7 @@ class Engine {
         return commit([&] { return action::SummonSet(duel, c); });
     }
     ActionResult tributeSummon(Card *c, const std::vector<Card *> &tributes) {
-        return commit(
-            [&] { return action::SummonTribute(duel, c, tributes, /*faceDown=*/false); });
+        return commit([&] { return action::SummonTribute(duel, c, tributes, /*faceDown=*/false); });
     }
     ActionResult flipSummon(Card *c) {
         return commit([&] { return action::FlipSummon(duel, c); });
@@ -150,10 +131,8 @@ class Engine {
     }
 
     // ── effects / chains ─────────────────────────────────────────────────────
-    ActionResult activateEffect(const openjoey::ActionSpec &spec, int activator,
-                                const ActionArgs &args = {}) {
-        return commit(
-            [&] { return action::ActivateEffect(duel, spec, activator, args); });
+    ActionResult activateEffect(const openjoey::ActionSpec &spec, int activator, const ActionArgs &args = {}) {
+        return commit([&] { return action::ActivateEffect(duel, spec, activator, args); });
     }
     ActionResult passResponse(int player) {
         return commit([&] { return action::PassResponse(duel, player); });
@@ -169,13 +148,11 @@ class Engine {
     // ── Undo (bounded snapshots, one per committed action) ───────────────────
     void checkpoint() {
         undo_.push_back(makeSnapshot(duel));
-        if (undo_.size() > 30)
-            undo_.erase(undo_.begin());
+        if (undo_.size() > 30) undo_.erase(undo_.begin());
     }
     bool canUndo() const { return !undo_.empty(); }
     bool undo() {
-        if (undo_.empty())
-            return false;
+        if (undo_.empty()) return false;
         restoreSnapshot(duel, undo_.back());
         undo_.pop_back();
         return true;

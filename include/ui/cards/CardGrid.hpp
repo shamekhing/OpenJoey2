@@ -20,10 +20,7 @@ using cards::CardDatabase;
 struct CardGrid {
     static int ColCount() { return GRID_COLS; }
 
-    static void Draw(const std::vector<const openjoey::cards::Card*>& cards,
-                     CardImageCache& cache,
-                     int x, int y, int w, int h,
-                     int cursor, bool focused) {
+    static void Draw(const std::vector<const openjoey::cards::Card*>& cards, CardImageCache& cache, int x, int y, int w, int h, int cursor, bool focused) {
         const int cols = GRID_COLS;
         const int gap = GRID_GAP;
         const int labelH = GRID_LABEL_H;
@@ -55,12 +52,9 @@ struct CardGrid {
             Thumbnail::Draw(card, cache, cx, cy, cardW, cardH, typeCol);
 
             std::string name = fitText(card.name, cardW, FONT_CARD_STAT);
-            DrawText(name.c_str(), cx, cy + cardH + 2,
-                     FONT_CARD_STAT, sel ? YELLOW : COLOR_STAT_TEXT);
+            DrawText(name.c_str(), cx, cy + cardH + 2, FONT_CARD_STAT, sel ? YELLOW : COLOR_STAT_TEXT);
 
-            if (sel)
-                DrawRectangleLines(cx - selBdr, cy - selBdr,
-                                   cardW + selBdr * 2, cardH + selBdr * 2, YELLOW);
+            if (sel) DrawRectangleLines(cx - selBdr, cy - selBdr, cardW + selBdr * 2, cardH + selBdr * 2, YELLOW);
         }
 
         int totalRows = cards.empty() ? 0 : ((int)cards.size() + cols - 1) / cols;

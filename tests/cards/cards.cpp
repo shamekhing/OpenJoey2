@@ -76,8 +76,7 @@ TEST_CASE("FindByName substring search is deterministic", "[db]") {
     // Results are sorted by id ascending regardless of hash order.
     auto all = db.FindByName("");  // empty needle matches every card
     REQUIRE(all.size() == db.size());
-    for (std::size_t i = 1; i < all.size(); ++i)
-        REQUIRE(all[i - 1]->id < all[i]->id);
+    for (std::size_t i = 1; i < all.size(); ++i) REQUIRE(all[i - 1]->id < all[i]->id);
 }
 
 TEST_CASE("LoadFromString parses an inline remote card-data payload", "[db][parser]") {
@@ -207,8 +206,7 @@ TEST_CASE("GetAllCards is read-only and the index stays coherent", "[db]") {
     REQUIRE(db.LoadFromFile(cardsPath()));
 
     const CardDatabase& view = db;
-    STATIC_REQUIRE(
-        std::is_same<decltype(view.GetAllCards()), const std::vector<Card>&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(view.GetAllCards()), const std::vector<Card>&>::value);
     REQUIRE(view.GetAllCards().size() == db.size());
 
     // Mutating gameplay fields through the lookup API must not dangle the
@@ -231,8 +229,7 @@ TEST_CASE("Parser rejects malformed payloads without throwing", "[parser]") {
 
 TEST_CASE("Parser maps stat edge cases to sane values", "[parser]") {
     SECTION("'?' and string stats parse to 0") {
-        auto r = cards::parseRemoteCardJson(
-            R"({"data":[{"id":333,"name":"Mystic","frameType":"normal","atk":"?","def":"?","level":4}]})");
+        auto r = cards::parseRemoteCardJson(R"({"data":[{"id":333,"name":"Mystic","frameType":"normal","atk":"?","def":"?","level":4}]})");
         REQUIRE(r.ok());
         REQUIRE(r.errors.empty());
         REQUIRE(r.cards.size() == 1);
@@ -247,14 +244,12 @@ TEST_CASE("Parser maps stat edge cases to sane values", "[parser]") {
         REQUIRE(r.cards[0].isTrap());
     }
     SECTION("rank falls back into level for Xyz frames") {
-        auto r = cards::parseRemoteCardJson(
-            R"({"data":[{"id":555,"name":"Xyz","frameType":"xyz","rank":5}]})");
+        auto r = cards::parseRemoteCardJson(R"({"data":[{"id":555,"name":"Xyz","frameType":"xyz","rank":5}]})");
         REQUIRE(r.ok());
         REQUIRE(r.cards[0].level == 5);
     }
     SECTION("non-object entries are skipped, not fatal") {
-        auto r = cards::parseRemoteCardJson(
-            R"({"data":[42,{"id":666,"name":"Ok","frameType":"spell"}]})");
+        auto r = cards::parseRemoteCardJson(R"({"data":[42,{"id":666,"name":"Ok","frameType":"spell"}]})");
         REQUIRE(r.ok());
         REQUIRE(r.cards.size() == 1);
         REQUIRE_FALSE(r.errors.empty());
@@ -328,8 +323,7 @@ TEST_CASE("Comparators are strict weak orderings", "[compare]") {
 TEST_CASE("ActionSpec aggregate field order is stable", "[effect]") {
     // openjoey-gameplay brace-initializes ActionSpec positionally; this test
     // pins the field order as an explicit API contract.
-    ActionSpec e{ActionId::Move_Draw, EffectType::Trigger, 2, 100, 0,
-                 TargetScope::None, false, "draw 100"};
+    ActionSpec e{ActionId::Move_Draw, EffectType::Trigger, 2, 100, 0, TargetScope::None, false, "draw 100"};
     REQUIRE(e.id == ActionId::Move_Draw);
     REQUIRE(e.timing == EffectType::Trigger);
     REQUIRE(e.speed == 2);

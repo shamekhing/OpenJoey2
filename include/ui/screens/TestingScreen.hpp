@@ -26,15 +26,12 @@ class TestingScreen : public IScreen {
     ScreenEvent Update(float) override {
         ctx_.imageCache.PollAndLoad();
 
-        if (IsKeyPressed(KEY_ESCAPE))
-            return ScreenEvent::replace(AppScreen::MainMenu);
+        if (IsKeyPressed(KEY_ESCAPE)) return ScreenEvent::replace(AppScreen::MainMenu);
         // Empty DB (missing/broken cards.json): stay on the screen and show a
         // hint instead of bouncing away — Draw() handles the empty case too.
         if (!cards_.empty()) {
-            if (IsKeyPressed(KEY_RIGHT))
-                idx_ = (idx_ + 1) % (int)cards_.size();
-            if (IsKeyPressed(KEY_LEFT))
-                idx_ = (idx_ - 1 + (int)cards_.size()) % (int)cards_.size();
+            if (IsKeyPressed(KEY_RIGHT)) idx_ = (idx_ + 1) % (int)cards_.size();
+            if (IsKeyPressed(KEY_LEFT)) idx_ = (idx_ - 1 + (int)cards_.size()) % (int)cards_.size();
             preview_.SetCard(&cards_[idx_]);
         }
         return ScreenEvent::none();
@@ -50,22 +47,14 @@ class TestingScreen : public IScreen {
         // Guard: Draw() can run before the first Update() (screen was just
         // swapped in), so an empty DB must never reach cards_[idx_].
         if (cards_.empty() || idx_ < 0 || idx_ >= (int)cards_.size()) {
-            DrawText("No cards loaded — check data/cards.json",
-                     HEADER_TITLE_X, HEADER_TITLE_Y + FONT_SCREEN_TITLE + 6,
-                     FONT_CARD_STAT, ORANGE);
+            DrawText("No cards loaded — check data/cards.json", HEADER_TITLE_X, HEADER_TITLE_Y + FONT_SCREEN_TITLE + 6, FONT_CARD_STAT, ORANGE);
             return;
         }
 
         const openjoey::cards::Card& c = cards_[idx_];
-        DrawText(TextFormat("%s  #%u  [L/R] next  [ESC] back",
-                            c.name.c_str(), c.id),
-                 HEADER_TITLE_X, HEADER_TITLE_Y + FONT_SCREEN_TITLE + 6,
-                 FONT_CARD_STAT, LIGHTGRAY);
+        DrawText(TextFormat("%s  #%u  [L/R] next  [ESC] back", c.name.c_str(), c.id), HEADER_TITLE_X, HEADER_TITLE_Y + FONT_SCREEN_TITLE + 6, FONT_CARD_STAT, LIGHTGRAY);
 
-        preview_.Draw({(float)MAIN_PAD_X, (float)(HEADER_HEIGHT + MAIN_PAD_Y),
-                       (float)(sw - MAIN_PAD_X * 2),
-                       (float)(sh - HEADER_HEIGHT - MAIN_PAD_Y - MAIN_PAD_BOTTOM)},
-                      ctx_.imageCache);
+        preview_.Draw({(float)MAIN_PAD_X, (float)(HEADER_HEIGHT + MAIN_PAD_Y), (float)(sw - MAIN_PAD_X * 2), (float)(sh - HEADER_HEIGHT - MAIN_PAD_Y - MAIN_PAD_BOTTOM)}, ctx_.imageCache);
     }
 
    private:

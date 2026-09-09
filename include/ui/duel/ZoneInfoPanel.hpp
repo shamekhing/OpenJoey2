@@ -19,9 +19,7 @@ using cards::CardDatabase;
 // itself moved to the tappable bottom action sheet (DuelScreen), which is
 // shared by keyboard, mouse and touch.
 struct ZoneInfoPanel {
-    static void Draw(Rectangle r, zone::IZone* zone, const char* label,
-                     DuelUIState::Feedback feedback,
-                     const std::string& lastResult, bool hasSource) {
+    static void Draw(Rectangle r, zone::IZone* zone, const char* label, DuelUIState::Feedback feedback, const std::string& lastResult, bool hasSource) {
         DrawRectangleRec(r, COLOR_PANEL_BG);
         DrawRectangleLinesEx(r, 1.f, COLOR_PANEL_BORDER);
 
@@ -48,15 +46,9 @@ struct ZoneInfoPanel {
             std::string ori = zm->position() == zone::Orientation::Vertical ? "ATK" : "DEF";
             std::string vis;
             switch (zm->visibility()) {
-                case zone::Visibility::Visible:
-                    vis = "FaceUp (both)";
-                    break;
-                case zone::Visibility::Limited:
-                    vis = "FaceDown (you know it)";
-                    break;
-                case zone::Visibility::Restricted:
-                    vis = "Hidden (neither)";
-                    break;
+                case zone::Visibility::Visible: vis = "FaceUp (both)"; break;
+                case zone::Visibility::Limited: vis = "FaceDown (you know it)"; break;
+                case zone::Visibility::Restricted: vis = "Hidden (neither)"; break;
             }
             DrawText(("Pos: " + ori).c_str(), (int)x, (int)cy, fsSub, LIGHTGRAY);
             cy += lineH;
@@ -71,8 +63,7 @@ struct ZoneInfoPanel {
             cy += lineH;
         }
 
-        DrawLine((int)(r.x + pad * 0.5f), (int)cy,
-                 (int)(r.x + r.width - pad * 0.5f), (int)cy, COLOR_DIVIDER_LINE);
+        DrawLine((int)(r.x + pad * 0.5f), (int)cy, (int)(r.x + r.width - pad * 0.5f), (int)cy, COLOR_DIVIDER_LINE);
         cy += pad * 0.5f;
 
         // (The numbered action list lives in the bottom action sheet now —
@@ -83,15 +74,12 @@ struct ZoneInfoPanel {
 
         if (!lastResult.empty()) {
             float ry = r.y + r.height - fsSub * 3.0f;
-            DrawLine((int)(r.x + pad * 0.5f), (int)ry,
-                     (int)(r.x + r.width - pad * 0.5f), (int)ry, COLOR_DIVIDER_LINE);
+            DrawLine((int)(r.x + pad * 0.5f), (int)ry, (int)(r.x + r.width - pad * 0.5f), (int)ry, COLOR_DIVIDER_LINE);
             ry += pad * 0.3f;
             // Verdict colour comes from the structured engine result, not from
             // sniffing the text.
             using FB = DuelUIState::Feedback;
-            Color col = feedback == FB::Ok     ? GREEN
-                        : feedback == FB::Fail ? Color{220, 80, 80, 255}
-                                               : COLOR_STAT_TEXT;
+            Color col = feedback == FB::Ok ? GREEN : feedback == FB::Fail ? Color{220, 80, 80, 255} : COLOR_STAT_TEXT;
             DrawText(lastResult.c_str(), (int)x, (int)ry, fsSub, col);
         }
     }
@@ -99,26 +87,16 @@ struct ZoneInfoPanel {
    private:
     static std::string zoneName(zone::ZoneType t) {
         switch (t) {
-            case zone::ZoneType::Monster:
-                return "Monster";
-            case zone::ZoneType::SpellTrap:
-                return "Spell/Trap";
-            case zone::ZoneType::Field:
-                return "Field";
-            case zone::ZoneType::ExtraMonster:
-                return "Extra Monster";
-            case zone::ZoneType::Hand:
-                return "Hand";
-            case zone::ZoneType::Deck:
-                return "Deck";
-            case zone::ZoneType::ExtraDeck:
-                return "Extra Deck";
-            case zone::ZoneType::Graveyard:
-                return "Graveyard";
-            case zone::ZoneType::Banished:
-                return "Banished";
-            case zone::ZoneType::SideDeck:
-                return "Side Deck";
+            case zone::ZoneType::Monster: return "Monster";
+            case zone::ZoneType::SpellTrap: return "Spell/Trap";
+            case zone::ZoneType::Field: return "Field";
+            case zone::ZoneType::ExtraMonster: return "Extra Monster";
+            case zone::ZoneType::Hand: return "Hand";
+            case zone::ZoneType::Deck: return "Deck";
+            case zone::ZoneType::ExtraDeck: return "Extra Deck";
+            case zone::ZoneType::Graveyard: return "Graveyard";
+            case zone::ZoneType::Banished: return "Banished";
+            case zone::ZoneType::SideDeck: return "Side Deck";
         }
         return "Unknown";
     }

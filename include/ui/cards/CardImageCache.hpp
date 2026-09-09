@@ -52,13 +52,7 @@ class CardImageCache {
     // Base image URLs are supplied by the app's configuration layer — no
     // provider defaults live in the cards domain. `allowDownloads` mirrors the
     // user-facing downloadImages setting.
-    CardImageCache(std::filesystem::path imgDir,
-                   std::string remoteImageUrl,
-                   std::string remoteImageUrlSmall,
-                   bool allowDownloads = true)
-        : imgDir_(std::move(imgDir)),
-          imageUrl_(std::move(remoteImageUrl)),
-          imageUrlSmall_(std::move(remoteImageUrlSmall)) {
+    CardImageCache(std::filesystem::path imgDir, std::string remoteImageUrl, std::string remoteImageUrlSmall, bool allowDownloads = true) : imgDir_(std::move(imgDir)), imageUrl_(std::move(remoteImageUrl)), imageUrlSmall_(std::move(remoteImageUrlSmall)) {
 #ifdef __EMSCRIPTEN__
         // Web build: there is no shell and no curl binary, and pthread_create
         // is unsupported without -pthread. Downloads are off and no worker is
@@ -69,8 +63,7 @@ class CardImageCache {
         // settings.json is player-editable: the URLs and the image directory
         // are interpolated into a shell command (curlDownload), so both must
         // be shell-safe or downloads stay off.
-        downloadsEnabled_ = allowDownloads && urlIsSafe(imageUrl_) &&
-                            urlIsSafe(imageUrlSmall_) && pathIsSafe(imgDir_);
+        downloadsEnabled_ = allowDownloads && urlIsSafe(imageUrl_) && urlIsSafe(imageUrlSmall_) && pathIsSafe(imgDir_);
         if (!downloadsEnabled_)
             std::fprintf(stderr,
                          "[CardImageCache] unsafe download settings — "
@@ -141,8 +134,7 @@ class CardImageCache {
             loadFailed_.erase(id);  // fresh download: allow one new load attempt
             if (textures_.count(id)) continue;
             std::filesystem::path dest = imgDir_ / (std::to_string(id) + ".jpg");
-            if (std::filesystem::exists(dest) && !loadTextureFromDisk(id, dest))
-                loadFailed_.insert(id);
+            if (std::filesystem::exists(dest) && !loadTextureFromDisk(id, dest)) loadFailed_.insert(id);
         }
         evictIfNeeded();
     }
@@ -163,9 +155,7 @@ class CardImageCache {
     // cache is over budget. Evicted images re-load from disk on demand.
     void evictIfNeeded() {
         while (textures_.size() > maxTextures_ && !lastUse_.empty()) {
-            auto victim = std::min_element(
-                lastUse_.begin(), lastUse_.end(),
-                [](const auto& a, const auto& b) { return a.second < b.second; });
+            auto victim = std::min_element(lastUse_.begin(), lastUse_.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
             const uint32_t id = victim->first;
             auto texIt = textures_.find(id);
             if (texIt != textures_.end()) {
@@ -193,9 +183,7 @@ class CardImageCache {
         std::lock_guard<std::mutex> lk(mtx_);
         if (queued_.count(id)) return;
         auto it = retryNotBefore_.find(id);
-        if (it != retryNotBefore_.end() &&
-            std::chrono::steady_clock::now() < it->second)
-            return;  // failed recently — wait out the cooldown
+        if (it != retryNotBefore_.end() && std::chrono::steady_clock::now() < it->second) return;  // failed recently — wait out the cooldown
         queued_.insert(id);
         jobQueue_.push({id, dest});
         cv_.notify_one();
@@ -213,17 +201,13 @@ class CardImageCache {
                 inFlight_ = job;  // so the destructor can sweep its .tmp
             }
             bool ok = curlDownload(imageUrl_ + std::to_string(job.id) + ".jpg", job.dest);
-            if (!ok && !stopping())
-                ok = curlDownload(imageUrlSmall_ + std::to_string(job.id) + ".jpg", job.dest);
+            if (!ok && !stopping()) ok = curlDownload(imageUrlSmall_ + std::to_string(job.id) + ".jpg", job.dest);
             {
                 std::lock_guard<std::mutex> lk(mtx_);
                 inFlight_.reset();
                 queued_.erase(job.id);  // failed ids may be re-requested later
-                if (ok)
-                    completed_.push_back(job.id);
-                else
-                    retryNotBefore_[job.id] =
-                        std::chrono::steady_clock::now() + kRetryCooldown;
+                if (ok) completed_.push_back(job.id);
+                else retryNotBefore_[job.id] = std::chrono::steady_clock::now() + kRetryCooldown;
             }
         }
     }
@@ -233,16 +217,14 @@ class CardImageCache {
         return stop_.load();
     }
 
-    static bool curlDownload(const std::string& url,
-                             const std::filesystem::path& dest) {
+    static bool curlDownload(const std::string& url, const std::filesystem::path& dest) {
         std::filesystem::create_directories(dest.parent_path());
         std::string tmp = dest.string() + ".tmp";
         // URL is constructed from a fixed base + integer ID — no injection risk.
         // POSIX-only: curl via the shell (documented; UI consumers run POSIX).
         std::string cmd = "curl -sSL --max-time 20 -o '" + tmp + "' '" + url + "' 2>/dev/null";
         int ret = std::system(cmd.c_str());  // NOLINT
-        if (ret == 0 && std::filesystem::exists(tmp) &&
-            std::filesystem::file_size(tmp) > 1024) {
+        if (ret == 0 && std::filesystem::exists(tmp) && std::filesystem::file_size(tmp) > 1024) {
             std::filesystem::rename(tmp, dest);
             return true;
         }
@@ -272,11 +254,7 @@ class CardImageCache {
 
     // Only shell-safe characters may be interpolated into the curlDownload()
     // command: the URL base from settings and the image directory path.
-    static bool shellUnsafeChar(char c) {
-        return c == '\'' || c == '"' || c == '\\' || c == ';' || c == '|' ||
-               c == '&' || c == '$' || c == '`' || c == '(' || c == ')' ||
-               c == '<' || c == '>' || c == '\n';
-    }
+    static bool shellUnsafeChar(char c) { return c == '\'' || c == '"' || c == '\\' || c == ';' || c == '|' || c == '&' || c == '$' || c == '`' || c == '(' || c == ')' || c == '<' || c == '>' || c == '\n'; }
 
     // Only a plain https base URL is safe to interpolate into a shell command.
     static bool urlIsSafe(const std::string& url) {

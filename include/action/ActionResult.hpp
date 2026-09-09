@@ -17,15 +17,10 @@ struct ActionResult {
     std::string msg;
 
     ActionResult() = default;
-    ActionResult(bool succeeded, std::string m, ActionId i = ActionId::None)
-        : ok(succeeded), id(i), msg(std::move(m)) {}
+    ActionResult(bool succeeded, std::string m, ActionId i = ActionId::None) : ok(succeeded), id(i), msg(std::move(m)) {}
 
-    static ActionResult Ok(std::string m, ActionId i = ActionId::None) {
-        return {true, std::move(m), i};
-    }
-    static ActionResult Fail(std::string m, ActionId i = ActionId::None) {
-        return {false, std::move(m), i};
-    }
+    static ActionResult Ok(std::string m, ActionId i = ActionId::None) { return {true, std::move(m), i}; }
+    static ActionResult Fail(std::string m, ActionId i = ActionId::None) { return {false, std::move(m), i}; }
     explicit operator bool() const { return ok; }
 };
 

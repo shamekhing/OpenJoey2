@@ -45,10 +45,7 @@ using cards::CardDatabase;
 
 class DuelScreen : public IScreen {
    public:
-    explicit DuelScreen(AppContext& ctx)
-        : ctx_(ctx), engine_(duel_), field_(duel_.field), fx_(engine_, field_, ui_), act_(engine_, duel_, field_, fieldGrid_, fx_, ui_) {
-        setupDuel();
-    }
+    explicit DuelScreen(AppContext& ctx) : ctx_(ctx), engine_(duel_), field_(duel_.field), fx_(engine_, field_, ui_), act_(engine_, duel_, field_, fieldGrid_, fx_, ui_) { setupDuel(); }
 
     ~DuelScreen() override {
         if (cardBack_.id) UnloadTexture(cardBack_);
@@ -69,13 +66,14 @@ class DuelScreen : public IScreen {
         int leftW = compact ? 0 : _SW * DUEL_LEFT_W_PCT / 100;
         int rightW = compact ? 0 : _SW * DUEL_RIGHT_W_PCT / 100;
         int centerW = _SW - leftW - rightW;
+        fieldGrid_.setCompact(compact);
         int headerH = HEADER_HEIGHT;
         int footerH = int(0.03f * _SH);
         const int barH = (int)DuelLayout::barH();
         int fieldH = _SH - headerH - footerH - barH;
 
         DuelPanels::drawHeader(engine_, duel_, ui_, 0, 0, _SW, headerH);
-        drawPreviewPanel(0, headerH, leftW, fieldH);
+        if (!compact) drawPreviewPanel(0, headerH, leftW, fieldH);
 
         // Legal-target highlights for the active pick mode (C: the board
         // shows what the rules allow instead of failing on confirm).
@@ -87,8 +85,7 @@ class DuelScreen : public IScreen {
             // light it up, otherwise the one cell you must tap has no
             // affordance at all (the old code highlighted only occupants).
             if (ui_.attacker && engine_.canDirectAttack(ui_.attacker)) {
-                const unsigned char a =
-                    (unsigned char)(140 + 110 * (0.5f + 0.5f * sinf((float)GetTime() * 6.f)));
+                const unsigned char a = (unsigned char)(140 + 110 * (0.5f + 0.5f * sinf((float)GetTime() * 6.f)));
                 for (auto& mz : field_.monsterZones[1 - fieldGrid_.viewer()])
                     if (mz.isEmpty()) fieldGrid_.addHighlight(&mz, {250, 200, 40, a});
             }
@@ -105,19 +102,10 @@ class DuelScreen : public IScreen {
         }
 
         const Texture2D* cb = cardBack_.id ? &cardBack_ : nullptr;
-        const bool peekHand =
-            IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
-            fieldGrid_.ownHandHit(GetMousePosition());
-        fieldGrid_.draw({(float)leftW, (float)headerH, (float)centerW, (float)fieldH},
-                        const_cast<Field&>(field_), ctx_.imageCache, cb,
-                        ui_.hideHand && !peekHand);
+        const bool peekHand = IsMouseButtonDown(MOUSE_BUTTON_LEFT) && fieldGrid_.ownHandHit(GetMousePosition());
+        fieldGrid_.draw({(float)leftW, (float)headerH, (float)centerW, (float)fieldH}, const_cast<Field&>(field_), ctx_.imageCache, cb, ui_.hideHand && !peekHand);
 
-        ZoneInfoPanel::Draw(
-            {(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH},
-            fieldGrid_.cursorZone(const_cast<Field&>(field_)),
-            fieldGrid_.cursorLabel(const_cast<Field&>(field_)),
-            ui_.feedback, ui_.lastResult,
-            fieldGrid_.selectedZone() != nullptr);
+        if (rightW > 0) ZoneInfoPanel::Draw({(float)(leftW + centerW), (float)headerH, (float)rightW, (float)fieldH}, fieldGrid_.cursorZone(const_cast<Field&>(field_)), fieldGrid_.cursorLabel(const_cast<Field&>(field_)), ui_.feedback, ui_.lastResult, fieldGrid_.selectedZone() != nullptr);
 
         // ── Bottom action sheet: ONE menu UI for keyboard, mouse and touch ──
         // Keyboard: arrows move actionCursor, ENTER invokes. Mouse/touch: tap
@@ -129,27 +117,19 @@ class DuelScreen : public IScreen {
             const int first = sheetFirst();
             const Rectangle sh = DuelLayout::sheetRect(visible);
             DrawRectangleRec(sh, {16, 16, 26, 246});
-            DrawLine((int)sh.x, (int)sh.y, (int)(sh.x + sh.width), (int)sh.y,
-                     COLOR_DIVIDER_MID);
+            DrawLine((int)sh.x, (int)sh.y, (int)(sh.x + sh.width), (int)sh.y, COLOR_DIVIDER_MID);
             const int fs = 0.026f * _SH < 15 ? 15 : (int)(0.026f * _SH);
             for (int row = 0; row < visible; ++row) {
                 const int idx = first + row;
                 const Rectangle rr = DuelLayout::sheetRowRect(visible, row);
                 const bool sel = idx == ui_.actionCursor;
                 if (sel) DrawRectangleRec(rr, Fade(GOLD, 0.14f));
-                DrawLine((int)rr.x, (int)rr.y, (int)(rr.x + rr.width), (int)rr.y,
-                         COLOR_DIVIDER_LINE);
-                DrawText(DrawUtils::clipText(ui_.actions[idx].label,
-                                             (int)(sh.width - 24), fs)
-                             .c_str(),
-                         (int)rr.x + 12, (int)(rr.y + (rr.height - fs) / 2), fs,
-                         sel ? GOLD : RAYWHITE);
+                DrawLine((int)rr.x, (int)rr.y, (int)(rr.x + rr.width), (int)rr.y, COLOR_DIVIDER_LINE);
+                DrawText(DrawUtils::clipText(ui_.actions[idx].label, (int)(sh.width - 24), fs).c_str(), (int)rr.x + 12, (int)(rr.y + (rr.height - fs) / 2), fs, sel ? GOLD : RAYWHITE);
             }
             if (first > 0 || first + visible < (int)ui_.actions.size()) {
-                const char* hint = TextFormat("%d/%d", ui_.actionCursor + 1,
-                                              (int)ui_.actions.size());
-                DrawText(hint, (int)(sh.x + sh.width - MeasureText(hint, 13) - 10),
-                         (int)sh.y - 17, 13, COLOR_STAT_TEXT);
+                const char* hint = TextFormat("%d/%d", ui_.actionCursor + 1, (int)ui_.actions.size());
+                DrawText(hint, (int)(sh.x + sh.width - MeasureText(hint, 13) - 10), (int)sh.y - 17, 13, COLOR_STAT_TEXT);
             }
         }
         if (ui_.mode != DuelMode::Navigate) drawCancelButton();
@@ -163,22 +143,45 @@ class DuelScreen : public IScreen {
             int lw = int(_SW * 0.62f), lh = int(_SH * 0.62f);
             int lx = (_SW - lw) / 2, ly = headerH + int(0.02f * _SH);
             DrawRectangle(lx, ly, lw, lh, Fade(BLACK, 0.88f));
-            DrawRectangleLinesEx({(float)lx, (float)ly, (float)lw, (float)lh},
-                                 2.f, GOLD);
+            DrawRectangleLinesEx({(float)lx, (float)ly, (float)lw, (float)lh}, 2.f, GOLD);
             DrawText("DUEL LOG  [L close]", lx + 10, ly + 8, 18, GOLD);
             const int fs = 15, lineH = fs + 5;
             int maxLines = (lh - 40) / lineH;
             int start = std::max(0, (int)ui_.log.size() - maxLines);
             for (int i = start; i < (int)ui_.log.size(); ++i) {
-                Color c = ui_.log[i].find("Chain Link") != std::string::npos
-                              ? SKYBLUE
-                          : ui_.log[i].find("destroys") != std::string::npos ||
-                                  ui_.log[i].find("damage") != std::string::npos
-                              ? ORANGE
-                              : RAYWHITE;
-                DrawText(ui_.log[i].substr(0, 110).c_str(), lx + 12,
-                         ly + 34 + (i - start) * lineH, fs, c);
+                Color c = ui_.log[i].find("Chain Link") != std::string::npos ? SKYBLUE : ui_.log[i].find("destroys") != std::string::npos || ui_.log[i].find("damage") != std::string::npos ? ORANGE : RAYWHITE;
+                DrawText(ui_.log[i].substr(0, 110).c_str(), lx + 12, ly + 34 + (i - start) * lineH, fs, c);
             }
+        }
+
+        // ── Card-list overlay: tap a peripheral chip (compact) to audit a zone.
+        // Snapshotted at open time; entitlements apply (face-down stays hidden).
+        if (ui_.listOpen) {
+            DrawRectangle(0, 0, (float)_SW, (float)_SH, {0, 0, 0, 215});
+            const Rectangle p = DuelLayout::listPanelRect();
+            DrawRectangleRec(p, {18, 20, 28, 250});
+            DrawRectangleLinesEx(p, 2.f, GOLD);
+            DrawText(ui_.listTitle.c_str(), (int)(p.x + 14), (int)(p.y + 12), FONT_PANEL_TITLE, GOLD);
+            const int fs = 14;
+            const int rowH = 64;
+            const int visRows = (int)((p.height - 46) / rowH);
+            const int maxStart = std::max(0, (int)ui_.listCards.size() - visRows);
+            const int start = std::min(std::max(ui_.listScroll, 0), maxStart);
+            for (int row = 0; row < visRows && start + row < (int)ui_.listCards.size(); ++row) {
+                Card* c = ui_.listCards[start + row];
+                const float ty = p.y + 40 + (float)row * (float)rowH;
+                const Rectangle thumb{p.x + 12, ty, 42.f, 42.f * 86.f / 59.f};
+                const Texture2D* tex = canView(c) ? ctx_.imageCache.Get(*c) : nullptr;
+                if (tex && tex->id) DrawTexturePro(*tex, {0, 0, (float)tex->width, (float)tex->height}, thumb, {0, 0}, 0.f, WHITE);
+                else DrawRectangleRec(thumb, COLOR_BG_DARK);
+                const bool seen = canView(c);
+                DrawText(DrawUtils::clipText(seen ? c->name : "(face-down)", (int)(p.width - 96), fs).c_str(), (int)(p.x + 64), (int)(ty + 10), fs, seen ? RAYWHITE : COLOR_STAT_TEXT);
+            }
+            if (ui_.listCards.empty()) DrawText("(empty)", (int)(p.x + 14), (int)(p.y + 46), FONT_PANEL_TITLE, COLOR_STAT_TEXT);
+            const Rectangle xc = DuelLayout::listCloseButton();
+            DrawRectangleRec(xc, {20, 20, 30, 230});
+            DrawRectangleLinesEx(xc, 1.5f, Color{230, 90, 90, 255});
+            DrawText("X", (int)(xc.x + (xc.width - MeasureText("X", 20)) / 2), (int)(xc.y + (xc.height - 20) / 2), 20, Color{240, 130, 130, 255});
         }
 
         // ── Long-press card detail: hold any card ~0.35s to read it full-screen
@@ -186,8 +189,7 @@ class DuelScreen : public IScreen {
         // list overlays). Entitlement rules still apply — face-down opponent
         // cards stay unreadable.
         if (press_.held()) {
-            Card* c =
-                fieldGrid_.cardAt(GetMousePosition(), const_cast<Field&>(field_));
+            Card* c = fieldGrid_.cardAt(GetMousePosition(), const_cast<Field&>(field_));
             if (c && canView(c)) {
                 DrawRectangle(0, 0, (float)_SW, (float)_SH, {0, 0, 0, 215});
                 const float w = _SW * 0.86f, h = _SH * 0.80f;
@@ -196,10 +198,7 @@ class DuelScreen : public IScreen {
                 detail_.SetCard(c, false);
                 detail_.Draw(r, ctx_.imageCache);
                 const char* hint = "release to close";
-                DrawText(hint,
-                         (int)((_SW - MeasureText(hint, FONT_HELP_SMALL)) / 2),
-                         (int)(r.y + r.height + 8), FONT_HELP_SMALL,
-                         COLOR_STAT_TEXT);
+                DrawText(hint, (int)((_SW - MeasureText(hint, FONT_HELP_SMALL)) / 2), (int)(r.y + r.height + 8), FONT_HELP_SMALL, COLOR_STAT_TEXT);
             }
         }
     }
@@ -236,8 +235,7 @@ class DuelScreen : public IScreen {
         engine_.startTurn();
         advanceToMain1();  // Draw Phase has no decisions — go straight to Main1
         fieldGrid_.setViewer(duel_.turnPlayer, field_);
-        ui_.lastResult = "Duel start — player " + std::to_string(duel_.turnPlayer) +
-                         " begins.";
+        ui_.lastResult = "Duel start — player " + std::to_string(duel_.turnPlayer) + " begins.";
         ui_.mode = DuelMode::Navigate;
         ui_.chainPrompt = ui_.handoff = false;
         ui_.attacker = ui_.pendingCard = nullptr;
@@ -263,14 +261,12 @@ class DuelScreen : public IScreen {
     // as the keyboard shortcut it replaces, so desktop behaviour is unchanged.
     void goBattle() {
         ActionResult r = engine_.toBattle();
-        if (r.ok && r.msg == "Battle Phase.")
-            r.msg += " SPACE on your monster to attack — or tap it.";
+        if (r.ok && r.msg == "Battle Phase.") r.msg += " SPACE on your monster to attack — or tap it.";
         ui_.post(r);
     }
     void goMain2() { ui_.post(engine_.toMain2()); }
     void resolveChainFlow() {
-        ui_.post(engine_.chainWaiting() ? engine_.passResponse(1 - duel_.turnPlayer)
-                                        : engine_.resolveChain());
+        ui_.post(engine_.chainWaiting() ? engine_.passResponse(1 - duel_.turnPlayer) : engine_.resolveChain());
         if (duel_.chain.links.empty()) {
             fx_.sweepResolved();
             ui_.chainPrompt = false;
@@ -298,13 +294,28 @@ class DuelScreen : public IScreen {
         ui_.post(r);
         // A targeting prompt is an instruction, not a verdict — keep it out
         // of the green/red verdict colours.
-        if (ui_.mode != DuelMode::Navigate)
-            ui_.feedback = DuelUIState::Feedback::Info;
+        if (ui_.mode != DuelMode::Navigate) ui_.feedback = DuelUIState::Feedback::Info;
     }
-    bool clicked(const Rectangle& r) const {
-        return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-               CheckCollisionPointRec(GetMousePosition(), r);
+    // Chip tap (compact layout): open a card-list overlay for a peripheral
+    // zone. The deck stays sealed; everything else lists with entitlements.
+    void openChipList(const FieldGrid::Chip& chip) {
+        auto* zs = dynamic_cast<zone::ZoneStack*>(chip.zone);
+        if (!zs) {
+            ui_.lastResult = "nothing to inspect.";
+            return;
+        }
+        if (chip.zone->visibility() == zone::Visibility::Restricted) {
+            ui_.lastResult = "the deck is face-down — its contents are hidden.";
+            return;
+        }
+        ui_.listCards.clear();
+        for (int i = 0; i < zs->count(); ++i)
+            if (Card* c = zs->peek(i)) ui_.listCards.push_back(c);
+        ui_.listTitle = std::string(chip.label) + " — " + std::to_string(ui_.listCards.size());
+        ui_.listScroll = 0;
+        ui_.listOpen = true;
     }
+    bool clicked(const Rectangle& r) const { return IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), r); }
     // ── Action-sheet scroll window (shared by Draw and input) ────────────────
     int sheetVisible() const {
         const int n = (int)ui_.actions.size();
@@ -313,8 +324,7 @@ class DuelScreen : public IScreen {
     }
     int sheetFirst() const {
         int first = ui_.actionCursor - sheetVisible() / 2;
-        if (first > (int)ui_.actions.size() - sheetVisible())
-            first = (int)ui_.actions.size() - sheetVisible();
+        if (first > (int)ui_.actions.size() - sheetVisible()) first = (int)ui_.actions.size() - sheetVisible();
         return first < 0 ? 0 : first;
     }
     void drawCancelButton() const {
@@ -323,8 +333,7 @@ class DuelScreen : public IScreen {
         DrawRectangleLinesEx(r, 1.5f, Color{230, 90, 90, 255});
         const char* x = "X";
         const int fs = (int)(r.height * 0.55f);
-        DrawText(x, (int)(r.x + (r.width - MeasureText(x, fs)) / 2),
-                 (int)(r.y + (r.height - fs) / 2), fs, Color{240, 130, 130, 255});
+        DrawText(x, (int)(r.x + (r.width - MeasureText(x, fs)) / 2), (int)(r.y + (r.height - fs) / 2), fs, Color{240, 130, 130, 255});
     }
 
     void endTurnFlow() {
@@ -348,8 +357,7 @@ class DuelScreen : public IScreen {
         advanceToMain1();
         fieldGrid_.setViewer(duel_.turnPlayer, field_);
         ui_.handoff = true;  // SPACE gate hides the next player's hand
-        ui_.post(ActionResult(ended.ok && started.ok,
-                              ended.msg + " " + started.msg));
+        ui_.post(ActionResult(ended.ok && started.ok, ended.msg + " " + started.msg));
     }
 
     // ── Input state machine ──────────────────────────────────────────────────
@@ -360,31 +368,31 @@ class DuelScreen : public IScreen {
     ScreenEvent handleInput() {
         press_.update();  // long-press tracking (card detail overlay)
         if (duel_.result != DuelResult::Ongoing) {
-            if (IsKeyPressed(KEY_R) || clicked(DuelLayout::winButton(0)))
-                rematch();
-            else if (clicked(DuelLayout::winButton(1)))
-                return ScreenEvent::replace(AppScreen::MainMenu);
+            if (IsKeyPressed(KEY_R) || clicked(DuelLayout::winButton(0))) rematch();
+            else if (clicked(DuelLayout::winButton(1))) return ScreenEvent::replace(AppScreen::MainMenu);
             return ScreenEvent::none();
         }
         if (ui_.handoff) {
             if (IsKeyPressed(KEY_SPACE) || clicked(DuelLayout::handoffButton())) {
                 ui_.handoff = false;
-                ui_.lastResult = "player " + std::to_string(duel_.turnPlayer + 1) +
-                                 " — your turn.";
+                ui_.lastResult = "player " + std::to_string(duel_.turnPlayer + 1) + " — your turn.";
             }
             return ScreenEvent::none();
         }
         // Chain window: the other player may respond via card menus; R passes
         // / resolves. Engine-driven mode (p.45): both must pass before the
         // chain resolves, so the prompt stays open after the first pass.
-        if (ui_.chainPrompt &&
-            (IsKeyPressed(KEY_R) || clicked(DuelPanels::chainButtonRect(duel_)))) {
+        if (ui_.chainPrompt && (IsKeyPressed(KEY_R) || clicked(DuelPanels::chainButtonRect(duel_)))) {
             resolveChainFlow();
             return ScreenEvent::none();
         }
         if (ui_.helpOpen) {  // help modal blocks gameplay input; H or GOT IT closes
-            if (IsKeyPressed(KEY_H) || clicked(DuelLayout::helpOkButton()))
-                ui_.helpOpen = false;
+            if (IsKeyPressed(KEY_H) || clicked(DuelLayout::helpOkButton())) ui_.helpOpen = false;
+            return ScreenEvent::none();
+        }
+        if (ui_.listOpen) {  // card-list overlay consumes everything while open
+            if (clicked(DuelLayout::listCloseButton()) || IsKeyPressed(KEY_ESCAPE) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !CheckCollisionPointRec(GetMousePosition(), DuelLayout::listPanelRect()))) ui_.listOpen = false;
+            ui_.listScroll -= (int)(GetMouseWheelMove() * 3.f);
             return ScreenEvent::none();
         }
         if (IsKeyPressed(KEY_H)) {
@@ -419,13 +427,10 @@ class DuelScreen : public IScreen {
         }
         for (int slot = 0; slot < DuelLayout::kBarButtons; ++slot) {
             if (!clicked(DuelLayout::barButton(slot))) continue;
-            if (!DuelPanels::barEnabled(engine_, duel_, slot))
-                return ScreenEvent::none();  // disabled buttons swallow the tap
+            if (!DuelPanels::barEnabled(engine_, duel_, slot)) return ScreenEvent::none();  // disabled buttons swallow the tap
             if (slot == 0) {
-                if (duel_.turn.phase == Phase::Battle)
-                    goMain2();
-                else
-                    goBattle();
+                if (duel_.turn.phase == Phase::Battle) goMain2();
+                else goBattle();
             } else if (slot == 1) {
                 endTurnFlow();
             } else if (slot == 2) {
@@ -436,6 +441,13 @@ class DuelScreen : public IScreen {
                 ui_.hideHand = !ui_.hideHand;
             }
             return ScreenEvent::none();
+        }
+        if (ui_.mode == DuelMode::Navigate) {
+            // Compact chips (deck/extra/GY/banish/field) open card lists.
+            if (const FieldGrid::Chip* chip = fieldGrid_.chipHit(GetMousePosition())) {
+                openChipList(*chip);
+                return ScreenEvent::none();
+            }
         }
         if (ui_.mode == DuelMode::Menu && !ui_.actions.empty()) {
             const int visible = sheetVisible();
@@ -457,16 +469,14 @@ class DuelScreen : public IScreen {
             esc = true;
         } else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !guiClick) {
             if (fieldGrid_.pointToCursor(mousePos, field_)) {
-                if (ui_.mode == DuelMode::Menu)
-                    ui_.mode = DuelMode::Navigate;  // re-open fresh menu on the hit cell
+                if (ui_.mode == DuelMode::Menu) ui_.mode = DuelMode::Navigate;  // re-open fresh menu on the hit cell
                 ent = true;
             } else if (ui_.mode == DuelMode::Menu) {
                 esc = true;  // click away from any zone closes the menu
             }
         } else if (ui_.mode == DuelMode::Navigate && !ui_.chainPrompt) {
             const Vector2 md = GetMouseDelta();
-            if (md.x != 0.f || md.y != 0.f)
-                fieldGrid_.pointToCursor(mousePos, field_);  // hover-follow inspect
+            if (md.x != 0.f || md.y != 0.f) fieldGrid_.pointToCursor(mousePos, field_);  // hover-follow inspect
         }
 
         if (ui_.mode == DuelMode::Navigate) {
@@ -487,36 +497,28 @@ class DuelScreen : public IScreen {
                 }
                 if (IsKeyPressed(KEY_F)) {  // flip summon own face-down monster
                     Card* c = cursorCard();
-                    if (gridRow(FieldRow::OwnMonster) && c)
-                        ui_.post(engine_.flipSummon(c));
-                    else
-                        ui_.lastResult = "flip summon: cursor on your face-down monster.";
+                    if (gridRow(FieldRow::OwnMonster) && c) ui_.post(engine_.flipSummon(c));
+                    else ui_.lastResult = "flip summon: cursor on your face-down monster.";
                 }
                 if (IsKeyPressed(KEY_C)) {  // change battle position (once/turn)
                     Card* c = cursorCard();
-                    if (gridRow(FieldRow::OwnMonster) && c)
-                        ui_.post(engine_.changePosition(c));
-                    else
-                        ui_.lastResult = "position change: cursor on your monster.";
+                    if (gridRow(FieldRow::OwnMonster) && c) ui_.post(engine_.changePosition(c));
+                    else ui_.lastResult = "position change: cursor on your monster.";
                 }
-                if (IsKeyPressed(KEY_SPACE) && duel_.turn.phase == Phase::Battle)
-                    attackFlow();
+                if (IsKeyPressed(KEY_SPACE) && duel_.turn.phase == Phase::Battle) attackFlow();
                 break;
             }
 
             case DuelMode::Menu: {
                 if (up || down) {
                     const int n = (int)ui_.actions.size();
-                    if (n > 0)
-                        ui_.actionCursor = (ui_.actionCursor + (down ? 1 : n - 1)) % n;
+                    if (n > 0) ui_.actionCursor = (ui_.actionCursor + (down ? 1 : n - 1)) % n;
                 }
                 if (esc) {
                     ui_.mode = DuelMode::Navigate;
                     break;
                 }
-                if (ent) {
-                    invokeMenuAction(ui_.actionCursor);
-                }
+                if (ent) { invokeMenuAction(ui_.actionCursor); }
                 break;
             }
             case DuelMode::AttackTarget: {
@@ -587,17 +589,12 @@ class DuelScreen : public IScreen {
                 }
                 if (ent) {
                     Card* c = cursorCard();
-                    if (gridRow(FieldRow::OwnMonster) && c &&
-                        fieldGrid_.ownerOf(fieldGrid_.cursorZone(field_), field_) ==
-                            fieldGrid_.viewer())
-                        act_.toggleTributePick(c);
-                    else
-                        ui_.lastResult = "pick tributes on YOUR monster row.";
+                    if (gridRow(FieldRow::OwnMonster) && c && fieldGrid_.ownerOf(fieldGrid_.cursorZone(field_), field_) == fieldGrid_.viewer()) act_.toggleTributePick(c);
+                    else ui_.lastResult = "pick tributes on YOUR monster row.";
                 }
                 break;
             }
-            default:
-                break;
+            default: break;
         }
         return ScreenEvent::none();
     }
@@ -632,12 +629,8 @@ class DuelScreen : public IScreen {
     }
 
     // ── Cursor / view helpers ────────────────────────────────────────────────
-    bool gridRow(FieldRow r) const {
-        return fieldGrid_.cursorRow() == fieldRow(r);
-    }
-    Card* cursorCard() const {
-        return fieldGrid_.cursorCard(const_cast<Field&>(field_));
-    }
+    bool gridRow(FieldRow r) const { return fieldGrid_.cursorRow() == fieldRow(r); }
+    Card* cursorCard() const { return fieldGrid_.cursorCard(const_cast<Field&>(field_)); }
 
     // Entitlement: Visible = both; Limited = the card's owner only; Restricted
     // = neither. Drives the preview.
@@ -646,9 +639,7 @@ class DuelScreen : public IScreen {
         auto [z, p] = field_.findCard(const_cast<Card*>(c));
         if (!z) return true;
         const zone::Visibility v = z->visibility();
-        return v == zone::Visibility::Visible ||
-               (v == zone::Visibility::Limited &&
-                c->state.controller == fieldGrid_.viewer());
+        return v == zone::Visibility::Visible || (v == zone::Visibility::Limited && c->state.controller == fieldGrid_.viewer());
     }
 
     void drawPreviewPanel(int x, int y, int w, int h) const {
@@ -658,10 +649,8 @@ class DuelScreen : public IScreen {
         bool fd = false;
         if (z) {
             // Restricted zones (decks) never show; otherwise entitlement rules.
-            if (z->visibility() == zone::Visibility::Restricted)
-                fd = true;
-            else if (top && !canView(top))
-                fd = true;
+            if (z->visibility() == zone::Visibility::Restricted) fd = true;
+            else if (top && !canView(top)) fd = true;
         }
         preview_.SetCard(top, fd);
         preview_.Draw({(float)x, (float)y, (float)w, (float)h}, ctx_.imageCache);

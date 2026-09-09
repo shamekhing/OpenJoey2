@@ -33,10 +33,8 @@ class KeyboardNav2D {
     // [0, rows) × [0, cols); degenerate dimensions disable movement.
     void move(int dr, int dc, int rows, int cols, const Occupied& occupied) {
         if (rows <= 0 || cols <= 0 || !occupied) return;
-        if (dc != 0)
-            moveHoriz(dc, cols, occupied);
-        else if (dr != 0)
-            moveVert(dr, rows, cols, occupied);
+        if (dc != 0) moveHoriz(dc, cols, occupied);
+        else if (dr != 0) moveVert(dr, rows, cols, occupied);
     }
 
     // Nearest occupied column in row r seen from `from` (ties → lower

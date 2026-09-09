@@ -14,16 +14,12 @@ using cards::CardDatabase;
 
 class DeckStats {
    public:
-    static void Draw(const std::vector<openjoey::cards::Card>& deck,
-                     int minSize, int x, int y, int w) {
+    static void Draw(const std::vector<openjoey::cards::Card>& deck, int minSize, int x, int y, int w) {
         int mon = 0, spl = 0, trp = 0;
         for (const auto& c : deck) {
-            if (c.isMonster())
-                ++mon;
-            else if (c.isSpell())
-                ++spl;
-            else
-                ++trp;
+            if (c.isMonster()) ++mon;
+            else if (c.isSpell()) ++spl;
+            else ++trp;
         }
         int total = (int)deck.size();
         Color okCol = (total >= minSize) ? GREEN : YELLOW;

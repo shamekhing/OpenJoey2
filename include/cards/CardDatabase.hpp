@@ -34,10 +34,8 @@ class CardDatabase {
     // empty and false is returned.
     bool LoadFromFile(const std::string &path) {
         std::ifstream file(path);
-        if (!file.is_open())
-            return false;
-        std::string content((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
+        if (!file.is_open()) return false;
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         return LoadFromString(content);
     }
 
@@ -47,16 +45,14 @@ class CardDatabase {
     bool LoadFromString(const std::string &content) {
         Clear();
         ParseResult parsed = parseRemoteCardJson(content);
-        if (!parsed.ok())
-            return false;
+        if (!parsed.ok()) return false;
 
         cards_ = std::move(parsed.cards);
         byId_.reserve(cards_.size());
         byName_.reserve(cards_.size());
         for (Card &c : cards_) {
             byId_[c.id] = &c;
-            if (byName_.find(c.name) == byName_.end())
-                byName_[c.name] = &c;  // first card wins on duplicate names
+            if (byName_.find(c.name) == byName_.end()) byName_[c.name] = &c;  // first card wins on duplicate names
         }
         return true;
     }
@@ -95,8 +91,7 @@ class CardDatabase {
         std::vector<const Card *> out;
         for (const Card &c : cards_)
             if (c.name.find(name) != std::string::npos) out.push_back(&c);
-        std::sort(out.begin(), out.end(),
-                  [](const Card *a, const Card *b) { return a->id < b->id; });
+        std::sort(out.begin(), out.end(), [](const Card *a, const Card *b) { return a->id < b->id; });
         return out;
     }
 
@@ -105,8 +100,7 @@ class CardDatabase {
         std::vector<const Card *> out;
         for (const Card &c : cards_)
             if (c.hasAttribute(attr)) out.push_back(&c);
-        std::sort(out.begin(), out.end(),
-                  [](const Card *a, const Card *b) { return a->id < b->id; });
+        std::sort(out.begin(), out.end(), [](const Card *a, const Card *b) { return a->id < b->id; });
         return out;
     }
     // Read-only access to the owned cards. Mutating the vector itself

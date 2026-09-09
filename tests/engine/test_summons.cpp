@@ -66,8 +66,7 @@ TEST_CASE("Engine Tribute Summon: level→tribute count, tributes to GY (p.23)",
     REQUIRE_FALSE(action::CanNormalSummon(d));  // consumed
 }
 
-TEST_CASE("Engine Flip Summon: not the Set turn, becomes face-up ATK (p.25)",
-          "[engine][summon]") {
+TEST_CASE("Engine Flip Summon: not the Set turn, becomes face-up ATK (p.25)", "[engine][summon]") {
     Duel d;
     Card m;
     mkMon(&m, 430, 4, 1600, 1400);
@@ -107,8 +106,7 @@ TEST_CASE("Engine Flip effect: trigger is announced (p.25)", "[engine][summon]")
     REQUIRE(action::FlipSummon(d, &m).msg.find("Flip effect triggers") != std::string::npos);
 }
 
-TEST_CASE("Engine position change: once per turn, not on arrival turn (p.26)",
-          "[engine][summon]") {
+TEST_CASE("Engine position change: once per turn, not on arrival turn (p.26)", "[engine][summon]") {
     Duel d;
     Card m;
     mkMon(&m, 432, 4, 1800, 1200);
@@ -150,8 +148,7 @@ TEST_CASE("Special Summon may choose face-up DEF (p.25)", "[engine][summon]") {
     REQUIRE_FALSE(action::CanAttack(d, &m));
 }
 
-TEST_CASE("Resolver: position changes and effect flips (classic zone ops)",
-          "[resolver][classic]") {
+TEST_CASE("Resolver: position changes and effect flips (classic zone ops)", "[resolver][classic]") {
     Duel d;
     Card m1, m2;
     fieldMonster(d, mkMon(&m1, 301, 4, 1400, 1200), 0, 0);
@@ -164,8 +161,7 @@ TEST_CASE("Resolver: position changes and effect flips (classic zone ops)",
     SECTION("ATK -> DEF -> ATK via the resolver") {
         ActionArgs a;
         a.target = &m1;
-        CHECK(action::Perform(d, ActionId::Pos_ChangeAToDef, a).msg ==
-              std::string("switched to Defense Position."));
+        CHECK(action::Perform(d, ActionId::Pos_ChangeAToDef, a).msg == std::string("switched to Defense Position."));
         CHECK(d.field.monsterZones[0][0].position() == Orientation::Horizontal);
         ActionArgs b;
         b.target = &m1;
@@ -186,15 +182,13 @@ TEST_CASE("Resolver: position changes and effect flips (classic zone ops)",
     }
 }
 
-TEST_CASE("Classic scope: Synchro/Xyz summons are rejected, not TODO",
-          "[resolver][classic]") {
+TEST_CASE("Classic scope: Synchro/Xyz summons are rejected, not TODO", "[resolver][classic]") {
     Duel d;
     CHECK(action::Perform(d, ActionId::Summon_Synchro).msg.find("not legal in the classic format") != std::string::npos);
     CHECK(action::Perform(d, ActionId::Summon_Xyz).msg.find("not legal in the classic format") != std::string::npos);
 }
 
-TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)",
-          "[engine][fusion]") {
+TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)", "[engine][fusion]") {
     Card fu, mat1, mat2;
     mkMon(&fu, 451, 6, 2600, 2000);
     fu.name = "FlameSwordsman";
@@ -273,8 +267,7 @@ TEST_CASE("Fusion Summon: Extra Deck -> EMZ, materials -> GY (p.20)",
     }
 }
 
-TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)",
-          "[engine][ritual]") {
+TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)", "[engine][ritual]") {
     Card rm, mat1, mat2, mat3;
     mkMon(&rm, 461, 7, 2500, 2100);
     rm.name = "BlackLuster";
@@ -317,8 +310,7 @@ TEST_CASE("Ritual Summon: hand -> MMZ, tribute levels >= level (p.21)",
         d.field.handZones[0].put(&rm);
         action::StartTurn(d);
         d.turn.phase = Phase::Main1;
-        CHECK(action::RitualSummon(d, &rm, {}).msg.find("at least 1") !=
-              std::string::npos);
+        CHECK(action::RitualSummon(d, &rm, {}).msg.find("at least 1") != std::string::npos);
     }
     SECTION("monster must be in hand") {
         Duel d;

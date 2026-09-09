@@ -19,14 +19,12 @@ TEST_CASE("Duel owns Field + Life Points + turn + chain (layer 4)", "[duel]") {
     REQUIRE(d.field.findCard(const_cast<const Card *>(&m)).first != nullptr);
 }
 
-TEST_CASE("Deck pointer seal: backing recorded, re-sealable, mismatch detectable",
-          "[engine][duel]") {
+TEST_CASE("Deck pointer seal: backing recorded, re-sealable, mismatch detectable", "[engine][duel]") {
     Duel d;
     Engine e(d);
     Card deck[3];
     std::vector<Card *> dv;
-    for (int i = 0; i < 3; ++i)
-        dv.push_back(mkMon(&deck[i], 800 + i, 4, 1000, 800));
+    for (int i = 0; i < 3; ++i) dv.push_back(mkMon(&deck[i], 800 + i, 4, 1000, 800));
 
     e.setDeck(0, dv);           // seals the pointer projection's address
     e.sealDeckBacking(0, &dv);  // app re-seals onto the OWNING vector

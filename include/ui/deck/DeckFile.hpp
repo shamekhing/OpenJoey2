@@ -18,8 +18,7 @@ using cards::CardDatabase;
 
 struct DeckFile {
     // Write visible card ids, one per line. The caller creates directories.
-    static void Write(const std::filesystem::path& path,
-                      const std::vector<openjoey::cards::Card>& deck) {
+    static void Write(const std::filesystem::path& path, const std::vector<openjoey::cards::Card>& deck) {
         std::ofstream f(path);
         if (!f.is_open()) return;
         for (const auto& c : deck) f << c.id << "\n";
@@ -27,9 +26,7 @@ struct DeckFile {
 
     // Resolve ids against db; unknown ids and comment lines are skipped.
     // maxCards caps the result (<= 0 = unlimited). Never throws on bad lines.
-    static std::vector<openjoey::cards::Card> Read(const std::filesystem::path& path,
-                                                   const openjoey::cards::CardDatabase& db,
-                                                   int maxCards = 0) {
+    static std::vector<openjoey::cards::Card> Read(const std::filesystem::path& path, const openjoey::cards::CardDatabase& db, int maxCards = 0) {
         std::vector<openjoey::cards::Card> deck;
         std::ifstream f(path);
         if (!f.is_open()) return deck;
@@ -39,10 +36,8 @@ struct DeckFile {
             try {
                 const uint32_t id = (uint32_t)std::stoul(line);
                 if (const auto* card = db.GetCardById(id))
-                    if (maxCards <= 0 || (int)deck.size() < maxCards)
-                        deck.push_back(*card);
-            } catch (...) {
-            }
+                    if (maxCards <= 0 || (int)deck.size() < maxCards) deck.push_back(*card);
+            } catch (...) {}
         }
         return deck;
     }

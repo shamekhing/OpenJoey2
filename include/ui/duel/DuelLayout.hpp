@@ -21,9 +21,7 @@ struct DuelLayout {
         const float h = 0.07f * _SH;
         return h < 48.f ? 48.f : h;
     }
-    static Rectangle barRect() {
-        return {0.f, _SH - barH(), (float)_SW, barH()};
-    }
+    static Rectangle barRect() { return {0.f, _SH - barH(), (float)_SW, barH()}; }
     static Rectangle barButton(int slot) {
         const float w = _SW / (float)kBarButtons;
         return {slot * w, barRect().y, w, barH()};
@@ -35,9 +33,7 @@ struct DuelLayout {
         const float s = 0.06f * _SH;
         return s < 48.f ? 48.f : s;
     }
-    static Rectangle cancelRect() {
-        return {8.f, (float)HEADER_HEIGHT + 8.f, cancelSize(), cancelSize()};
-    }
+    static Rectangle cancelRect() { return {8.f, (float)HEADER_HEIGHT + 8.f, cancelSize(), cancelSize()}; }
 
     // ── Action sheet: the tap/click rendering of the zone action menu ────────
     static float sheetRowH() {
@@ -67,8 +63,7 @@ struct DuelLayout {
     static Rectangle helpOkButton() {
         const Rectangle p = helpPanelRect();
         const float h = 0.055f * _SH < 44.f ? 44.f : 0.055f * _SH;
-        return {p.x + (p.width - p.width * 0.5f) / 2.f,
-                p.y + p.height - h - 18.f, p.width * 0.5f, h};
+        return {p.x + (p.width - p.width * 0.5f) / 2.f, p.y + p.height - h - 18.f, p.width * 0.5f, h};
     }
     // Centered row of `count` buttons at height y. Single-button overlays
     // (handoff) get a wide button; multi-button rows split the width.
@@ -86,6 +81,15 @@ struct DuelLayout {
     static Rectangle bannerButton(float bx, float bw, float by, float bh) {
         const float w = 0.14f * _SW < 96.f ? 96.f : 0.14f * _SW;
         return {bx + bw - w - 6.f, by + 2.f, w, bh - 4.f};
+    }
+    // Card-list overlay (chip tap: GY / banished / extra / deck).
+    static Rectangle listPanelRect() {
+        const float w = 0.86f * _SW, h = 0.80f * _SH;
+        return {(_SW - w) / 2.f, (_SH - h) / 2.f, w, h};
+    }
+    static Rectangle listCloseButton() {
+        const Rectangle p = listPanelRect();
+        return {p.x + p.width - 50.f, p.y + 10.f, 40.f, 40.f};
     }
 };
 

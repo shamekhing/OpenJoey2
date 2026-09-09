@@ -29,9 +29,7 @@ constexpr int kFieldCols = 9;
 
 constexpr int fieldRow(FieldRow r) { return static_cast<int>(r); }
 
-constexpr bool isHandRow(int r) {
-    return r == fieldRow(FieldRow::OppHand) || r == fieldRow(FieldRow::OwnHand);
-}
+constexpr bool isHandRow(int r) { return r == fieldRow(FieldRow::OppHand) || r == fieldRow(FieldRow::OwnHand); }
 constexpr bool isOppMonsterRow(int r) { return r == fieldRow(FieldRow::OppMonster); }
 constexpr bool isOwnMonsterRow(int r) { return r == fieldRow(FieldRow::OwnMonster); }
 constexpr bool isMonsterRow(int r) { return isOppMonsterRow(r) || isOwnMonsterRow(r); }

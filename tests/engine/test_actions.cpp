@@ -1,7 +1,6 @@
 #include "support/Fixtures.hpp"
 
-TEST_CASE("Tokens: spawned by the mat, fight, cease to exist off the field",
-          "[action][token]") {
+TEST_CASE("Tokens: spawned by the mat, fight, cease to exist off the field", "[action][token]") {
     Duel d;
     action::StartTurn(d);
     d.turn.phase = Phase::Main1;
@@ -24,8 +23,7 @@ TEST_CASE("Tokens: spawned by the mat, fight, cease to exist off the field",
     CHECK_FALSE(d.field.graveyardZones[0].contains(tok));
 }
 
-TEST_CASE("Equip: bonus applies in battle math and sweeps on destruction",
-          "[action][equip]") {
+TEST_CASE("Equip: bonus applies in battle math and sweeps on destruction", "[action][equip]") {
     Duel d;
     Card hero, blade;
     mkMon(&hero, 9100, 4, 1500, 1200);
@@ -63,8 +61,7 @@ TEST_CASE("Equip: bonus applies in battle math and sweeps on destruction",
     CHECK(action::RemoveCounterD(d, &hero, "focus", 1) == 0);
 }
 
-TEST_CASE("Equips detach with exact rollback when the equip itself dies",
-          "[action][equip]") {
+TEST_CASE("Equips detach with exact rollback when the equip itself dies", "[action][equip]") {
     Duel d;
     Card hero, blade;
     mkMon(&hero, 9110, 4, 1500, 1200);
@@ -105,8 +102,7 @@ TEST_CASE("Search/excavate and the special-summon family", "[action][special]") 
     CHECK(revealed.empty());  // deck empty now — nothing to reveal
 
     // Special summon from the graveyard, face-down DEF this time.
-    CHECK(action::SpecialSummon(d, &gyCard, /*faceDown=*/true).msg.find("special summons") !=
-          std::string::npos);
+    CHECK(action::SpecialSummon(d, &gyCard, /*faceDown=*/true).msg.find("special summons") != std::string::npos);
     CHECK(d.field.monsterZones[0][0].contains(&gyCard));
     CHECK_FALSE(d.field.monsterZones[0][0].isVisible());
 }
@@ -148,8 +144,7 @@ TEST_CASE("Tribute Set + CardEffect win + observe/legalActions seams", "[action]
     CHECK(d.result == DuelResult::Player0Win);
 }
 
-TEST_CASE("perform() realizes EVERY ActionId — no action is unimplemented",
-          "[actions][complete]") {
+TEST_CASE("perform() realizes EVERY ActionId — no action is unimplemented", "[actions][complete]") {
     Duel d;
     action::StartTurn(d);
     d.turn.phase = Phase::Main1;
@@ -171,8 +166,7 @@ TEST_CASE("perform() realizes EVERY ActionId — no action is unimplemented",
     // face-down special summon this turn: Flip Summon correctly illegal now
     CHECK(action::Perform(d, ActionId::CannotFlipSummonSameTurn, a).msg.find("cannot flip summon now") != std::string::npos);
     CHECK(action::Perform(d, ActionId::CheckHandSize).msg.find("hand size") != std::string::npos);
-    CHECK(action::Perform(d, ActionId::SynchroSummon).msg.find("not legal in the classic") !=
-          std::string::npos);
+    CHECK(action::Perform(d, ActionId::SynchroSummon).msg.find("not legal in the classic") != std::string::npos);
     CHECK(action::Perform(d, ActionId::ViewGraveyard).msg.find("GyFiller") != std::string::npos);
 
     // ── Regression: CardEffectWin credits the ACTIVATOR (was hardcoded P0) ──

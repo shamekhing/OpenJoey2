@@ -15,18 +15,14 @@ class Zone : public IZone {
     bool isEmpty() const override { return card_ == nullptr; }
     bool contains(const Card *c) const override { return card_ && card_ == c; }
 
-    bool replacePtr(Card *from, Card *to) override {
-        return card_ == from ? (card_ = to, true) : false;
-    }
+    bool replacePtr(Card *from, Card *to) override { return card_ == from ? (card_ = to, true) : false; }
 
     int count() const override { return card_ ? 1 : 0; }
 
     void reset() override { card_ = nullptr; }
     Card *peek() const { return card_; }
 
-    bool put(Card *c) override {
-        return (card_ || !c) ? false : (card_ = c, true);
-    }
+    bool put(Card *c) override { return (card_ || !c) ? false : (card_ = c, true); }
 
     // nullptr removes the occupant; non-null removes only if it matches.
     Card *remove(Card *c = nullptr) override {
@@ -37,9 +33,7 @@ class Zone : public IZone {
     // Face-up/face-down state change (set vs activate). Refuses on an empty
     // zone: callers must never set visibility on nothing, and "true" always
     // means the zone is occupied with the requested visibility.
-    bool changeVisibility(Visibility v) {
-        return isEmpty() ? false : (vis_ = v, true);
-    }
+    bool changeVisibility(Visibility v) { return isEmpty() ? false : (vis_ = v, true); }
 
    protected:
     Card *card_ = nullptr;

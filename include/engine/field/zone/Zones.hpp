@@ -19,9 +19,7 @@ class Zone_Monster : public Zone {
     ZoneType type() const override { return ZoneType::Monster; }
     Orientation position() const { return ori_; }
 
-    bool changeOrientation(Orientation p) {
-        return isEmpty() || (!isVisible() && p == ori_) ? false : (ori_ = p, true);
-    }
+    bool changeOrientation(Orientation p) { return isEmpty() || (!isVisible() && p == ori_) ? false : (ori_ = p, true); }
 
     // Flip Summon (Rulebook): face-down Defense → face-up Attack.
     // Canonical set state = Horizontal + Limited (controller knows the card,
@@ -84,8 +82,7 @@ class ZoneStack_Deck : public ZoneStack {
     // Mill n cards from the top to dest (e.g., graveyard). Returns count sent.
     bool mill(int n, IZone &dest) {
         for (int i = 0; i < n && !isEmpty(); ++i) {
-            if (!draw(dest))
-                return false;
+            if (!draw(dest)) return false;
         }
         return true;
     }
@@ -113,34 +110,23 @@ class ZoneStack_Banished : public ZoneStack {
    public:
     ZoneType type() const override { return ZoneType::Banished; }
 
-    bool isEmpty() const override {
-        return cards_.empty() && faceDownCards_.empty();
-    }
-    int count() const override {
-        return static_cast<int>(cards_.size() + faceDownCards_.size());
-    }
-    bool contains(const Card *c) const override {
-        return ZoneStack::contains(c) ||
-               std::find(faceDownCards_.begin(), faceDownCards_.end(), c) !=
-                   faceDownCards_.end();
-    }
+    bool isEmpty() const override { return cards_.empty() && faceDownCards_.empty(); }
+    int count() const override { return static_cast<int>(cards_.size() + faceDownCards_.size()); }
+    bool contains(const Card *c) const override { return ZoneStack::contains(c) || std::find(faceDownCards_.begin(), faceDownCards_.end(), c) != faceDownCards_.end(); }
 
     // nullptr -> remove top visible card; c -> remove that specific card
     // (searches both face-up and face-down piles).
     Card *remove(Card *c = nullptr) override {
         Card *r = ZoneStack::remove(c);
-        if (r)
-            return r;
+        if (r) return r;
         if (!c) {
-            if (faceDownCards_.empty())
-                return nullptr;
+            if (faceDownCards_.empty()) return nullptr;
             Card *top = faceDownCards_.back();
             faceDownCards_.pop_back();
             return top;
         }
         auto it = std::find(faceDownCards_.begin(), faceDownCards_.end(), c);
-        if (it == faceDownCards_.end())
-            return nullptr;
+        if (it == faceDownCards_.end()) return nullptr;
         Card *out = *it;
         faceDownCards_.erase(it);
         return out;
@@ -148,8 +134,7 @@ class ZoneStack_Banished : public ZoneStack {
 
     // Face-down banish (e.g. cost that removes a card hidden).
     Card *putFaceDown(Card *c) {
-        if (!c)
-            return nullptr;
+        if (!c) return nullptr;
         faceDownCards_.push_back(c);
         return c;
     }

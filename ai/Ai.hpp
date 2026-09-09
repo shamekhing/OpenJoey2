@@ -19,4 +19,4 @@
 //    attaches specs from a source without caring which produced them.
 namespace openjoey::ai {
 // Intentionally empty — see the contracts above.
-} // namespace openjoey::ai
+}  // namespace openjoey::ai

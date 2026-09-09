@@ -23,8 +23,7 @@ struct CardView {
 
 struct SideView {
     std::vector<CardView> monsters, spellsTraps, hand;
-    int handCount = 0, deckCount = 0, extraDeckCount = 0, gyCount = 0,
-        banishedCount = 0;
+    int handCount = 0, deckCount = 0, extraDeckCount = 0, gyCount = 0, banishedCount = 0;
 };
 
 struct StateView {
@@ -57,11 +56,9 @@ inline StateView Observe(const Duel &d, int viewer) {
         auto &side = v.sides[p];
         bool mine = (p == viewer);
         for (auto &mz : d.field.monsterZones[p])
-            if (Card *c = mz.peek())
-                side.monsters.push_back(MakeView(c, mine || mz.isVisible(), mz.isVisible()));
+            if (Card *c = mz.peek()) side.monsters.push_back(MakeView(c, mine || mz.isVisible(), mz.isVisible()));
         for (auto &st : d.field.spellTrapZones[p])
-            if (Card *c = st.peek())
-                side.spellsTraps.push_back(MakeView(c, mine || st.isVisible(), st.isVisible()));
+            if (Card *c = st.peek()) side.spellsTraps.push_back(MakeView(c, mine || st.isVisible(), st.isVisible()));
         side.handCount = d.field.handZones[p].count();
         side.deckCount = d.field.deckZones[p].count();
         side.extraDeckCount = d.field.extraDeckZones[p].count();
@@ -69,8 +66,7 @@ inline StateView Observe(const Duel &d, int viewer) {
         side.banishedCount = d.field.banishedZones[p].count();
         if (mine)
             for (int i = 0; i < side.handCount; ++i)
-                if (Card *c = d.field.handZones[p].peek(i))
-                    side.hand.push_back(MakeView(c, true, true));
+                if (Card *c = d.field.handZones[p].peek(i)) side.hand.push_back(MakeView(c, true, true));
     }
     return v;
 }
@@ -99,19 +95,13 @@ inline std::vector<ActionSpec> LegalActions(const Duel &d, int player) {
         for (auto &mz : d.field.monsterZones[player])
             if (Card *c = mz.peek())
                 if (c->state.controller == player) {
-                    if (!mz.isVisible())
-                        anySet = !c->state.setThisTurn;
-                    else
-                        anyUp = !c->state.placedThisTurn && !c->state.setThisTurn &&
-                                !d.turnState.flipSummoned.count(c) &&
-                                !d.turnState.positionChanged.count(c);
+                    if (!mz.isVisible()) anySet = !c->state.setThisTurn;
+                    else anyUp = !c->state.placedThisTurn && !c->state.setThisTurn && !d.turnState.flipSummoned.count(c) && !d.turnState.positionChanged.count(c);
                 }
         if (anySet) out.push_back({ActionId::FlipSummon, EffectType::Ignition, 1});
-        if (anyUp)
-            out.push_back({ActionId::ChangeMonsterBattlePosition, EffectType::Ignition, 1});
+        if (anyUp) out.push_back({ActionId::ChangeMonsterBattlePosition, EffectType::Ignition, 1});
     }
-    if (d.turn.phase == Phase::Main1 && !d.turn.skipBattle)
-        out.push_back({ActionId::EnterBattlePhase, EffectType::Ignition, 1});
+    if (d.turn.phase == Phase::Main1 && !d.turn.skipBattle) out.push_back({ActionId::EnterBattlePhase, EffectType::Ignition, 1});
     if (d.turn.phase == Phase::Battle)
         for (auto &mz : d.field.monsterZones[player])
             if (Card *c = mz.peek())

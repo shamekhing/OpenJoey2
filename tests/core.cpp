@@ -19,9 +19,7 @@ using openjoey::Config;
 // which does not need to exist.
 static fs::path g_sandbox;
 
-static std::string fakeArgv0(const char* subdir) {
-    return (g_sandbox / subdir / "app.exe").string();
-}
+static std::string fakeArgv0(const char* subdir) { return (g_sandbox / subdir / "app.exe").string(); }
 
 int main(int argc, char* argv[]) {
     g_sandbox = Config::exeDir(argc > 0 ? argv[0] : nullptr) / "core_test_sandbox";
@@ -144,9 +142,8 @@ TEST_CASE("user_settings.json overrides the shipped settings.json", "[config]") 
         std::fputs(body, f);
         std::fclose(f);
     };
-    write("settings.json",
-          R"({"app": {"targetFps": 30, "screenWidth": 800},)"
-          R"("dir": {"cardImgDir": "data/images/"}})");
+    write("settings.json", R"({"app": {"targetFps": 30, "screenWidth": 800},)"
+                           R"("dir": {"cardImgDir": "data/images/"}})");
     write("user_settings.json", R"({"app": {"targetFps": 90}})");
     Config loaded = Config::Load(fakeArgv0("override").c_str());
     CHECK(loaded.targetFps == 90);                     // user file wins
@@ -159,8 +156,7 @@ TEST_CASE("exeDir/settingsFile static resolution", "[config]") {
     CHECK(Config::settingsFile(nullptr).filename() == "user_settings.json");
     CHECK(Config::settingsFile(nullptr).parent_path().filename() == "data");
     CHECK(Config::referenceFile(nullptr).filename() == "settings.json");
-    CHECK(Config::referenceFile(nullptr).parent_path() ==
-          Config::settingsFile(nullptr).parent_path());
+    CHECK(Config::referenceFile(nullptr).parent_path() == Config::settingsFile(nullptr).parent_path());
 }
 
 // --- window fields (absorbed AppConfig; one source of truth) ------------------

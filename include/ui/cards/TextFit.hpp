@@ -10,10 +10,8 @@ namespace openjoey::ui {
 // `fontSize`, appending "~" when characters were dropped.
 inline std::string fitText(const std::string &text, int maxWidth, int fontSize) {
     std::string out = text;
-    while (!out.empty() && MeasureText(out.c_str(), fontSize) > maxWidth)
-        out.pop_back();
-    if (out.size() < text.size())
-        out += "~";
+    while (!out.empty() && MeasureText(out.c_str(), fontSize) > maxWidth) out.pop_back();
+    if (out.size() < text.size()) out += "~";
     return out;
 }
 
@@ -21,13 +19,11 @@ inline std::string fitText(const std::string &text, int maxWidth, int fontSize) 
 // split on spaces (never mid-word); a single word longer than the width is
 // truncated with fitText. Returns at most `maxLines` lines, the last one
 // ending with "~" when content was dropped.
-inline std::vector<std::string>
-wrapText(const std::string &text, int maxWidth, int fontSize, int maxLines) {
+inline std::vector<std::string> wrapText(const std::string &text, int maxWidth, int fontSize, int maxLines) {
     std::vector<std::string> lines;
     std::string word, line;
     auto flushWord = [&]() {
-        if (word.empty())
-            return;
+        if (word.empty()) return;
         std::string candidate = line.empty() ? word : line + " " + word;
         if (MeasureText(candidate.c_str(), fontSize) <= maxWidth) {
             line = candidate;
@@ -57,13 +53,11 @@ wrapText(const std::string &text, int maxWidth, int fontSize, int maxLines) {
         }
     }
     flushWord();
-    if (!line.empty())
-        lines.push_back(line);
+    if (!line.empty()) lines.push_back(line);
 
     if ((int)lines.size() > maxLines) {
         lines.resize(maxLines);
-        if (!lines.empty())
-            lines.back() += "~";
+        if (!lines.empty()) lines.back() += "~";
     }
     return lines;
 }

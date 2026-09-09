@@ -23,9 +23,6 @@ inline int frameRank(const Card &c) {
     if (c.hasAttribute(Attribute::Trap)) return 2;
     return 3;
 }
-inline bool byFrame(const Card &a, const Card &b) {
-    return frameRank(a) != frameRank(b) ? frameRank(a) < frameRank(b)
-                                        : byName(a, b);
-}
+inline bool byFrame(const Card &a, const Card &b) { return frameRank(a) != frameRank(b) ? frameRank(a) < frameRank(b) : byName(a, b); }
 
 }  // namespace openjoey::cards::compare

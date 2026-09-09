@@ -33,8 +33,7 @@ struct DuelSetup {
         Texture2D back{};
         const auto& path = ctx.settings.paths.cardBackImg;
         if (std::filesystem::exists(path)) back = LoadTexture(path.c_str());
-        if (!back.id)
-            std::cerr << "Failed to load card back image from " << path << "\n";
+        if (!back.id) std::cerr << "Failed to load card back image from " << path << "\n";
         return back;
     }
 
@@ -43,21 +42,14 @@ struct DuelSetup {
     // DeckEditorScreen writes/reads). Unknown ids and comment lines are
     // ignored; empty when the file is missing or matches nothing (caller
     // falls back to the first DB cards).
-    static std::vector<openjoey::cards::Card> loadDefaultDeck(const AppContext& ctx) {
-        return DeckFile::Read(ctx.settings.baseDir_ / "decks" / "default.txt",
-                              ctx.cardDb, kMaxDeckCards);
-    }
+    static std::vector<openjoey::cards::Card> loadDefaultDeck(const AppContext& ctx) { return DeckFile::Read(ctx.settings.baseDir_ / "decks" / "default.txt", ctx.cardDb, kMaxDeckCards); }
 
     // Both duelists play the same deck (hotseat): the deck editor's selection
     // when the player launched with [F], else decks/default.txt (the
     // classic-effect starter), else the first DB cards so a duel can always
     // start. Cards are value copies per player; the vectors are never resized
     // after this, so the raw zone pointers stay valid for the duel.
-    static void buildDecks(const AppContext& ctx,
-                           std::vector<openjoey::cards::Card>& mainA,
-                           std::vector<openjoey::cards::Card>& mainB,
-                           std::vector<openjoey::cards::Card>& extraA,
-                           std::vector<openjoey::cards::Card>& extraB) {
+    static void buildDecks(const AppContext& ctx, std::vector<openjoey::cards::Card>& mainA, std::vector<openjoey::cards::Card>& mainB, std::vector<openjoey::cards::Card>& extraA, std::vector<openjoey::cards::Card>& extraB) {
         std::vector<openjoey::cards::Card> src;
         if (!ctx.selectedDeck.empty()) {
             src = ctx.selectedDeck;
@@ -76,9 +68,7 @@ struct DuelSetup {
         // nothing to attach to the cards here.
 
         // Fusion monsters route to each player's Extra Deck.
-        auto splitExtra = [](const std::vector<openjoey::cards::Card>& in,
-                             std::vector<openjoey::cards::Card>& main,
-                             std::vector<openjoey::cards::Card>& extra) {
+        auto splitExtra = [](const std::vector<openjoey::cards::Card>& in, std::vector<openjoey::cards::Card>& main, std::vector<openjoey::cards::Card>& extra) {
             for (auto& c : in) (c.isExtraDeckMonster() ? extra : main).push_back(c);
         };
 
@@ -93,20 +83,14 @@ struct DuelSetup {
     // Seat main decks via the engine (shuffled there) and copy extra decks
     // straight into their zones (the engine reads the ExtraDeck zone for
     // Fusion Summons; Cyber-Stein special-summons from it too).
-    static void seatDecks(Engine& engine, zone::Field& field,
-                          std::vector<openjoey::cards::Card>& mainA,
-                          std::vector<openjoey::cards::Card>& mainB,
-                          std::vector<openjoey::cards::Card>& extraA,
-                          std::vector<openjoey::cards::Card>& extraB) {
+    static void seatDecks(Engine& engine, zone::Field& field, std::vector<openjoey::cards::Card>& mainA, std::vector<openjoey::cards::Card>& mainB, std::vector<openjoey::cards::Card>& extraA, std::vector<openjoey::cards::Card>& extraB) {
         for (int p = 0; p < 2; ++p) {
             auto& main = (p == 0) ? mainA : mainB;
             std::vector<Card*> ptrs;
             for (auto& c : main) ptrs.push_back(&c);
             engine.setDeck(p, ptrs);
             engine.sealDeckBacking(p, &main);  // seal the OWNING vector (ptrs is a temp)
-            for (auto& c : (p == 0 ? extraA : extraB)) {
-                field.extraDeckZones[p].put(&c);
-            }
+            for (auto& c : (p == 0 ? extraA : extraB)) { field.extraDeckZones[p].put(&c); }
         }
         engine.shuffleDecks();
     }

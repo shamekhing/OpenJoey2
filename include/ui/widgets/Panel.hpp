@@ -11,8 +11,7 @@ namespace openjoey::ui {
 
 struct Panel {
     // Draw a full panel: background + header bar + optional badge.
-    static void Draw(const char* title, const char* badge,
-                     int x, int y, int w, int h, bool focused) {
+    static void Draw(const char* title, const char* badge, int x, int y, int w, int h, bool focused) {
         Color border = focused ? YELLOW : DARKGRAY;
         DrawRectangleLines(x, y, w, h, border);
 
@@ -24,15 +23,11 @@ struct Panel {
 
         if (badge && badge[0]) {
             int bw = MeasureText(badge, FONT_CARD_STAT);
-            DrawText(badge, x + w - bw - PREVIEW_PAD_X,
-                     y + (hdrH - FONT_CARD_STAT) / 2,
-                     FONT_CARD_STAT, focused ? YELLOW : COLOR_STAT_TEXT);
+            DrawText(badge, x + w - bw - PREVIEW_PAD_X, y + (hdrH - FONT_CARD_STAT) / 2, FONT_CARD_STAT, focused ? YELLOW : COLOR_STAT_TEXT);
         }
     }
 
-    static void Draw(const char* title, int x, int y, int w, int h, bool focused) {
-        Draw(title, nullptr, x, y, w, h, focused);
-    }
+    static void Draw(const char* title, int x, int y, int w, int h, bool focused) { Draw(title, nullptr, x, y, w, h, focused); }
 
     // Returns the rectangle below the header where content should be drawn.
     static Rectangle contentRect(int x, int y, int w, int h) {

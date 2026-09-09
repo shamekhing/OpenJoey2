@@ -29,13 +29,7 @@ using cards::CardDatabase;
 
 class App {
    public:
-    explicit App(const char* argv0 = nullptr)
-        : settings_(Config::Load(argv0)),
-          platform_(settings_),
-          imageCache_(settings_.paths.cardImgDir, settings_.paths.cardImgUrl,
-                      settings_.paths.cardImgSmallUrl,
-                      settings_.downloadImages),
-          ctx_{cardDb_, selectedDeck_, imageCache_, settings_} {}
+    explicit App(const char* argv0 = nullptr) : settings_(Config::Load(argv0)), platform_(settings_), imageCache_(settings_.paths.cardImgDir, settings_.paths.cardImgUrl, settings_.paths.cardImgSmallUrl, settings_.downloadImages), ctx_{cardDb_, selectedDeck_, imageCache_, settings_} {}
     ~App() = default;
     App(const App&) = delete;
     App& operator=(const App&) = delete;
@@ -62,8 +56,7 @@ class App {
 
 }  // namespace openjoey::ui
 
-inline openjoey::Config
-openjoey::ui::App::makeConfig(const Config& s) {
+inline openjoey::Config openjoey::ui::App::makeConfig(const Config& s) {
     Config cfg;
     cfg.screenWidth = s.screenWidth;
     cfg.screenHeight = s.screenHeight;
@@ -74,31 +67,22 @@ openjoey::ui::App::makeConfig(const Config& s) {
 
 inline void openjoey::ui::App::LoadCards() {
     const std::string path = settings_.paths.cardsJson.string();
-    if (!cardDb_.LoadFromFile(path))
-        std::cerr << "[App] Failed to load " << path << "\n";
+    if (!cardDb_.LoadFromFile(path)) std::cerr << "[App] Failed to load " << path << "\n";
 }
 
-inline std::unique_ptr<openjoey::ui::IScreen>
-openjoey::ui::App::makeScreen(AppScreen s) {
+inline std::unique_ptr<openjoey::ui::IScreen> openjoey::ui::App::makeScreen(AppScreen s) {
     switch (s) {
-        case AppScreen::MainMenu:
-            return std::make_unique<MainMenuScreen>(ctx_);
-        case AppScreen::DeckEditor:
-            return std::make_unique<DeckEditorScreen>(ctx_);
-        case AppScreen::Duel:
-            return std::make_unique<DuelScreen>(ctx_);
-        case AppScreen::Testing:
-            return std::make_unique<TestingScreen>(ctx_);
-        case AppScreen::Settings:
-            return std::make_unique<SettingsScreen>(ctx_);
-        default:
-            return std::make_unique<MainMenuScreen>(ctx_);
+        case AppScreen::MainMenu: return std::make_unique<MainMenuScreen>(ctx_);
+        case AppScreen::DeckEditor: return std::make_unique<DeckEditorScreen>(ctx_);
+        case AppScreen::Duel: return std::make_unique<DuelScreen>(ctx_);
+        case AppScreen::Testing: return std::make_unique<TestingScreen>(ctx_);
+        case AppScreen::Settings: return std::make_unique<SettingsScreen>(ctx_);
+        default: return std::make_unique<MainMenuScreen>(ctx_);
     }
 }
 
 inline void openjoey::ui::App::handleEvent(const ScreenEvent& ev) {
-    if (ev.type == ScreenEvent::Type::Replace)
-        screenManager_.Replace(makeScreen(ev.target));
+    if (ev.type == ScreenEvent::Type::Replace) screenManager_.Replace(makeScreen(ev.target));
 }
 
 inline void openjoey::ui::App::Run() {
@@ -107,13 +91,10 @@ inline void openjoey::ui::App::Run() {
 
 #ifdef __EMSCRIPTEN__
     // Web: the browser owns the loop — one frame per callback, never returns.
-    auto tick = +[](void* self) {
-        static_cast<App*>(self)->tick();
-    };
+    auto tick = +[](void* self) { static_cast<App*>(self)->tick(); };
     emscripten_set_main_loop_arg(tick, this, 0, 1);
 #else
-    while (!WindowShouldClose() && !screenManager_.Empty())
-        tick();
+    while (!WindowShouldClose() && !screenManager_.Empty()) tick();
 #endif
 }
 
@@ -134,7 +115,6 @@ inline void openjoey::ui::App::tick() {
     handleEvent(ev);
 
     BeginDrawing();
-    if (!screenManager_.Empty())
-        screenManager_.Top().Draw();
+    if (!screenManager_.Empty()) screenManager_.Top().Draw();
     EndDrawing();
 }

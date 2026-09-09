@@ -25,9 +25,7 @@ using cards::Card;
 using cards::CardDatabase;
 
 struct DuelActions {
-    DuelActions(Engine& e, Duel& d, zone::Field& f, FieldGrid& g,
-                DuelEffects& x, DuelUIState& s)
-        : engine(e), duel(d), field(f), grid(g), fx(x), st(s) {}
+    DuelActions(Engine& e, Duel& d, zone::Field& f, FieldGrid& g, DuelEffects& x, DuelUIState& s) : engine(e), duel(d), field(f), grid(g), fx(x), st(s) {}
 
     Engine& engine;
     Duel& duel;
@@ -92,25 +90,19 @@ struct DuelActions {
             st.lastResult = "unpicked " + c->name + ".";
         } else if ((int)st.tributePicks.size() < cap) {
             st.tributePicks.push_back(c);
-            st.lastResult = "picked " + c->name + " (" +
-                            std::to_string(st.tributePicks.size()) + ").";
+            st.lastResult = "picked " + c->name + " (" + std::to_string(st.tributePicks.size()) + ").";
         } else {
             st.lastResult = "enough tributes already picked.";
         }
     }
 
    private:
-    void push(std::string lbl, std::function<ActionResult()> fn,
-              ActionId id = ActionId::None) {
-        st.actions.push_back({std::move(lbl), std::move(fn), id});
-    }
+    void push(std::string lbl, std::function<ActionResult()> fn, ActionId id = ActionId::None) { st.actions.push_back({std::move(lbl), std::move(fn), id}); }
 
     // ── Own hand ─────────────────────────────────────────────────────────────
     void handActions(Card* c) {
-        if (c->isMonster())
-            handMonsterActions(c);
-        else if (c->isSpell() || c->isTrap())
-            handSpellTrapActions(c);
+        if (c->isMonster()) handMonsterActions(c);
+        else if (c->isSpell() || c->isTrap()) handSpellTrapActions(c);
     }
 
     void handMonsterActions(Card* c) {
@@ -120,14 +112,17 @@ struct DuelActions {
             push("normal summon (ATK)", [this, c] { return engine.normalSummon(c); }, ActionId::NormalSummon);
             push("normal set (face-down DEF)", [this, c] { return engine.normalSet(c); }, ActionId::NormalSet);
         } else {
-            push("tribute summon — needs " + std::to_string(tr), [this, c, tr] {
-                     st.tributePicks.clear();
-                     st.tributeCount  = tr;
-                     st.fusionPending = st.ritualPending = false;
-                     st.pendingCard   = c;
-                     st.mode          = DuelMode::TributeTarget;
-                     return ActionResult::Ok("pick " + std::to_string(tr) +
-                                             " tributes on your monsters."); }, ActionId::TributeSummon);
+            push(
+                "tribute summon — needs " + std::to_string(tr),
+                [this, c, tr] {
+                    st.tributePicks.clear();
+                    st.tributeCount = tr;
+                    st.fusionPending = st.ritualPending = false;
+                    st.pendingCard = c;
+                    st.mode = DuelMode::TributeTarget;
+                    return ActionResult::Ok("pick " + std::to_string(tr) + " tributes on your monsters.");
+                },
+                ActionId::TributeSummon);
         }
     }
 
@@ -160,24 +155,28 @@ struct DuelActions {
         }
         // Set is ALWAYS offered for hand spells/traps (fx or not) — when a
         // spell/trap zone is free (engine-backed check, p.27).
-        if (field.firstEmptySpellTrapZone(grid.viewer()) >= 0)
-            push("set in spell/trap zone", [this, c] { return fx.setSpellTrap(c); }, c->isTrap() ? ActionId::SetTrapCard : ActionId::SetSpellCard);
+        if (field.firstEmptySpellTrapZone(grid.viewer()) >= 0) push("set in spell/trap zone", [this, c] { return fx.setSpellTrap(c); }, c->isTrap() ? ActionId::SetTrapCard : ActionId::SetSpellCard);
     }
 
     // Shared activation entry: arm the pending state, then target or fire.
     void pushActivate(Card* c, const ActionSpec* e) {
         const int me = grid.viewer();
-        push(std::string("activate — ") + (e->note ? e->note : "effect"), [this, c, e, me]() -> ActionResult {
-                 st.pendingCard   = c;
-                 st.pendingFx     = *e;
-                 st.pendingOwner  = me;
-                 st.pendingTarget = nullptr;
-                 if (e->needsTarget) {
-                     st.mode = DuelMode::EffectTarget;
-                     return ActionResult::Ok("pick a target.");
-                 }
-                 return fx.finishActivation(nullptr); }, c->isMonster() ? ActionId::ActivateMonsterEffect : c->isTrap() ? ActionId::ActivateTrapEffect
-                                                                                                                                                                                 : ActionId::ActivateSpellEffect);
+        push(
+            std::string("activate — ") + (e->note ? e->note : "effect"),
+            [this, c, e, me]() -> ActionResult {
+                st.pendingCard = c;
+                st.pendingFx = *e;
+                st.pendingOwner = me;
+                st.pendingTarget = nullptr;
+                if (e->needsTarget) {
+                    st.mode = DuelMode::EffectTarget;
+                    return ActionResult::Ok("pick a target.");
+                }
+                return fx.finishActivation(nullptr);
+            },
+            c->isMonster() ? ActionId::ActivateMonsterEffect :
+            c->isTrap()    ? ActionId::ActivateTrapEffect :
+                             ActionId::ActivateSpellEffect);
     }
 
     // ── Field zones (viewer-relative rows 1–4) ───────────────────────────────
@@ -195,10 +194,7 @@ struct DuelActions {
                 push("declare attack", [this, mc] {
                     st.attacker = mc;
                     st.mode = DuelMode::AttackTarget;
-                    return engine.canDirectAttack(mc)
-                               ? ActionResult::Ok(
-                                     "tap an empty opponent zone = direct attack.")
-                               : ActionResult::Ok("pick an opponent monster.");
+                    return engine.canDirectAttack(mc) ? ActionResult::Ok("tap an empty opponent zone = direct attack.") : ActionResult::Ok("pick an opponent monster.");
                 });
             }
             if (engine.canFlipSummon(mc)) {  // face-down Set, not on arrival turn
@@ -245,13 +241,12 @@ struct DuelActions {
                 if (s->name == f->name) dup = true;
             if (dup) continue;
             seen.push_back(f);
-            push(std::string("fusion summon — ") + f->name,
-                 [this, f] {
-                     st.fusionPending = false;
-                     ActionResult r = engine.fusionSummon(f, st.tributePicks);
-                     st.tributePicks.clear();
-                     return r;
-                 });
+            push(std::string("fusion summon — ") + f->name, [this, f] {
+                st.fusionPending = false;
+                ActionResult r = engine.fusionSummon(f, st.tributePicks);
+                st.tributePicks.clear();
+                return r;
+            });
         }
         if (st.actions.empty()) {
             st.lastResult = "no fusion monster in your Extra Deck.";
@@ -270,13 +265,12 @@ struct DuelActions {
         for (int i = 0; i < h.count(); ++i) {
             Card* m = h.peek(i);
             if (!m || !m->isMonster()) continue;
-            push(std::string("ritual summon — ") + m->name,
-                 [this, m] {
-                     st.ritualPending = false;
-                     ActionResult r = engine.ritualSummon(m, st.tributePicks);
-                     st.tributePicks.clear();
-                     return r;
-                 });
+            push(std::string("ritual summon — ") + m->name, [this, m] {
+                st.ritualPending = false;
+                ActionResult r = engine.ritualSummon(m, st.tributePicks);
+                st.tributePicks.clear();
+                return r;
+            });
         }
         if (st.actions.empty()) {
             st.lastResult = "no ritual monster in your hand.";

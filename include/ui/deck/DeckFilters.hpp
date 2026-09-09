@@ -24,29 +24,11 @@ struct DeckLimits {
     static constexpr int kMaxCopies = 3;
 };
 
-enum class DeckSortMode {
-    Type,
-    NameDesc,
-    NameAsc,
-    LevelDesc,
-    LevelAsc,
-    AtkDesc,
-    AtkAsc,
-    DefDesc,
-    DefAsc,
-    Id,
-    COUNT
-};
-enum class DeckTypeFilter { All,
-                            Monster,
-                            Spell,
-                            Trap,
-                            COUNT };
+enum class DeckSortMode { Type, NameDesc, NameAsc, LevelDesc, LevelAsc, AtkDesc, AtkAsc, DefDesc, DefAsc, Id, COUNT };
+enum class DeckTypeFilter { All, Monster, Spell, Trap, COUNT };
 
 inline const char* sortModeLabel(DeckSortMode m) {
-    static constexpr const char* kLabels[] = {
-        "Type", "Name (A-Z)", "Name (Z-A)", "Level (desc)", "Level (asc)",
-        "ATK (desc)", "ATK (asc)", "DEF (desc)", "DEF (asc)", "ID"};
+    static constexpr const char* kLabels[] = {"Type", "Name (A-Z)", "Name (Z-A)", "Level (desc)", "Level (asc)", "ATK (desc)", "ATK (asc)", "DEF (desc)", "DEF (asc)", "ID"};
     int idx = (int)m;
     return (idx >= 0 && idx < (int)DeckSortMode::COUNT) ? kLabels[idx] : "?";
 }
@@ -62,16 +44,7 @@ inline void sortPool(std::vector<openjoey::cards::Card>& pool, DeckSortMode mode
     using CmpFn = bool (*)(const openjoey::cards::Card&, const openjoey::cards::Card&);
     namespace cardcmp = openjoey::cards::compare;
     static constexpr std::pair<CmpFn, bool> kSort[] = {
-        {cardcmp::byFrame, false},
-        {cardcmp::byName, false},
-        {cardcmp::byName, true},
-        {cardcmp::byLevel, false},
-        {cardcmp::byLevel, true},
-        {cardcmp::byAtk, false},
-        {cardcmp::byAtk, true},
-        {cardcmp::byDef, false},
-        {cardcmp::byDef, true},
-        {cardcmp::byId, false},
+        {cardcmp::byFrame, false}, {cardcmp::byName, false}, {cardcmp::byName, true}, {cardcmp::byLevel, false}, {cardcmp::byLevel, true}, {cardcmp::byAtk, false}, {cardcmp::byAtk, true}, {cardcmp::byDef, false}, {cardcmp::byDef, true}, {cardcmp::byId, false},
     };
     auto [cmp, rev] = kSort[(int)mode];
     std::sort(pool.begin(), pool.end(), cmp);
@@ -79,9 +52,7 @@ inline void sortPool(std::vector<openjoey::cards::Card>& pool, DeckSortMode mode
 }
 
 // Type filter + case-insensitive name query; returns pointers into `pool`.
-inline std::vector<const openjoey::cards::Card*>
-filterPool(const std::vector<openjoey::cards::Card>& pool, DeckTypeFilter type,
-           const std::string& query) {
+inline std::vector<const openjoey::cards::Card*> filterPool(const std::vector<openjoey::cards::Card>& pool, DeckTypeFilter type, const std::string& query) {
     std::vector<const openjoey::cards::Card*> out;
     std::string q = query;
     std::transform(q.begin(), q.end(), q.begin(), ::tolower);

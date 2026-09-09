@@ -38,10 +38,8 @@ inline ParseResult parseRemoteCardJson(const std::string &content) {
         return result;
     }
 
-    if (!root.is_object() || !root.contains("data") ||
-        !root.at("data").is_array()) {
-        result.errors.push_back(
-            {"expected a remote card-data object with a \"data\" array"});
+    if (!root.is_object() || !root.contains("data") || !root.at("data").is_array()) {
+        result.errors.push_back({"expected a remote card-data object with a \"data\" array"});
         return result;
     }
 
@@ -57,18 +55,15 @@ inline ParseResult parseRemoteCardJson(const std::string &content) {
                 result.errors.push_back({"skipped entry without a valid id"});
                 continue;
             }
-            if (card.name.empty())
-                card.name = "Card " + std::to_string(card.id);
+            if (card.name.empty()) card.name = "Card " + std::to_string(card.id);
             if (!seenIds.insert(card.id).second) {
-                result.errors.push_back(
-                    {"duplicate cardId " + std::to_string(card.id) + " skipped"});
+                result.errors.push_back({"duplicate cardId " + std::to_string(card.id) + " skipped"});
                 continue;
             }
             result.cards.push_back(std::move(card));
         } catch (const std::exception &ex) {
             // Skip malformed entries; keep loading the rest of the database.
-            result.errors.push_back({std::string("skipped malformed entry: ") +
-                                     ex.what()});
+            result.errors.push_back({std::string("skipped malformed entry: ") + ex.what()});
         }
     }
     return result;

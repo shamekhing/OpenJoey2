@@ -24,8 +24,7 @@ struct DuelEffects {
     zone::Field& field;
     DuelUIState& st;
 
-    DuelEffects(Engine& e, zone::Field& f, DuelUIState& s)
-        : engine(e), field(f), st(s) {}
+    DuelEffects(Engine& e, zone::Field& f, DuelUIState& s) : engine(e), field(f), st(s) {}
 
     // Push a spell/trap activation onto the chain: pay the cost, open the
     // chain link, park the card for the Graveyard after resolution, and open
@@ -36,12 +35,10 @@ struct DuelEffects {
         ActionArgs a;
         a.target = target;
         a.source = st.pendingCard;  // engine checks set-turn Traps (p.31)
-        const ActionResult r =
-            engine.activateEffect(st.pendingFx, st.pendingOwner, a);
+        const ActionResult r = engine.activateEffect(st.pendingFx, st.pendingOwner, a);
         if (r.ok) {
             auto [hz, hp] = field.findCard(st.pendingCard);
-            if (hz && hz->type() == zone::ZoneType::Hand)
-                setSpellTrap(st.pendingCard);  // spells sit in the S/T row while resolving
+            if (hz && hz->type() == zone::ZoneType::Hand) setSpellTrap(st.pendingCard);  // spells sit in the S/T row while resolving
             st.activated.push_back(st.pendingCard);
             st.chainPrompt = true;
             st.mode = DuelMode::Navigate;
@@ -54,16 +51,14 @@ struct DuelEffects {
     // the old copy here forgot the setThisTurn stamp the p.31 rule needs).
     ActionResult setSpellTrap(Card* c) {
         if (!c) return ActionResult::Fail("no card.");
-        return engine.setSpellTrap(
-            c, c->isTrap() ? ActionId::SetTrapCard : ActionId::SetSpellCard);
+        return engine.setSpellTrap(c, c->isTrap() ? ActionId::SetTrapCard : ActionId::SetSpellCard);
     }
 
     // Spells/Traps that resolved sit in the S/T row until they hit the GY.
     void sweepResolved() {
         for (Card* c : st.activated) {
             auto [z, p] = field.findCard(c);
-            if (z && z->type() == zone::ZoneType::SpellTrap)
-                action::detail::moveCard(field, c, field.graveyardZones[c->state.controller]);
+            if (z && z->type() == zone::ZoneType::SpellTrap) action::detail::moveCard(field, c, field.graveyardZones[c->state.controller]);
         }
         st.activated.clear();
     }

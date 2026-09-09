@@ -20,8 +20,7 @@ namespace openjoey::engine {
 
 // Deep-clone a Duel. `cardStates` (optional) collects the CardState of every
 // non-token card referenced by the field, for restore-time re-application.
-inline Duel cloneDuel(const Duel &src,
-                      std::map<Card *, cards::CardState> *cardStates = nullptr) {
+inline Duel cloneDuel(const Duel &src, std::map<Card *, cards::CardState> *cardStates = nullptr) {
     Duel dst;
     dst.config = src.config;
     dst.turn = src.turn;
@@ -53,8 +52,7 @@ inline Duel cloneDuel(const Duel &src,
         f.banishedZones[p] = sf.banishedZones[p];
         f.sideDeckZones[p] = sf.sideDeckZones[p];
     }
-    for (int z = 0; z < zone::Field::EMZ_COUNT; ++z)
-        f.extraMonsterZones[z] = sf.extraMonsterZones[z];
+    for (int z = 0; z < zone::Field::EMZ_COUNT; ++z) f.extraMonsterZones[z] = sf.extraMonsterZones[z];
 
     // Deep-copy tokens and build the old→new pointer map.
     std::map<Card *, Card *> remap;

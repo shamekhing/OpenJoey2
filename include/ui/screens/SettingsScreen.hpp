@@ -27,8 +27,7 @@ class SettingsScreen : public IScreen {
             ctx_.settings.Save();
             statusMsg_ = "Saved";
         }
-        if (IsKeyPressed(KEY_ESCAPE))
-            return ScreenEvent::replace(AppScreen::MainMenu);
+        if (IsKeyPressed(KEY_ESCAPE)) return ScreenEvent::replace(AppScreen::MainMenu);
         return ScreenEvent::none();
     }
 
@@ -39,20 +38,12 @@ class SettingsScreen : public IScreen {
 
         DrawRectangle(0, 0, sw, HEADER_HEIGHT, COLOR_HEADER_BG);
         DrawText("SETTINGS", HEADER_TITLE_X, HEADER_TITLE_Y, FONT_SCREEN_TITLE, WHITE);
-        DrawText("[ESC] back   [UP/DN] choose   [ENTER] toggle",
-                 sw - HELP_TEXT_X_OFFSET, HELP_TEXT_Y, FONT_CARD_TYPE, GRAY);
+        DrawText("[ESC] back   [UP/DN] choose   [ENTER] toggle", sw - HELP_TEXT_X_OFFSET, HELP_TEXT_Y, FONT_CARD_TYPE, GRAY);
 
         const Config& s = ctx_.settings;
-        const char* labels[kOptCount] = {
-            "Fullscreen", "Target FPS", "Resolution", "Download card images",
-            "Chain response window", "End Phase auto-discard"};
+        const char* labels[kOptCount] = {"Fullscreen", "Target FPS", "Resolution", "Download card images", "Chain response window", "End Phase auto-discard"};
         std::string values[kOptCount] = {
-            s.fullscreen ? "ON" : "OFF",
-            std::to_string(s.targetFps) + " FPS",
-            std::to_string(s.screenWidth) + "x" + std::to_string(s.screenHeight),
-            s.downloadImages ? "ON" : "OFF",
-            s.chainResponseWindow ? "ON (p.45 both-pass)" : "OFF",
-            s.autoDiscardEndPhase ? "ON (auto to 6)" : "OFF (pick discards)",
+            s.fullscreen ? "ON" : "OFF", std::to_string(s.targetFps) + " FPS", std::to_string(s.screenWidth) + "x" + std::to_string(s.screenHeight), s.downloadImages ? "ON" : "OFF", s.chainResponseWindow ? "ON (p.45 both-pass)" : "OFF", s.autoDiscardEndPhase ? "ON (auto to 6)" : "OFF (pick discards)",
         };
         const int baseY = sh / 2 - kOptCount * MENU_ITEM_SPACING / 2;
         for (int i = 0; i < kOptCount; ++i) {
@@ -60,9 +51,7 @@ class SettingsScreen : public IScreen {
             DrawText(labels[i], sw / 2 - 220, baseY + i * MENU_ITEM_SPACING, FONT_MENU_ITEM, c);
             DrawText(values[i].c_str(), sw / 2 + 40, baseY + i * MENU_ITEM_SPACING, FONT_MENU_ITEM, c);
         }
-        if (!statusMsg_.empty())
-            DrawText(TextFormat("  %s", statusMsg_.c_str()), HEADER_TITLE_X,
-                     sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, GREEN);
+        if (!statusMsg_.empty()) DrawText(TextFormat("  %s", statusMsg_.c_str()), HEADER_TITLE_X, sh - MENU_HELP_BOTTOM_OFFSET, FONT_HELP_SMALL, GREEN);
     }
 
    private:
@@ -101,15 +90,9 @@ class SettingsScreen : public IScreen {
                 applyWindow(s);
                 break;
             }
-            case 3:
-                s.downloadImages = !s.downloadImages;
-                break;
-            case 4:
-                s.chainResponseWindow = !s.chainResponseWindow;
-                break;
-            case 5:
-                s.autoDiscardEndPhase = !s.autoDiscardEndPhase;
-                break;
+            case 3: s.downloadImages = !s.downloadImages; break;
+            case 4: s.chainResponseWindow = !s.chainResponseWindow; break;
+            case 5: s.autoDiscardEndPhase = !s.autoDiscardEndPhase; break;
         }
     }
 

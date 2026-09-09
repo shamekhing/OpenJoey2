@@ -14,6 +14,4 @@ inline int run(int argc, char** argv) {
 
 }  // namespace openjoey::app
 
-int main(int argc, char** argv) {
-    return openjoey::app::run(argc, argv);
-}
+int main(int argc, char** argv) { return openjoey::app::run(argc, argv); }

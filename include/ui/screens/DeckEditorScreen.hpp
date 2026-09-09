@@ -35,13 +35,9 @@ class DeckEditorScreen : public IScreen {
     static constexpr int kMaxDeckSize = DeckLimits::kMaxDeckSize;
     static constexpr int kMaxCopies = DeckLimits::kMaxCopies;
 
-    explicit DeckEditorScreen(AppContext& ctx)
-        : ctx_(ctx),
-          panels_{ctx_, searchInput_, poolNav_, deckNav_, deck_,
-                  sortMode_, typeFilter_, focusPool_, deckGridView_} {
+    explicit DeckEditorScreen(AppContext& ctx) : ctx_(ctx), panels_{ctx_, searchInput_, poolNav_, deckNav_, deck_, sortMode_, typeFilter_, focusPool_, deckGridView_} {
         rebuildPool();
-        if (ctx_.cardDb.GetAllCards().empty())
-            statusMsg_ = "No cards loaded — check data/cards.json";
+        if (ctx_.cardDb.GetAllCards().empty()) statusMsg_ = "No cards loaded — check data/cards.json";
     }
 
     ScreenEvent Update(float /*dt*/) override;
@@ -77,8 +73,7 @@ class DeckEditorScreen : public IScreen {
 
 inline void DeckEditorScreen::rebuildPool() {
     pool_.clear();
-    for (const auto& c : ctx_.cardDb.GetAllCards())
-        pool_.push_back(c);
+    for (const auto& c : ctx_.cardDb.GetAllCards()) pool_.push_back(c);
     sortPool(pool_, sortMode_);
 }
 
@@ -87,22 +82,19 @@ inline void DeckEditorScreen::rebuildPool() {
 inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
     ctx_.imageCache.PollAndLoad();
 
-    if (IsKeyPressed(KEY_ESCAPE) && !searchInput_.isTyping())
-        return ScreenEvent::replace(AppScreen::MainMenu);
+    if (IsKeyPressed(KEY_ESCAPE) && !searchInput_.isTyping()) return ScreenEvent::replace(AppScreen::MainMenu);
 
     searchInput_.Update();
     if (searchInput_.isChanged()) poolNav_.cursor = 0;
 
     if (IsKeyPressed(KEY_O)) {
-        sortMode_ = static_cast<DeckSortMode>(
-            (static_cast<int>(sortMode_) + 1) % static_cast<int>(DeckSortMode::COUNT));
+        sortMode_ = static_cast<DeckSortMode>((static_cast<int>(sortMode_) + 1) % static_cast<int>(DeckSortMode::COUNT));
         rebuildPool();
         poolNav_.cursor = 0;
         statusMsg_ = std::string("Sort: ") + sortModeLabel(sortMode_);
     }
     if (IsKeyPressed(KEY_T)) {
-        typeFilter_ = static_cast<DeckTypeFilter>(
-            (static_cast<int>(typeFilter_) + 1) % static_cast<int>(DeckTypeFilter::COUNT));
+        typeFilter_ = static_cast<DeckTypeFilter>((static_cast<int>(typeFilter_) + 1) % static_cast<int>(DeckTypeFilter::COUNT));
         poolNav_.cursor = 0;
         statusMsg_ = std::string("Filter: ") + typeFilterLabel(typeFilter_);
     }
@@ -117,8 +109,7 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
 
         if (IsKeyPressed(KEY_ENTER) && poolSz > 0) {
             const auto& card = *fp[poolNav_.cursor];
-            if ((int)deck_.size() < kMaxDeckSize &&
-                countCopies(deck_, card.id) < kMaxCopies) {
+            if ((int)deck_.size() < kMaxDeckSize && countCopies(deck_, card.id) < kMaxCopies) {
                 deck_.push_back(card);
                 statusMsg_ = "Added: " + card.name;
             } else if (countCopies(deck_, card.id) >= kMaxCopies) {
@@ -127,8 +118,7 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
                 statusMsg_ = "Deck full (60 cards max)";
             }
         }
-        if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_RIGHT))
-            focusPool_ = false;
+        if (IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_RIGHT)) focusPool_ = false;
 
     } else {
         const int step = deckGridView_ ? CardGrid::ColCount() : 1;
@@ -144,9 +134,7 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
             if (IsKeyPressed(KEY_LEFT)) deckNav_.clampPrev();
         }
 
-        if ((IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE) ||
-             IsKeyPressed(KEY_D)) &&
-            deckSz > 0) {
+        if ((IsKeyPressed(KEY_DELETE) || IsKeyPressed(KEY_BACKSPACE) || IsKeyPressed(KEY_D)) && deckSz > 0) {
             statusMsg_ = "Removed: " + deck_[deckNav_.cursor].name;
             deck_.erase(deck_.begin() + deckNav_.cursor);
             deckNav_.setCount((int)deck_.size());
@@ -155,17 +143,14 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
             deckGridView_ = !deckGridView_;
             statusMsg_ = deckGridView_ ? "Deck: grid view" : "Deck: list view";
         }
-        if (IsKeyPressed(KEY_TAB) || (!deckGridView_ && IsKeyPressed(KEY_LEFT)))
-            focusPool_ = true;
+        if (IsKeyPressed(KEY_TAB) || (!deckGridView_ && IsKeyPressed(KEY_LEFT))) focusPool_ = true;
     }
 
     if (IsKeyPressed(KEY_S)) {
         SaveDeck("default");
         statusMsg_ = "Saved as 'default'";
     }
-    if (IsKeyPressed(KEY_L)) {
-        statusMsg_ = LoadDeck("default") ? "Loaded 'default'" : "No saved deck";
-    }
+    if (IsKeyPressed(KEY_L)) { statusMsg_ = LoadDeck("default") ? "Loaded 'default'" : "No saved deck"; }
     if (IsKeyPressed(KEY_C)) {
         deck_.clear();
         deckNav_.cursor = 0;
@@ -176,12 +161,9 @@ inline ScreenEvent DeckEditorScreen::Update(float /*dt*/) {
             ctx_.selectedDeck = deck_;
             return ScreenEvent::replace(AppScreen::Duel);
         }
-        statusMsg_ = "Need " +
-                     std::to_string(kMinDeckSize - (int)deck_.size()) +
-                     " more cards";
+        statusMsg_ = "Need " + std::to_string(kMinDeckSize - (int)deck_.size()) + " more cards";
     }
-    if (IsKeyPressed(KEY_ESCAPE))
-        statusMsg_.clear();
+    if (IsKeyPressed(KEY_ESCAPE)) statusMsg_.clear();
 
     return ScreenEvent::none();
 }
@@ -217,9 +199,7 @@ inline void DeckEditorScreen::Draw() const {
         "[ENTER] add  [DEL/D] remove  [O] sort  [T] filter  "
         "[G] grid/list  [C] clear  [S] save  [L] load  [F] duel (40+)",
         PREVIEW_PAD_X, barY, FONT_HELP_TEXT, LIGHTGRAY);
-    if (!statusMsg_.empty())
-        DrawText(statusMsg_.c_str(), PREVIEW_PAD_X, barY + FONT_HELP_TEXT + 2,
-                 FONT_CARD_NAME, GREEN);
+    if (!statusMsg_.empty()) DrawText(statusMsg_.c_str(), PREVIEW_PAD_X, barY + FONT_HELP_TEXT + 2, FONT_CARD_NAME, GREEN);
 }
 
 // ── Persistence

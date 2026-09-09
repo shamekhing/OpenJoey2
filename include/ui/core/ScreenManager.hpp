@@ -11,8 +11,7 @@ namespace openjoey::ui {
 class ScreenManager {
    public:
     void Replace(std::unique_ptr<IScreen> screen) {
-        if (!stack_.empty())
-            stack_.pop_back();
+        if (!stack_.empty()) stack_.pop_back();
         stack_.push_back(std::move(screen));
     }
 

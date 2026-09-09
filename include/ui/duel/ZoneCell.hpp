@@ -24,39 +24,25 @@ using zone::ZoneType;
 // Draws a single zone slot (card face, border, label). All sizes are derived
 // from the caller-supplied rect — no fixed pixel values.
 struct ZoneCell {
-    static void Draw(Rectangle r, IZone* zone, const char* label,
-                     bool isCursor, bool isSelected,
-                     CardImageCache& cache, const Texture2D* cardBack) {
+    static void Draw(Rectangle r, IZone* zone, const char* label, bool isCursor, bool isSelected, CardImageCache& cache, const Texture2D* cardBack) {
         DrawRectangleRec(r, zoneBg(zone->type()));
 
-        float thick = isCursor     ? r.height * 0.022f
-                      : isSelected ? r.height * 0.018f
-                                   : 1.0f;
-        Color border = isCursor     ? Color{255, 220, 0, 255}
-                       : isSelected ? Color{60, 220, 80, 255}
-                                    : Color{55, 55, 80, 140};
+        float thick = isCursor ? r.height * 0.022f : isSelected ? r.height * 0.018f : 1.0f;
+        Color border = isCursor ? Color{255, 220, 0, 255} : isSelected ? Color{60, 220, 80, 255} : Color{55, 55, 80, 140};
         DrawRectangleLinesEx(r, thick, border);
-        if (isCursor)
-            DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4, r.height + 4},
-                                 1.f, Fade(YELLOW, 0.3f));
+        if (isCursor) DrawRectangleLinesEx({r.x - 2, r.y - 2, r.width + 4, r.height + 4}, 1.f, Fade(YELLOW, 0.3f));
 
         float pad = r.width * 0.05f;
         float labH = r.height * 0.14f;
-        Rectangle inner = {r.x + pad, r.y + pad,
-                           r.width - pad * 2, r.height - pad * 2 - labH};
+        Rectangle inner = {r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2 - labH};
 
-        if (auto* zm = dynamic_cast<Zone_Monster*>(zone))
-            drawMonster(inner, zm, cache, cardBack);
-        else if (auto* z = dynamic_cast<Zone*>(zone))
-            drawSingle(inner, z, cache);
-        else if (auto* zs = dynamic_cast<ZoneStack*>(zone))
-            drawStack(inner, zs, cache, cardBack);
+        if (auto* zm = dynamic_cast<Zone_Monster*>(zone)) drawMonster(inner, zm, cache, cardBack);
+        else if (auto* z = dynamic_cast<Zone*>(zone)) drawSingle(inner, z, cache);
+        else if (auto* zs = dynamic_cast<ZoneStack*>(zone)) drawStack(inner, zs, cache, cardBack);
 
         int fs = std::max(8, (int)(r.height * 0.12f));
         int tw = MeasureText(label, fs);
-        DrawText(label, (int)(r.x + (r.width - tw) * 0.5f),
-                 (int)(r.y + r.height - labH * 0.85f), fs,
-                 Color{150, 150, 180, 200});
+        DrawText(label, (int)(r.x + (r.width - tw) * 0.5f), (int)(r.y + r.height - labH * 0.85f), fs, Color{150, 150, 180, 200});
     }
 
    private:
@@ -64,24 +50,15 @@ struct ZoneCell {
 
     static Color zoneBg(ZoneType t) {
         switch (t) {
-            case ZoneType::Monster:
-                return {50, 14, 14, 220};
-            case ZoneType::SpellTrap:
-                return {12, 48, 34, 220};
-            case ZoneType::Field:
-                return {12, 30, 58, 220};
-            case ZoneType::ExtraMonster:
-                return {42, 12, 58, 220};
-            case ZoneType::Deck:
-                return {22, 22, 32, 220};
-            case ZoneType::ExtraDeck:
-                return {28, 14, 48, 220};
-            case ZoneType::Graveyard:
-                return {48, 22, 8, 220};
-            case ZoneType::Banished:
-                return {50, 38, 8, 220};
-            default:
-                return {20, 20, 30, 220};
+            case ZoneType::Monster: return {50, 14, 14, 220};
+            case ZoneType::SpellTrap: return {12, 48, 34, 220};
+            case ZoneType::Field: return {12, 30, 58, 220};
+            case ZoneType::ExtraMonster: return {42, 12, 58, 220};
+            case ZoneType::Deck: return {22, 22, 32, 220};
+            case ZoneType::ExtraDeck: return {28, 14, 48, 220};
+            case ZoneType::Graveyard: return {48, 22, 8, 220};
+            case ZoneType::Banished: return {50, 38, 8, 220};
+            default: return {20, 20, 30, 220};
         }
     }
 
@@ -109,8 +86,7 @@ struct ZoneCell {
         DrawRectangleLinesEx(dst, 1.5f, kGold);
     }
 
-    static void drawFallback(Rectangle dst, Card* c, bool faceDown,
-                             const Texture2D* cb, bool rotateDef) {
+    static void drawFallback(Rectangle dst, Card* c, bool faceDown, const Texture2D* cb, bool rotateDef) {
         if (faceDown) {
             drawCardBack(dst, cb, rotateDef);
             return;
@@ -127,8 +103,7 @@ struct ZoneCell {
         }
     }
 
-    static void drawMonster(Rectangle inner, Zone_Monster* zm,
-                            CardImageCache& cache, const Texture2D* cb) {
+    static void drawMonster(Rectangle inner, Zone_Monster* zm, CardImageCache& cache, const Texture2D* cb) {
         if (zm->isEmpty()) return;
         Card* c = zm->peek();
         bool atk = zm->position() == Orientation::Vertical;
@@ -153,14 +128,12 @@ struct ZoneCell {
     // Single-card zones: spell/trap, field, EMZ. Rendering follows the zone's
     // visibility state — anything not Visible draws as a card back (a set
     // spell/field spell must never leak its art on the field).
-    static void drawSingle(Rectangle inner, Zone* z, CardImageCache& cache,
-                           const Texture2D* cb = nullptr) {
+    static void drawSingle(Rectangle inner, Zone* z, CardImageCache& cache, const Texture2D* cb = nullptr) {
         if (z->isEmpty()) return;
         Card* c = z->peek();
         bool fd = z->visibility() != Visibility::Visible;
         float cw = inner.width * 0.75f, ch = inner.height * 0.95f;
-        Rectangle cr = {inner.x + (inner.width - cw) * 0.5f,
-                        inner.y + (inner.height - ch) * 0.5f, cw, ch};
+        Rectangle cr = {inner.x + (inner.width - cw) * 0.5f, inner.y + (inner.height - ch) * 0.5f, cw, ch};
         if (!fd) {
             const Texture2D* tex = cache.Get(*c);
             if (tex && tex->id) {
@@ -171,15 +144,11 @@ struct ZoneCell {
         drawFallback(cr, c, fd, cb, false);
     }
 
-    static void drawStack(Rectangle inner, ZoneStack* zs,
-                          CardImageCache& cache, const Texture2D* cb) {
+    static void drawStack(Rectangle inner, ZoneStack* zs, CardImageCache& cache, const Texture2D* cb) {
         if (zs->isEmpty()) return;
         int layers = std::min(zs->count(), 4);
         float off = inner.width * 0.02f;
-        for (int i = layers - 1; i >= 1; --i)
-            DrawRectangleRec({inner.x + i * off, inner.y + i * off,
-                              inner.width - i * off, inner.height - i * off},
-                             Color{40, 40, 60, 160});
+        for (int i = layers - 1; i >= 1; --i) DrawRectangleRec({inner.x + i * off, inner.y + i * off, inner.width - i * off, inner.height - i * off}, Color{40, 40, 60, 160});
         // State-driven: Restricted (deck) and Limited (extra/side deck) stacks
         // render as backs; Visible stacks (GY, banished) show the top card.
         bool useBack = zs->visibility() != Visibility::Visible;
@@ -188,16 +157,13 @@ struct ZoneCell {
             drawCardBack(inner, cb, false);
         } else if (top) {
             const Texture2D* tex = cache.Get(*top);
-            if (tex && tex->id)
-                DrawUtils::blitCard(inner, *tex, false);
-            else
-                drawFallback(inner, top, false, nullptr, false);
+            if (tex && tex->id) DrawUtils::blitCard(inner, *tex, false);
+            else drawFallback(inner, top, false, nullptr, false);
         }
         int fs = std::max(8, (int)(inner.width * 0.18f));
         int bw = fs + 8;
         DrawRectangle((int)(inner.x + inner.width - bw), (int)inner.y, bw, fs + 4, Fade(BLACK, 0.75f));
-        DrawText(std::to_string(zs->count()).c_str(),
-                 (int)(inner.x + inner.width - bw + 3), (int)inner.y + 2, fs, YELLOW);
+        DrawText(std::to_string(zs->count()).c_str(), (int)(inner.x + inner.width - bw + 3), (int)inner.y + 2, fs, YELLOW);
     }
 };
 
