@@ -9,10 +9,17 @@
 #include "cards/CardEnums.hpp"
 
 namespace openjoey::cards {
-
+// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────── CARD CORE ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 struct Card;  // fwd: CardState holds non-owning pointers to cards
 
-// ── CardDef — what the card IS (immutable per card id; populated by parser) ──
+// CardDef: immutable per card id; populated by parser.
+// Method declarations only — definitions follow below.
+//
+// Definition order (callee before caller):
+//   hasAttribute ← hasAttributes ← isExtraDeckMonster
+//   hasAttribute ← isMonster / isSpell / isTrap
 struct CardDef {
     uint32_t id = 0;
     std::string name;
@@ -22,22 +29,19 @@ struct CardDef {
 
     std::vector<Attribute> attributes;  // all attributes (for filtering, etc.)
 
-    bool hasAttribute(Attribute a) const { return std::find(attributes.begin(), attributes.end(), a) != attributes.end(); }
-    bool hasAttributes(const std::vector<Attribute> &as, bool any = false) const {
-        for (const auto &a : as)
-            if (hasAttribute(a) == any) return any;
-        return !any;
-    }
+    // ── attribute membership ──
+    bool hasAttribute(Attribute a) const;
+    bool hasAttributes(const std::vector<Attribute> &as, bool any = false) const;
 
-    // ── identity queries (pure CardDef concerns) ─────────────────────────────
-    bool isMonster() const { return hasAttribute(Attribute::Monster); }
-    bool isSpell() const { return hasAttribute(Attribute::Spell); }
-    bool isTrap() const { return hasAttribute(Attribute::Trap); }
-    bool isExtraDeckMonster() const { return hasAttributes({Attribute::Fusion, Attribute::Synchro, Attribute::Xyz}, true); }
+    // ── identity queries (pure CardDef concerns) ──
+    bool isMonster() const;
+    bool isSpell() const;
+    bool isTrap() const;
+    bool isExtraDeckMonster() const;
 };
 
-// ── CardState  ──────────────────────────────(mutated by the engine) ───────
-
+// CardState: mutated by the engine.
+// (no methods, only data members)
 struct CardState {
     int owner = -1;       // player index
     int controller = -1;  // player index (may differ from owner)
@@ -55,22 +59,27 @@ struct CardState {
     bool isToken = false;
 };
 
-// ── Card — the one-and-only card type (identity inherited, state composed) ──
+// Card: the one and only.
+// Inherits CardDef, adds a CardState instance.
+// Method declarations only — definitions follow below.
+//
+// Definition order (callee before caller):
+//   operator== ← operator!=
 struct Card : CardDef {
     CardState state;
 
     // Equality is identity-by-id: equal iff both have a non-zero cardId match.
-    bool operator==(const Card &other) const { return id != 0 && id == other.id; }
-    bool operator!=(const Card &other) const { return !(*this == other); }
+    bool operator==(const Card &other) const;
+    bool operator!=(const Card &other) const;
 
     // ── effective battle stats (original + modifiers, never below 0) ─────────
-    int effectiveAtk() const { return std::max(0, atk + state.atkMod); }
-    int effectiveDef() const { return std::max(0, def + state.defMod); }
+    int effectiveAtk() const;
+    int effectiveDef() const;
 
     // ── presentation helpers (raylib-free string formatting) ──────────────────
-    std::string cardTypeTag() const { return isMonster() ? "[MON]" : isSpell() ? "[SPL]" : isTrap() ? "[TRP]" : "[UNK]"; }
-    std::string statLine() const { return isMonster() ? "Level " + std::to_string(level) + "  ATK " + std::to_string(atk) + "  DEF " + std::to_string(def) : ""; }
-    std::string shortStat() const { return isMonster() ? "L" + std::to_string(level) + " " + std::to_string(atk) + "/" + std::to_string(def) : ""; }
+    std::string cardTypeTag() const;
+    std::string statLine() const;
+    std::string shortStat() const;
 };
 
 }  // namespace openjoey::cards

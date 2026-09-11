@@ -37,6 +37,18 @@ target_include_directories(openjoey_headers INTERFACE
 target_link_libraries(openjoey_headers INTERFACE nlohmann_json::nlohmann_json)
 add_library(openjoey::headers ALIAS openjoey_headers)
 
+add_library(openjoey_cards
+  src/cards/Cards.cpp
+  src/cards/CardDatabase.cpp
+  src/cards/CardEnums.cpp
+  src/cards/CardParser.cpp
+  src/cards/JsonUtils.cpp)
+target_compile_features(openjoey_cards PUBLIC cxx_std_17)
+target_include_directories(openjoey_cards PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(openjoey_cards PUBLIC openjoey::headers)
+add_library(openjoey::cards ALIAS openjoey_cards)
+
 enable_testing()
 
 # ── Tests: core (Config + ActionId pins), cards, engine ──────────────────────
@@ -47,13 +59,13 @@ set(OPENJOEY_TEST_FLAGS
 add_executable(openjoey_core_tests tests/core.cpp)
 target_include_directories(openjoey_core_tests PRIVATE tests/catch2)
 target_compile_options(openjoey_core_tests PRIVATE ${OPENJOEY_TEST_FLAGS})
-target_link_libraries(openjoey_core_tests PRIVATE openjoey::headers)
+target_link_libraries(openjoey_core_tests PRIVATE openjoey::headers openjoey::cards)
 add_test(NAME openjoey_core_tests COMMAND openjoey_core_tests)
 
 add_executable(openjoey_cards_tests tests/cards/cards.cpp)
 target_include_directories(openjoey_cards_tests PRIVATE tests/catch2)
 target_compile_options(openjoey_cards_tests PRIVATE ${OPENJOEY_TEST_FLAGS})
-target_link_libraries(openjoey_cards_tests PRIVATE openjoey::headers)
+target_link_libraries(openjoey_cards_tests PRIVATE openjoey::headers openjoey::cards)
 add_test(NAME openjoey_cards_tests COMMAND openjoey_cards_tests
          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/cards)
 
@@ -72,7 +84,7 @@ add_executable(openjoey_engine_tests
   tests/engine/test_zones.cpp)
 target_include_directories(openjoey_engine_tests PRIVATE tests/catch2)
 target_compile_options(openjoey_engine_tests PRIVATE ${OPENJOEY_TEST_FLAGS})
-target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers)
+target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers openjoey::cards)
 add_test(NAME openjoey_engine_tests COMMAND openjoey_engine_tests)
 
 # ── App: raylib UI (FetchContent, pinned 5.5; web build via emcmake) ─────────
@@ -103,7 +115,7 @@ if(NOT OPENJOEY_HEADLESS)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT EMSCRIPTEN)
     target_compile_options(OpenJoey2 PRIVATE -g -O0)
   endif()
-  target_link_libraries(OpenJoey2 PRIVATE openjoey::headers raylib)
+  target_link_libraries(OpenJoey2 PRIVATE openjoey::headers openjoey::cards raylib)
 
   if(EMSCRIPTEN)
     set(OPENJOEY_WEB_OUT "${CMAKE_BINARY_DIR}/web" CACHE PATH "Web build output dir")
