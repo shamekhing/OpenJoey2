@@ -11,29 +11,24 @@ using cards::Card;
 
 class Zone : public IZone {
    public:
-    Zone() : card_(nullptr) {};
-    bool isEmpty() const override { return card_ == nullptr; }
-    bool contains(const Card *c) const override { return card_ && card_ == c; }
-
-    bool replacePtr(Card *from, Card *to) override { return card_ == from ? (card_ = to, true) : false; }
-
-    int count() const override { return card_ ? 1 : 0; }
-
-    void reset() override { card_ = nullptr; }
-    Card *peek() const { return card_; }
-
-    bool put(Card *c) override { return (card_ || !c) ? false : (card_ = c, true); }
-
+    explicit Zone(ZoneType zt = ZoneType::None);
+    bool isEmpty() const override;
+    bool contains(const Card *c) const override;
+    bool contains(const std::string &name) const override;
+    bool replacePtr(Card *from, Card *to) override;
+    bool put(Card *c) override;
+    void reset() override;
+    int count() const override;
+    Card *peek(int index = -1) const override;
     // nullptr removes the occupant; non-null removes only if it matches.
-    Card *remove(Card *c = nullptr) override {
-        Card *out = card_;
-        return isEmpty() || (c && c != card_) ? nullptr : (card_ = nullptr, out);
-    }
+    Card *remove(Card *c = nullptr) override;
 
     // Face-up/face-down state change (set vs activate). Refuses on an empty
     // zone: callers must never set visibility on nothing, and "true" always
     // means the zone is occupied with the requested visibility.
-    bool changeVisibility(Visibility v) { return isEmpty() ? false : (vis_ = v, true); }
+    bool changeVisibility(Visibility v);
+    bool changeOrientation(Orientation p);
+    bool flip();
 
    protected:
     Card *card_ = nullptr;

@@ -49,6 +49,18 @@ target_include_directories(openjoey_cards PUBLIC
 target_link_libraries(openjoey_cards PUBLIC openjoey::headers)
 add_library(openjoey::cards ALIAS openjoey_cards)
 
+add_library(openjoey_field
+  src/engine/field/Field.cpp
+  src/engine/field/zone/IZone.cpp
+  src/engine/field/zone/Zone.cpp
+  src/engine/field/zone/ZoneSpread.cpp
+  src/engine/field/zone/ZoneStack.cpp)
+target_compile_features(openjoey_field PUBLIC cxx_std_17)
+target_include_directories(openjoey_field PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(openjoey_field PUBLIC openjoey::cards)
+add_library(openjoey::field ALIAS openjoey_field)
+
 enable_testing()
 
 # ── Tests: core (Config + ActionId pins), cards, engine ──────────────────────
@@ -84,7 +96,7 @@ add_executable(openjoey_engine_tests
   tests/engine/test_zones.cpp)
 target_include_directories(openjoey_engine_tests PRIVATE tests/catch2)
 target_compile_options(openjoey_engine_tests PRIVATE ${OPENJOEY_TEST_FLAGS})
-target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers openjoey::cards)
+target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers openjoey::cards openjoey::field)
 add_test(NAME openjoey_engine_tests COMMAND openjoey_engine_tests)
 
 # ── App: raylib UI (FetchContent, pinned 5.5; web build via emcmake) ─────────
@@ -119,7 +131,7 @@ if(NOT OPENJOEY_HEADLESS)
   target_compile_features(openjoey_ui PUBLIC cxx_std_17)
   target_include_directories(openjoey_ui PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-  target_link_libraries(openjoey_ui PUBLIC openjoey::cards raylib)
+  target_link_libraries(openjoey_ui PUBLIC openjoey::cards openjoey::field raylib)
   add_library(openjoey::ui ALIAS openjoey_ui)
 
   add_executable(OpenJoey2 src/main.cpp)

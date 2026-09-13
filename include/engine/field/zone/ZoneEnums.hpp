@@ -23,6 +23,7 @@ enum class ZoneType : uint8_t {
     Graveyard,
     Banished,
     SideDeck,
+    None,
 };
 
 // Battle position of a card on the field (ATK = vertical, DEF = horizontal).
