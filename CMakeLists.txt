@@ -108,6 +108,20 @@ if(NOT OPENJOEY_HEADLESS)
   endif()
   FetchContent_MakeAvailable(raylib)
 
+  add_library(openjoey_ui
+    src/ui/cards/CardGrid.cpp
+    src/ui/cards/CardImageCache.cpp
+    src/ui/cards/CardList.cpp
+    src/ui/cards/CardPreview.cpp
+    src/ui/cards/DeckStats.cpp
+    src/ui/cards/TextFit.cpp
+    src/ui/cards/Thumbnail.cpp)
+  target_compile_features(openjoey_ui PUBLIC cxx_std_17)
+  target_include_directories(openjoey_ui PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+  target_link_libraries(openjoey_ui PUBLIC openjoey::cards raylib)
+  add_library(openjoey::ui ALIAS openjoey_ui)
+
   add_executable(OpenJoey2 src/main.cpp)
   target_compile_options(OpenJoey2 PRIVATE
     "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>"
@@ -115,7 +129,7 @@ if(NOT OPENJOEY_HEADLESS)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT EMSCRIPTEN)
     target_compile_options(OpenJoey2 PRIVATE -g -O0)
   endif()
-  target_link_libraries(OpenJoey2 PRIVATE openjoey::headers openjoey::cards raylib)
+  target_link_libraries(OpenJoey2 PRIVATE openjoey::headers openjoey::ui)
 
   if(EMSCRIPTEN)
     set(OPENJOEY_WEB_OUT "${CMAKE_BINARY_DIR}/web" CACHE PATH "Web build output dir")
