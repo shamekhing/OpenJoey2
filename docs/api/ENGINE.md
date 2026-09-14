@@ -47,7 +47,7 @@ passResponse/resolveChain/chainWaiting`), readouts (`lp`), AI seams
   attacking.
 * **Spells/Traps** (p.31): Set Spells may activate the same turn; Set Traps
   may not (enforced twice: menu predicate `CanActivateSetSpellTrap` + the
-  `args.source` check in `ActivateEffect`).
+  `args.source` check in `ActivateAction`).
 * **Chains** (p.44–47): reverse-order resolution, Spell Speed ≥ previous link,
   costs never refunded; the p.45 response window (`chainResponseWindow`)
   resolves only after both players pass.

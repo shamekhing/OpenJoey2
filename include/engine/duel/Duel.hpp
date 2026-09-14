@@ -1,6 +1,9 @@
 #pragma once
 #include <array>
+#include <cstdint>
+#include <random>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "cards/Card.hpp"
@@ -28,6 +31,7 @@ struct PendingAttack {
 // ── Per-turn bookkeeping (reset at startTurn/endTurn) ────────────────────────
 struct TurnState {
     bool normalSummonUsed = false;
+    bool drawDone = false;             // Draw Phase guard: one draw per turn, Draw Phase only
     std::set<Card *> attacked;         // monsters that completed an attack
     std::set<Card *> flipSummoned;     // Flip Summoned this turn
     std::set<Card *> positionChanged;  // position changed this turn
@@ -54,6 +58,50 @@ struct Duel {
     WinReason winReason = WinReason::None;
 
     TurnState turnState;  // once-per-turn flags + held-open attack
+
+    // ── Deterministic RNG (replayability) ──────────────────────────────────────
+    // The duel owns the single shuffle engine; zone shuffles must consume it
+    // (Field/ZoneStack::shuffle take an engine parameter). Seed it once at
+    // header time — Replay seeds it from the recorded duel header.
+    std::mt19937 rng{0u};
+    void seedRng(uint32_t seed) { rng.seed(seed); }
+
+    // ── Replay-integrity hash ─────────────────────────────────────────────────
+    // FNV-1a fold over everything that defines the game state: LP, protocol,
+    // per-zone card identity/position/visibility, and the per-card state that
+    // actions mutate (controller, counters, stat mods, this-turn flags).
+    // Recorded after every action; the replayer asserts it matches.
+    uint32_t stateHash() const {
+        uint32_t h = 2166136261u;
+        auto mix = [&](uint32_t v) { h ^= v; h *= 16777619u; };
+        auto mixCard = [&](const Card *c, int zoneBits) {
+            if (!c) { mix(0); return; }
+            mix(c->id);
+            mix(static_cast<uint32_t>(c->state.controller) | (zoneBits << 8));
+            mix(static_cast<uint32_t>(c->state.atkMod) * 31u + static_cast<uint32_t>(c->state.defMod));
+            uint32_t ctr = static_cast<uint32_t>(c->state.setThisTurn) | (static_cast<uint32_t>(c->state.placedThisTurn) << 1);
+            for (const auto &[name, n] : c->state.counters) ctr += n * 7u;  // name order irrelevant: summed
+            mix(ctr);
+        };
+        mix(static_cast<uint32_t>(lp[0])); mix(static_cast<uint32_t>(lp[1]));
+        mix(static_cast<uint32_t>(turn.phase)); mix(static_cast<uint32_t>(turn.turnNumber));
+        mix(static_cast<uint32_t>(turnPlayer)); mix(static_cast<uint32_t>(result));
+        for (int p = 0; p < zone::Field::PLAYERS; ++p) {
+            for (const auto &mz : field.monsterZones[p]) mixCard(mz.peek(), p + 1);
+            for (const auto &st : field.spellTrapZones[p]) mixCard(st.peek(), p + 1);
+            mixCard(field.fieldSpellZones[p].peek(), p + 1);
+            const zone::ZoneStack *stacks[] = {&field.handZones[p], &field.deckZones[p], &field.extraDeckZones[p],
+                                               &field.graveyardZones[p], &field.banishedZones[p], &field.sideDeckZones[p]};
+            for (const zone::ZoneStack *s : stacks) {
+                mix(static_cast<uint32_t>(s->count()));
+                for (int i = 0; i < s->count(); ++i) mixCard(s->peek(i), 0);
+            }
+        }
+        for (const auto &t : field.tokens) mixCard(t.get(), 0);
+        mix(static_cast<uint32_t>(chain.links.size()));
+        for (const auto &l : chain.links) mix(static_cast<uint32_t>(l.id) ^ (static_cast<uint32_t>(l.activator) << 16));
+        return h;
+    }
 
     // ── Deck pointer-sealing (debug guard for the non-owning Card* contract) ──
     // Zones/chain/turn-state hold raw Card* into the app's deck vectors. The

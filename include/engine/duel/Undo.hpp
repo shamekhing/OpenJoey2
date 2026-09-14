@@ -44,7 +44,7 @@ inline Duel cloneDuel(const Duel &src, std::map<Card *, cards::CardState> *cardS
             f.monsterZones[p][i] = sf.monsterZones[p][i];
             f.spellTrapZones[p][i] = sf.spellTrapZones[p][i];
         }
-        f.fieldZones[p] = sf.fieldZones[p];
+        f.fieldSpellZones[p] = sf.fieldSpellZones[p];
         f.handZones[p] = sf.handZones[p];
         f.deckZones[p] = sf.deckZones[p];
         f.extraDeckZones[p] = sf.extraDeckZones[p];
@@ -52,7 +52,6 @@ inline Duel cloneDuel(const Duel &src, std::map<Card *, cards::CardState> *cardS
         f.banishedZones[p] = sf.banishedZones[p];
         f.sideDeckZones[p] = sf.sideDeckZones[p];
     }
-    for (int z = 0; z < zone::Field::EMZ_COUNT; ++z) f.extraMonsterZones[z] = sf.extraMonsterZones[z];
 
     // Deep-copy tokens and build the old→new pointer map.
     std::map<Card *, Card *> remap;
@@ -71,7 +70,7 @@ inline Duel cloneDuel(const Duel &src, std::map<Card *, cards::CardState> *cardS
         for (int p = 0; p < zone::Field::PLAYERS; ++p) {
             for (auto &z : sf.monsterZones[p]) record(z.peek());
             for (auto &z : sf.spellTrapZones[p]) record(z.peek());
-            record(sf.fieldZones[p].peek());
+            record(sf.fieldSpellZones[p].peek());
             for (int i = 0; i < sf.handZones[p].count(); ++i) record(sf.handZones[p].peek(i));
             for (int i = 0; i < sf.deckZones[p].count(); ++i) record(sf.deckZones[p].peek(i));
             for (int i = 0; i < sf.extraDeckZones[p].count(); ++i) record(sf.extraDeckZones[p].peek(i));
@@ -79,7 +78,6 @@ inline Duel cloneDuel(const Duel &src, std::map<Card *, cards::CardState> *cardS
             for (int i = 0; i < sf.banishedZones[p].count(); ++i) record(sf.banishedZones[p].peek(i));
             for (int i = 0; i < sf.sideDeckZones[p].count(); ++i) record(sf.sideDeckZones[p].peek(i));
         }
-        for (auto &z : sf.extraMonsterZones) record(z.peek());
     }
 
     // Remap token pointers held outside the field zones.

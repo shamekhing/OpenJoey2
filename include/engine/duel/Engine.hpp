@@ -7,7 +7,9 @@
 // Duel; the Engine only points at it. The undo stack lives here (not in Duel)
 // because a snapshot embeds a full Duel copy — history inside Duel would
 // recurse.
+#include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "action/ActionArgs.hpp"
@@ -19,6 +21,7 @@
 #include "engine/action/Summons.hpp"
 #include "engine/action/Turn.hpp"
 #include "engine/duel/Duel.hpp"
+#include "engine/duel/Recorder.hpp"
 #include "engine/duel/Undo.hpp"
 
 namespace openjoey::engine {
@@ -54,27 +57,34 @@ class Engine {
     void drawOpeningHands(int n = DuelConfig::START_HAND) { action::DrawOpeningHands(duel, n); }
     // Full reset by value-assignment — no hand-maintained field list, so a new
     // Duel member can never be missed. Also clears stale undo snapshots so a
-    // rematch can never undo into the previous duel.
+    // rematch can never undo into the previous duel, and resets the recorder.
     void hardReset() {
         duel = Duel{};
         clearUndo();
+        if (recorder) recorder->onReset();
     }
+
+    // ── replay / recording control ───────────────────────────────────────────
+    void setRecorder(std::unique_ptr<IRecorder> r) { recorder = std::move(r); }
+    void setRecording(bool on) { recording = on; }
+    void seedDuel(uint32_t seed) { duel.seedRng(seed); }  // header-time, like setDeck
 
     // ── turn flow ────────────────────────────────────────────────────────────
     ActionResult startTurn() {
-        return commit([&] { return action::StartTurn(duel); });
+        return commit("startTurn", [&] { return action::StartTurn(duel); });
     }
     ActionResult endTurn() {
-        return commit([&] { return action::EndTurn(duel); });
+        ActionArgs a;
+        return commit("endTurn", ActionId::EndTurn, duel.turnPlayer, a, [&] { return action::EndTurn(duel); });
     }
     ActionResult toMain1() {
-        return commit([&] { return action::ToMain1S(duel); });
+        return commit("toMain1", [&] { return action::ToMain1S(duel); });
     }
     ActionResult toMain2() {
-        return commit([&] { return action::ToMain2S(duel); });
+        return commit("toMain2", [&] { return action::ToMain2S(duel); });
     }
     ActionResult toBattle() {
-        return commit([&] { return action::ToBattleS(duel); });
+        return commit("toBattle", [&] { return action::ToBattleS(duel); });
     }
 
     // ── battle ───────────────────────────────────────────────────────────────
@@ -84,62 +94,92 @@ class Engine {
     bool canChangePosition(const Card *c) const { return action::CanChangePosition(duel, const_cast<Card *>(c)); }
     bool canActivateFromZone(const Card *c) const { return action::CanActivateSetSpellTrap(duel, c); }
     ActionResult declareAttack(Card *c, Card *target) {
-        return commit([&] { return action::DeclareAttack(duel, c, target); });
+        ActionArgs a;
+        a.source = c;
+        a.target = target;
+        return commit("declareAttack", ActionId::DeclareAttack, duel.turnPlayer, a, [&] { return action::DeclareAttack(duel, c, target); });
     }
     bool confirmAttack() { return action::ConfirmAttack(duel); }
     void cancelAttack() {
+        Card *attacker = duel.turnState.pending.attacker;
+        Card *target = duel.turnState.pending.target;
         checkpoint();
         action::CancelAttack(duel);
+        ActionArgs a;
+        a.source = attacker;
+        a.target = target;
+        record("cancelAttack", ActionId::CancelAttack, duel.turnPlayer, a, ActionResult::Ok("attack cancelled."));
     }
     ActionResult resolveDamage() {
-        return commit([&] { return action::ResolveDamage(duel); });
+        return commit("resolveDamage", [&] { return action::ResolveDamage(duel); });
     }
 
     // ── summons / positions ──────────────────────────────────────────────────
     bool canNormalSummon() const { return action::CanNormalSummon(duel); }
     static int tributesRequired(const Card *c) { return action::TributesRequired(c); }
     ActionResult normalSummon(Card *c) {
-        return commit([&] { return action::SummonNormal(duel, c); });
+        ActionArgs a;
+        a.target = c;
+        return commit("normalSummon", ActionId::Summon_Normal, duel.turnPlayer, a, [&] { return action::SummonNormal(duel, c); });
     }
     ActionResult normalSet(Card *c) {
-        return commit([&] { return action::SummonSet(duel, c); });
+        ActionArgs a;
+        a.target = c;
+        return commit("normalSet", ActionId::Summon_Set, duel.turnPlayer, a, [&] { return action::SummonSet(duel, c); });
     }
     ActionResult tributeSummon(Card *c, const std::vector<Card *> &tributes) {
-        return commit([&] { return action::SummonTribute(duel, c, tributes, /*faceDown=*/false); });
+        ActionArgs a;
+        a.target = c;
+        a.materials = tributes;
+        return commit("tributeSummon", ActionId::TributeSummon, duel.turnPlayer, a, [&] { return action::SummonTribute(duel, c, tributes, /*faceDown=*/false); });
     }
     ActionResult flipSummon(Card *c) {
-        return commit([&] { return action::FlipSummon(duel, c); });
+        ActionArgs a;
+        a.target = c;
+        return commit("flipSummon", ActionId::Summon_Flip, duel.turnPlayer, a, [&] { return action::FlipSummon(duel, c); });
     }
     ActionResult changePosition(Card *c) {
-        return commit([&] { return action::ChangePosition(duel, c); });
+        ActionArgs a;
+        a.target = c;
+        return commit("changePosition", ActionId::ChangeMonsterBattlePosition, duel.turnPlayer, a, [&] { return action::ChangePosition(duel, c); });
     }
     ActionResult fusionSummon(Card *f, const std::vector<Card *> &materials) {
-        return commit([&] { return action::FusionSummon(duel, f, materials); });
+        ActionArgs a;
+        a.target = f;
+        a.materials = materials;
+        return commit("fusionSummon", ActionId::Summon_Fusion, duel.turnPlayer, a, [&] { return action::FusionSummon(duel, f, materials); });
     }
     ActionResult ritualSummon(Card *m, const std::vector<Card *> &tributes) {
-        return commit([&] { return action::RitualSummon(duel, m, tributes); });
+        ActionArgs a;
+        a.target = m;
+        a.materials = tributes;
+        return commit("ritualSummon", ActionId::Summon_Ritual, duel.turnPlayer, a, [&] { return action::RitualSummon(duel, m, tributes); });
     }
     // Set a hand spell/trap face-down. One engine-owned implementation
     // (SeatSpellTrap via Perform) — it also stamps setThisTurn, which the
     // p.31 same-turn trap rule needs and which the old UI-side copy forgot.
     ActionResult setSpellTrap(Card *c, ActionId id) {
-        return commit([&] {
-            ActionArgs a;
-            a.target = c;
+        ActionArgs a;
+        a.target = c;
+        return commit("setSpellTrap", id, duel.turnPlayer, a, [&] {
             return action::Perform(duel, id, a);
         });
     }
 
     // ── effects / chains ─────────────────────────────────────────────────────
     ActionResult activateEffect(const openjoey::ActionSpec &spec, int activator, const ActionArgs &args = {}) {
-        return commit([&] { return action::ActivateEffect(duel, spec, activator, args); });
+        ActionArgs a = args;
+        a.spec = spec;
+        return commit("activateEffect", spec.id, activator, a, [&] { return action::ActivateAction(duel, spec, activator, args); });
     }
     ActionResult passResponse(int player) {
-        return commit([&] { return action::PassResponse(duel, player); });
+        ActionArgs a;
+        a.targetPlayer = player;
+        return commit("passResponse", ActionId::PassChain, player, a, [&] { return action::PassResponse(duel, player); });
     }
     bool chainWaiting() const { return action::ChainWaiting(duel); }
     ActionResult resolveChain() {
-        return commit([&] { return action::ResolveChain(duel); });
+        return commit("resolveChain", [&] { return action::ResolveChain(duel); });
     }
 
     // ── readouts ─────────────────────────────────────────────────────────────
@@ -163,14 +203,45 @@ class Engine {
     // One uniform undo policy: snapshot BEFORE the action runs. Every
     // mutator goes through this — the old facade checkpointed an arbitrary
     // subset, so phase changes and attack declarations were un-undoable.
+    // Recording: after the action returns, one DuelRecord (verb + identity +
+    // args + verdict + state hash) goes to the recorder; a completed EndTurn
+    // additionally emits the per-turn keyframe. Replayability contract: every
+    // state change flows through here — anything bypassing commit() is
+    // unrecordable and therefore a bug.
+    void record(const char *verb, ActionId id, int activator, const ActionArgs &args, const ActionResult &r) {
+        if (!recorder || !recording) return;
+        DuelRecord rec;
+        rec.verb = verb ? verb : "";
+        rec.turnNumber = duel.turn.turnNumber;
+        rec.turnPlayer = duel.turnPlayer;
+        rec.activator = activator;
+        rec.id = id;
+        rec.args = args;
+        rec.result = r;
+        rec.hash = duel.stateHash();
+        recorder->onAction(rec);
+        if (verb && r.ok && std::string_view(verb) == "endTurn")
+            recorder->onKeyframe(DuelKeyframe{makeSnapshot(duel)});
+    }
+
     template <typename F>
-    ActionResult commit(F &&fn) {
+    ActionResult commit(const char *verb, ActionId id, int activator, const ActionArgs &args, F &&fn) {
         checkpoint();
-        return fn();
+        ActionResult r = fn();
+        record(verb, id, activator, args, r);
+        return r;
+    }
+
+    // Convenience for mutators without action identity (phase moves, battle steps).
+    template <typename F>
+    ActionResult commit(const char *verb, F &&fn) {
+        return commit(verb, ActionId::None, duel.turnPlayer, ActionArgs{}, std::forward<F>(fn));
     }
 
     Duel &duel;  // app-owned; intentionally NOT public any more
     std::vector<DuelSnapshot> undo_;
+    std::unique_ptr<IRecorder> recorder;  // passive observer; never mutates the duel
+    bool recording = true;
 };
 
 }  // namespace openjoey::engine
