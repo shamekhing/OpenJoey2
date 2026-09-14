@@ -11,12 +11,11 @@
 namespace openjoey::engine::zone {
 using cards::Card;
 
-// Every zone on the mat (10). Single-card slots and stacks both use this.
+// Every zone on the mat (9). Single-card slots and stacks both use this.
 enum class ZoneType : uint8_t {
     Monster,
     SpellTrap,
     Field,
-    ExtraMonster,
     Hand,
     Deck,
     ExtraDeck,

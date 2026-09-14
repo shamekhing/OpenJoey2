@@ -14,6 +14,8 @@ class IZone {
    public:
     virtual ~IZone() = default;
 
+    virtual Card* operator[] (size_t i) const = 0;
+
     virtual ZoneType type() const { return type_; }
     virtual bool isEmpty()  const = 0;
     virtual int count()     const = 0;

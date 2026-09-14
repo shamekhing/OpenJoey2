@@ -4,6 +4,10 @@ namespace openjoey::engine::zone {
 
 Zone::Zone(ZoneType zt) : card_(nullptr) { type_ = zt; }
 
+Card* Zone::operator[] (size_t _) const {
+    return card_;
+}
+
 bool Zone::isEmpty() const { return card_ == nullptr; }
 
 bool Zone::contains(const Card *card) const { return card_ && card_ == card; }
@@ -26,7 +30,7 @@ void Zone::reset() {
 
 int Zone::count() const { return card_ ? 1 : 0; }
 
-Card *Zone::peek(int index = -1) const { card_ ? card_ : nullptr; }
+Card *Zone::peek(int index) const { return card_; }
 
 Card *Zone::remove(Card *card) {
     Card *out = card_;

@@ -3,8 +3,7 @@
 namespace openjoey::engine::zone {
 
 Field::Field()
-    : fieldZones{Zone(ZoneType::Field), Zone(ZoneType::Field)},
-      extraMonsterZones{Zone(ZoneType::ExtraMonster), Zone(ZoneType::ExtraMonster)},
+    : fieldSpellZones{Zone(ZoneType::Field), Zone(ZoneType::Field)},
       monsterZones{ZoneSpread(MONSTER_ZONES, ZoneType::Monster), ZoneSpread(MONSTER_ZONES, ZoneType::Monster)},
       spellTrapZones{ZoneSpread(ST_ZONES, ZoneType::SpellTrap), ZoneSpread(ST_ZONES, ZoneType::SpellTrap)},
       handZones{ZoneStack(ZoneType::Hand), ZoneStack(ZoneType::Hand)},
@@ -15,60 +14,110 @@ Field::Field()
       sideDeckZones{ZoneStack(ZoneType::SideDeck), ZoneStack(ZoneType::SideDeck)} {}
 
 void Field::reset() {
-    for (int player = 0; player < PLAYERS; ++player) {
-        monsterZones[player].reset();
-        spellTrapZones[player].reset();
-        fieldZones[player].reset();
-    }
-    for (auto &zone : extraMonsterZones) zone.reset();
+    for (auto z : get())
+        z->reset();
 }
 
-void Field::remapPointers(const std::map<Card *, Card *> &mapping) {
+void Field::remapPointers(const std::map<Card*, Card*>& mapping) {
     if (mapping.empty()) return;
-    auto remap = [&](IZone *zone) {
+    auto remap = [&](IZone* zone) {
         if (!zone) return;
-        for (const auto &[from, to] : mapping) zone->replacePtr(from, to);
+        for (const auto& [from, to] : mapping) zone->replacePtr(from, to);
     };
-    for (int player = 0; player < PLAYERS; ++player) {
-        remap(&monsterZones[player]);
-        remap(&spellTrapZones[player]);
-        remap(&fieldZones[player]);
-        remap(&handZones[player]);
-        remap(&deckZones[player]);
-        remap(&extraDeckZones[player]);
-        remap(&graveyardZones[player]);
-        remap(&banishedZones[player]);
-        remap(&sideDeckZones[player]);
-    }
-    for (auto &zone : extraMonsterZones) remap(&zone);
+    for (auto z : get())
+        remap(z);
 }
 
-std::pair<IZone *, int> Field::findCard(Card *card) {
-    if (!card) return {nullptr, -1};
-    const int preferredPlayer = card->state.controller;
-    const int firstPlayer = preferredPlayer >= 0 && preferredPlayer < PLAYERS ? preferredPlayer : 0;
-    for (int pass = 0; pass < PLAYERS; ++pass) {
-        const int player = pass == 0 ? firstPlayer : 1 - firstPlayer;
-        for (int slot = 0; slot < MONSTER_ZONES; ++slot)
-            if (monsterZones[player][slot].contains(card)) return {&monsterZones[player][slot], player};
-        for (int slot = 0; slot < ST_ZONES; ++slot)
-            if (spellTrapZones[player][slot].contains(card)) return {&spellTrapZones[player][slot], player};
-        if (fieldZones[player].contains(card)) return {&fieldZones[player], player};
-        if (handZones[player].contains(card)) return {&handZones[player], player};
-        if (deckZones[player].contains(card)) return {&deckZones[player], player};
-        if (extraDeckZones[player].contains(card)) return {&extraDeckZones[player], player};
-        if (graveyardZones[player].contains(card)) return {&graveyardZones[player], player};
-        if (banishedZones[player].contains(card)) return {&banishedZones[player], player};
-        if (sideDeckZones[player].contains(card)) return {&sideDeckZones[player], player};
+std::pair<IZone*, int> Field::findCard(Card* card) {
+    if (!card)
+        return {nullptr, -1};
+    for (int p = 0; p < PLAYERS; p++) {
+        for (auto z : get(p))
+            if (z->contains(card))
+                return {z, p};
     }
-    for (int slot = 0; slot < EMZ_COUNT; ++slot)
-        if (extraMonsterZones[slot].contains(card)) return {&extraMonsterZones[slot], -1};
     return {nullptr, -1};
 }
 
-std::pair<const IZone *, int> Field::findCard(const Card *card) const {
-    auto [zone, player] = const_cast<Field *>(this)->findCard(const_cast<Card *>(card));
+std::pair<const IZone*, int> Field::findCard(const Card* card) const {
+    const auto [zone, player] = const_cast<Field*>(this)->findCard(const_cast<Card*>(card));
     return {zone, player};
+}
+
+std::vector<IZone*> Field::get(int player) {
+    std::vector<IZone*> out;
+
+    auto push = [&](int p){
+        out.push_back(&fieldSpellZones[p]);
+        out.push_back(&monsterZones[p]);
+        out.push_back(&spellTrapZones[p]);
+        out.push_back(&handZones[p]);
+        out.push_back(&deckZones[p]);
+        out.push_back(&extraDeckZones[p]);
+        out.push_back(&graveyardZones[p]);
+        out.push_back(&banishedZones[p]);
+        out.push_back(&sideDeckZones[p]);
+    };
+
+    if (player >= 0 && player < PLAYERS)
+        push(player);
+    else for (int p = 0; p < PLAYERS; ++p)
+        push(p);
+    return out;
+}
+
+std::vector<IZone*> Field::get(ZoneType zt) {
+    std::vector<IZone*> out;
+    for (auto z : get()) {
+        if (z->type() == zt)
+            out.push_back(z);
+    }
+    return out;
+}
+
+IZone* Field::get(int p, ZoneType zt) {
+    if (p < 0 || p >= PLAYERS) return nullptr;
+    auto zones = get(zt);
+    return p < static_cast<int>(zones.size()) ? zones[p] : nullptr;
+}
+
+IZone* Field::zoneOf(Card* c) { return findCard(c).first; }
+
+std::vector<IZone*> Field::zonesOf(const std::string& name) {
+    std::vector<IZone*> out;
+    for (IZone* z : get())
+        if (z->contains(name))
+            out.push_back(z);
+    return out;
+}
+
+Card* Field::cardIn(ZoneType zt, int player, int slot) {
+    IZone* z = get(player, zt);
+    return z ? z->peek(slot) : nullptr;
+}
+
+std::vector<Card*> Field::cards(ZoneType zt, int player) {
+    std::vector<Card*> out;
+    IZone* z = get(player, zt);
+    if (!z) return out;
+    for (int i = 0, n = z->count(); i < n; ++i)
+        out.push_back(z->peek(i));
+    return out;
+}
+
+std::vector<Card*> Field::allCards() {
+    std::vector<Card*> out;
+    for (IZone* z : get())
+        for (int i = 0, n = z->count(); i < n; ++i)
+            out.push_back(z->peek(i));
+    for (auto& t : tokens)
+        if (t) out.push_back(t.get());
+    return out;
+}
+
+int Field::countIn(ZoneType zt, int player) {
+    IZone* z = get(player, zt);
+    return z ? z->count() : 0;
 }
 
 }  // namespace openjoey::engine::zone

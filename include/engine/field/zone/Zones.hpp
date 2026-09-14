@@ -11,7 +11,6 @@ namespace openjoey::engine::zone {
 using Zone_Monster = Zone;
 using Zone_SpellTrap = Zone;
 using Zone_Field = Zone;
-using Zone_ExtraMonster = Zone;
 using ZoneStack_Hand = ZoneStack;
 using ZoneStack_Deck = ZoneStack;
 using ZoneStack_ExtraDeck = ZoneStack;

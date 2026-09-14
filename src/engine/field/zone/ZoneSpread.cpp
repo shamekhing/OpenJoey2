@@ -3,7 +3,9 @@
 namespace openjoey::engine::zone {
 
 ZoneSpread::ZoneSpread(int n, ZoneType zt) : zones_(n, Zone(zt)) { type_ = zt; }
-
+Card* ZoneSpread::operator[] (size_t i) const {
+    return i < zones_.size() ? zones_[i].peek() : nullptr;
+}
 bool ZoneSpread::isEmpty() const {
     for (const auto &zone : zones_)
         if (!zone.isEmpty()) return false;
@@ -57,10 +59,10 @@ bool ZoneSpread::replacePtr(Card *from, Card *to) {
     return replaced;
 }
 
-Card *ZoneSpread::peek(int index = 0) const {
-    if (isEmpty() || index<0 || capacity()<index) 
-        return nullptr;
-    return zones_[index].peek(); 
+Card *ZoneSpread::peek(int index) const {
+    if (index < 0) index = firstOccupied();
+    if (index < 0 || index >= capacity()) return nullptr;
+    return zones_[index].peek();
 }
 
 Card *ZoneSpread::remove(Card *card) {
@@ -75,7 +77,10 @@ void ZoneSpread::clear() {
     for (auto &zone : zones_) zone.reset();
 }
 
-void ZoneSpread::shuffle() { std::shuffle(zones_.begin(), zones_.end(), std::mt19937()); }
+void ZoneSpread::shuffle() {
+    static std::mt19937 rng{std::random_device{}()};
+    std::shuffle(zones_.begin(), zones_.end(), rng);
+}
 
 std::vector<Card *> ZoneSpread::cards(bool emptyOk) const {
     std::vector<Card *> result;

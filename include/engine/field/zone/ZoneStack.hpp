@@ -18,6 +18,8 @@ using cards::Card;
 class ZoneStack : public IZone {
    public:
     explicit ZoneStack(ZoneType zt = ZoneType::None);
+    Card *operator[] (size_t i) const override;
+
     bool isEmpty() const override;
     void reset() override;
     int count() const override;

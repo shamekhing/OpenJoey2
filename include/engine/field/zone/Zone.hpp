@@ -22,7 +22,7 @@ class Zone : public IZone {
     Card *peek(int index = -1) const override;
     // nullptr removes the occupant; non-null removes only if it matches.
     Card *remove(Card *c = nullptr) override;
-
+    Card *operator[] (size_t _) const override;
     // Face-up/face-down state change (set vs activate). Refuses on an empty
     // zone: callers must never set visibility on nothing, and "true" always
     // means the zone is occupied with the requested visibility.

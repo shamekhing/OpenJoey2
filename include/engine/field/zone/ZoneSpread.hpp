@@ -6,7 +6,6 @@
 // header name, mirroring the openjoey-cards convention.
 
 #include <algorithm>
-#include <functional>
 #include <random>
 #include <vector>
 
@@ -19,6 +18,9 @@ using cards::Card;
 class ZoneSpread : public IZone {
    public:
     explicit ZoneSpread(int n = 0, ZoneType zt = ZoneType::None);
+    // Card in cell i, or nullptr if out of range / empty.
+    Card *operator[] (size_t i) const override;
+
     bool isEmpty() const override;
     void reset() override;
     int count() const override;
