@@ -83,6 +83,24 @@ IZone* Field::get(int p, ZoneType zt) {
 
 IZone* Field::zoneOf(Card* c) { return findCard(c).first; }
 
+Zone* Field::monsterZoneOf(Card* c) {
+    if (!c) return nullptr;
+    auto [z, p] = findCard(c);
+    if (!z || z->type() != ZoneType::Monster) return nullptr;
+    for (auto &mz : monsterZones[p])
+        if (mz.contains(c)) return &mz;
+    return nullptr;
+}
+
+const Zone* Field::monsterZoneOf(const Card* c) const {
+    if (!c) return nullptr;
+    auto [z, p] = findCard(c);
+    if (!z || z->type() != ZoneType::Monster) return nullptr;
+    for (const auto &mz : monsterZones[p])
+        if (mz.contains(c)) return &mz;
+    return nullptr;
+}
+
 std::vector<IZone*> Field::zonesOf(const std::string& name) {
     std::vector<IZone*> out;
     for (IZone* z : get())
