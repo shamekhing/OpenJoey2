@@ -30,8 +30,6 @@ struct ParseResult {
     bool ok() const;
 };
 
-bool ok() const;
-
 // parseRemoteCardJson — calls detail::cardFromRemoteJson; defined after it.
 //
 // Remote card-data API (`{ "data": [ { ... }, ... ] }`).

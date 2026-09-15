@@ -70,44 +70,14 @@ struct Duel {
     // (Field/ZoneStack::shuffle take an engine parameter). Seed it once at
     // header time — Replay seeds it from the recorded duel header.
     std::mt19937 rng{0u};
-    void seedRng(uint32_t seed) { rng.seed(seed); }
+    void seedRng(uint32_t seed);
 
     // ── Replay-integrity hash ─────────────────────────────────────────────────
     // FNV-1a fold over everything that defines the game state: LP, protocol,
     // per-zone card identity/position/visibility, and the per-card state that
     // actions mutate (controller, counters, stat mods, this-turn flags).
     // Recorded after every action; the replayer asserts it matches.
-    uint32_t stateHash() const {
-        uint32_t h = 2166136261u;
-        auto mix = [&](uint32_t v) { h ^= v; h *= 16777619u; };
-        auto mixCard = [&](const Card *c, int zoneBits) {
-            if (!c) { mix(0); return; }
-            mix(c->id);
-            mix(static_cast<uint32_t>(c->state.controller) | (zoneBits << 8));
-            mix(static_cast<uint32_t>(c->state.atkMod) * 31u + static_cast<uint32_t>(c->state.defMod));
-            uint32_t ctr = static_cast<uint32_t>(c->state.setThisTurn) | (static_cast<uint32_t>(c->state.placedThisTurn) << 1);
-            for (const auto &[name, n] : c->state.counters) ctr += n * 7u;  // name order irrelevant: summed
-            mix(ctr);
-        };
-        mix(static_cast<uint32_t>(lp[0])); mix(static_cast<uint32_t>(lp[1]));
-        mix(static_cast<uint32_t>(turn.phase)); mix(static_cast<uint32_t>(turn.turnNumber));
-        mix(static_cast<uint32_t>(turnPlayer)); mix(static_cast<uint32_t>(result));
-        for (int p = 0; p < zone::Field::PLAYERS; ++p) {
-            for (const auto &mz : field.monsterZones[p]) mixCard(mz.peek(), p + 1);
-            for (const auto &st : field.spellTrapZones[p]) mixCard(st.peek(), p + 1);
-            mixCard(field.fieldSpellZones[p].peek(), p + 1);
-            const zone::ZoneStack *stacks[] = {&field.handZones[p], &field.deckZones[p], &field.extraDeckZones[p],
-                                               &field.graveyardZones[p], &field.banishedZones[p], &field.sideDeckZones[p]};
-            for (const zone::ZoneStack *s : stacks) {
-                mix(static_cast<uint32_t>(s->count()));
-                for (int i = 0; i < s->count(); ++i) mixCard(s->peek(i), 0);
-            }
-        }
-        for (const auto &t : field.tokens) mixCard(t.get(), 0);
-        mix(static_cast<uint32_t>(chain.links.size()));
-        for (const auto &l : chain.links) mix(static_cast<uint32_t>(l.id) ^ (static_cast<uint32_t>(l.activator) << 16));
-        return h;
-    }
+    uint32_t stateHash() const;
 
     // ── Deck pointer-sealing (debug guard for the non-owning Card* contract) ──
     // Zones/chain/turn-state hold raw Card* into the app's deck vectors. The
@@ -115,26 +85,19 @@ struct Duel {
     // copies/resizes (re-allocating the buffer), backingMatches() goes false
     // and every zone pointer is dangling. Check before acting on sealed decks.
     std::vector<std::pair<int, const void *>> deckBackings;  // (player, &vector)
-    bool deckBackingMatches(int player, const void *vec) const {
-        for (auto &b : deckBackings)
-            if (b.first == player) return b.second == vec;  // one recorded backing per player
-        return false;                                       // never sealed for this player
-    }
+    bool deckBackingMatches(int player, const void *vec) const;
 
     // Battle-walk trace (protocol walk recorded for UI/tests).
     protocol::BattleStep battleStep = protocol::BattleStep::Idle;
     protocol::DamageStep damageStep = protocol::DamageStep::None;
     protocol::DamageOutcome lastDamageOutcome = protocol::DamageOutcome::None;
     std::vector<protocol::BattleStep> battleTrace;
-    void traceBattle(protocol::BattleStep s) {
-        battleStep = s;
-        battleTrace.push_back(s);
-    }
+    void traceBattle(protocol::BattleStep s);
 
-    bool canAct() const { return turn.canAct(); }
+    bool canAct() const;
 
     // Convenience: is the controller of `c` player `p`?
-    bool controls(const Card *c, int p) const { return c && c->state.controller == p; }
+    bool controls(const Card *c, int p) const;
 };
 
 }  // namespace openjoey::engine

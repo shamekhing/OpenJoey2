@@ -3,6 +3,7 @@
 // NOT part of the public API: include "cards/CardParser.hpp" instead.
 #include <cstdint>
 #include <nlohmann/json.hpp>
+#include "cards/Card.hpp"
 #include <string>
 
 namespace openjoey::cards::detail {

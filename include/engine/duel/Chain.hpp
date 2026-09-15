@@ -28,34 +28,17 @@ struct Chain {
     protocol::ChainStep step = protocol::ChainStep::Idle;  // resolution walk state
     int consecutivePasses = 0;                             // p.45 response window: both pass -> resolve
 
-    void push(const ActionSpec &spec, int activator, const ActionArgs &args = {}) {
-        links.push_back({spec.id, activator, spec.speed, spec, args});
-        step = protocol::ChainStep::Building;
-        consecutivePasses = 0;  // a new activation reopens the response window
-    }
-
-    void clear() {
-        links.clear();
-        step = protocol::ChainStep::Idle;
-        consecutivePasses = 0;
-    }
+    void push(const ActionSpec &spec, int activator, const ActionArgs &args = {});
+    void clear();
 
     // Resolution order: last link first, down to link 0.
-    std::vector<const Link *> resolutionOrder() const {
-        std::vector<const Link *> order;
-        order.reserve(links.size());
-        for (auto it = links.rbegin(); it != links.rend(); ++it) order.push_back(&*it);
-        return order;
-    }
+    std::vector<const Link *> resolutionOrder() const;
 
     // ── Spell Speed rule ───────────────────────────────────────────────────────
     // * Spell Speed 1 can never be Chain Link 2 or higher.
     // * A response must have Spell Speed equal to or higher than the link it
     //   responds to (Spell Speed 3 / Counter Traps can respond to anything).
-    bool legalToChain(uint8_t speed) const {
-        if (links.empty()) return true;  // starting a new chain: any Spell Speed may lead
-        return speed > 1 && speed >= links.back().speed;
-    }
+    bool legalToChain(uint8_t speed) const;
 };
 
 }  // namespace openjoey::engine

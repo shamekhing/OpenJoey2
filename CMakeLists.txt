@@ -61,6 +61,34 @@ target_include_directories(openjoey_field PUBLIC
 target_link_libraries(openjoey_field PUBLIC openjoey::cards)
 add_library(openjoey::field ALIAS openjoey_field)
 
+add_library(openjoey_duel
+  src/engine/duel/Duel.cpp
+  src/engine/duel/Chain.cpp
+  src/engine/duel/Undo.cpp
+  src/engine/duel/Recorder.cpp
+  src/engine/duel/Engine.cpp
+  src/engine/duel/Replay.cpp)
+target_compile_features(openjoey_duel PUBLIC cxx_std_20)
+target_include_directories(openjoey_duel PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(openjoey_duel PUBLIC openjoey::field)
+add_library(openjoey::duel ALIAS openjoey_duel)
+
+add_library(openjoey_action
+  src/engine/action/Action.cpp
+  src/engine/action/Query.cpp
+  src/engine/action/Move.cpp
+  src/engine/action/Summon.cpp
+  src/engine/action/Battle.cpp
+  src/engine/action/Chain.cpp
+  src/engine/action/Turn.cpp
+  src/engine/action/Observe.cpp)
+target_compile_features(openjoey_action PUBLIC cxx_std_20)
+target_include_directories(openjoey_action PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_link_libraries(openjoey_action PUBLIC openjoey::duel)
+add_library(openjoey::action ALIAS openjoey_action)
+
 enable_testing()
 
 # ── Tests: core (Config + ActionId pins), cards, engine ──────────────────────
@@ -96,7 +124,7 @@ add_executable(openjoey_engine_tests
   tests/engine/test_zones.cpp)
 target_include_directories(openjoey_engine_tests PRIVATE tests/catch2)
 target_compile_options(openjoey_engine_tests PRIVATE ${OPENJOEY_TEST_FLAGS})
-target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers openjoey::cards openjoey::field)
+target_link_libraries(openjoey_engine_tests PRIVATE openjoey::headers openjoey::cards openjoey::field openjoey::duel openjoey::action)
 add_test(NAME openjoey_engine_tests COMMAND openjoey_engine_tests)
 
 # ── App: raylib UI (FetchContent, pinned 5.5; web build via emcmake) ─────────

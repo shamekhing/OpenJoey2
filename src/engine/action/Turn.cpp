@@ -1,0 +1,136 @@
+#include "engine/action/Turn.hpp"
+
+namespace openjoey::engine::action {
+
+void ResetPerTurnState(Duel &d) {
+    d.turnState = TurnState{};
+    d.pendingTriggers.clear();
+    for (int p = 0; p < zone::Field::PLAYERS; ++p) {
+        for (auto &mz : d.field.monsterZones[p])
+            if (Card *c = mz.peek()) c->state.setThisTurn = c->state.placedThisTurn = false;
+        for (auto &st : d.field.spellTrapZones[p])
+            if (Card *c = st.peek()) c->state.setThisTurn = c->state.placedThisTurn = false;
+    }
+}
+
+void ToMain1(Duel &d) {
+ d.turn.phase = Phase::Main1; 
+}
+
+void ToBattle(Duel &d) {
+ d.turn.phase = Phase::Battle; 
+}
+
+void ToMain2(Duel &d) {
+ d.turn.phase = Phase::Main2; 
+}
+
+ActionResult ToMain1S(Duel &d) {
+    if (d.result != DuelResult::Ongoing) return ActionResult::Fail("the duel is over.");
+    if (d.turn.phase == Phase::Main1) return ActionResult::Fail("already in Main Phase 1.");
+    if (d.turn.phase != Phase::Draw) return ActionResult::Fail("cannot return to Main Phase 1.");
+    ToMain1(d);
+    return ActionResult::Ok("Main Phase 1.");
+}
+
+ActionResult ToBattleS(Duel &d) {
+    if (d.result != DuelResult::Ongoing) return ActionResult::Fail("the duel is over.");
+    if (d.turn.phase != Phase::Main1) return ActionResult::Fail("Battle Phase is entered from Main Phase 1.");
+    if (d.turn.skipBattle) return ActionResult::Fail("no Battle Phase on the opening turn.");
+    ToBattle(d);
+    return ActionResult::Ok("Battle Phase.");
+}
+
+ActionResult ToMain2S(Duel &d) {
+    if (d.result != DuelResult::Ongoing) return ActionResult::Fail("the duel is over.");
+    if (d.turn.phase != Phase::Battle) return ActionResult::Fail("Main Phase 2 follows the Battle Phase.");
+    ToMain2(d);
+    return ActionResult::Ok("Main Phase 2.");
+}
+
+ActionResult DrawForTurn(Duel &d) {
+    int p = d.turnPlayer;
+    if (d.turnState.drawDone) return ActionResult::Fail("the Draw Phase draw was already taken.");
+    d.turnState.drawDone = true;
+    if (d.field.deckZones[p].isEmpty()) {
+        d.result = (p == 0) ? DuelResult::Player1Win : DuelResult::Player0Win;
+        d.winReason = WinReason::DeckOut;
+        return ActionResult::Fail("deck out — player " + std::to_string(p) + " loses.");
+    }
+    int n = MoveDraw(d.field, p, 1);
+    return ActionResult::Ok("player " + std::to_string(p) + " draws " + std::to_string(n) + ".");
+}
+
+ActionResult StartTurn(Duel &d) {
+    ResetPerTurnState(d);
+    d.turn.phase = Phase::Draw;
+    if (d.turn.turnNumber == 1) {
+        d.turn.skipDraw = true;
+        d.turn.skipBattle = true;
+        return ActionResult::Ok("turn 1: draw skipped (starting player).");
+    }
+    if (d.turn.skipDraw) return ActionResult::Ok("draw skipped.");
+    return DrawForTurn(d);
+}
+
+ActionResult EndTurn(Duel &d) {
+    int p = d.turnPlayer;
+    if (!d.config.autoDiscardEndPhase && OverHandLimit(d, p)) return ActionResult::Fail("cannot end turn — discard down to 6 cards first (p.41).");
+    int discarded = d.config.autoDiscardEndPhase ? DiscardToHandLimit(d, p) : 0;
+    std::string msg = OverHandLimit(d, p) ? "cannot end turn — hand limit unresolved." : "hand limit OK";
+    if (discarded) msg += " (" + std::to_string(discarded) + " discarded)";
+    msg += ".";
+    if (OverHandLimit(d, p))  // refusal: the turn does NOT pass
+        return ActionResult::Fail(msg);
+    d.turnPlayer = 1 - d.turnPlayer;
+    d.turn.phase = Phase::Draw;
+    ++d.turn.turnNumber;
+    d.turn.skipDraw = false;
+    d.turn.skipBattle = false;
+    ResetPerTurnState(d);
+    return ActionResult::Ok(msg);
+}
+
+ActionResult ResolveStandby(Duel &d) {
+    if (d.turn.phase != Phase::Standby) return ActionResult::Fail("standby triggers resolve in the Standby Phase.");
+    d.pendingTriggers.clear();
+    for (auto &mz : d.field.monsterZones[d.turnPlayer])
+        if (Card *c = mz.peek())
+            if (mz.isVisible()) d.pendingTriggers.push_back(c);
+    if (d.pendingTriggers.empty()) return ActionResult::Ok("no standby triggers.");
+    return ActionResult::Ok(std::to_string(d.pendingTriggers.size()) + " standby trigger candidate(s).");
+}
+
+void SetDeck(Duel &d, int player, const std::vector<Card *> &cards) {
+    for (Card *c : cards) {
+        c->state.owner = c->state.controller = player;
+        d.field.deckZones[player].put(c);
+    }
+}
+
+void ShuffleDecks(Duel &d) {
+    d.field.deckZones[0].shuffle();
+    d.field.deckZones[1].shuffle();
+}
+
+void DrawOpeningHands(Duel &d, int n) {
+    for (int p = 0; p < zone::Field::PLAYERS; ++p) MoveDraw(d.field, p, n);
+}
+
+ActionResult EquipCard(Duel &d, Card *equip, Card *monster) {
+    if (!equip || !monster) return ActionResult::Fail("equip needs an equip card and a monster.");
+    auto [z, p] = d.field.findCard(equip);
+    if (!z || z->type() != zone::ZoneType::SpellTrap) return ActionResult::Fail("the equip card must be set/activated in a spell/trap zone.");
+    zone::Zone *mz = d.field.monsterZoneOf(monster);
+    if (!mz || monster->state.controller != d.turnPlayer) return ActionResult::Fail("equip target must be your monster on the field.");
+    if (!EquipAttach(equip, monster)) return ActionResult::Fail("already equipped to that monster.");
+    return ActionResult::Ok(equip->name + " equips " + monster->name + " (ATK +" + std::to_string(equip->state.bonusAtk) + ").");
+}
+
+ActionResult UnequipCard(Duel &d, Card *equip) {
+    (void)d;  // equips are card-state only; the duel is not read
+    if (!equip || !EquipDetach(equip)) return ActionResult::Fail("that card equips nothing.");
+    return ActionResult::Ok(equip->name + " unequipped.");
+}
+
+}  // namespace openjoey::engine::action
