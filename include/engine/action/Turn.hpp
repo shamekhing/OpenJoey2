@@ -1,7 +1,9 @@
 #pragma once
-// ── act/turn — the turn protocol: start, draw, phases, end ──────────────────
-#include "engine/action/Moves.hpp"
-#include "engine/action/State.hpp"
+// ── act/turn — the turn protocol: start, draw, phases, end, standby ─────────
+#include <algorithm>
+
+#include "engine/action/Move.hpp"
+#include "engine/action/Query.hpp"
 
 namespace openjoey::engine::action {
 
@@ -9,6 +11,7 @@ using openjoey::ActionResult;
 
 inline void ResetPerTurnState(Duel &d) {
     d.turnState = TurnState{};
+    d.pendingTriggers.clear();
     for (int p = 0; p < zone::Field::PLAYERS; ++p) {
         for (auto &mz : d.field.monsterZones[p])
             if (Card *c = mz.peek()) c->state.setThisTurn = c->state.placedThisTurn = false;
@@ -44,6 +47,8 @@ inline ActionResult ToMain2S(Duel &d) {
 
 inline ActionResult DrawForTurn(Duel &d) {
     int p = d.turnPlayer;
+    if (d.turnState.drawDone) return ActionResult::Fail("the Draw Phase draw was already taken.");
+    d.turnState.drawDone = true;
     if (d.field.deckZones[p].isEmpty()) {
         d.result = (p == 0) ? DuelResult::Player1Win : DuelResult::Player0Win;
         d.winReason = WinReason::DeckOut;
@@ -83,6 +88,19 @@ inline ActionResult EndTurn(Duel &d) {
     return ActionResult::Ok(msg);
 }
 
+// Standby scan: face-up monsters the turn player controls are surfaced in
+// d.pendingTriggers — whether they have an effect is a spec-provider concern
+// (no hardcoded card knowledge in the engine).
+inline ActionResult ResolveStandby(Duel &d) {
+    if (d.turn.phase != Phase::Standby) return ActionResult::Fail("standby triggers resolve in the Standby Phase.");
+    d.pendingTriggers.clear();
+    for (auto &mz : d.field.monsterZones[d.turnPlayer])
+        if (Card *c = mz.peek())
+            if (mz.isVisible()) d.pendingTriggers.push_back(c);
+    if (d.pendingTriggers.empty()) return ActionResult::Ok("no standby triggers.");
+    return ActionResult::Ok(std::to_string(d.pendingTriggers.size()) + " standby trigger candidate(s).");
+}
+
 inline void SetDeck(Duel &d, int player, const std::vector<Card *> &cards) {
     for (Card *c : cards) {
         c->state.owner = c->state.controller = player;
@@ -95,6 +113,22 @@ inline void ShuffleDecks(Duel &d) {
 }
 inline void DrawOpeningHands(Duel &d, int n = DuelConfig::START_HAND) {
     for (int p = 0; p < zone::Field::PLAYERS; ++p) MoveDraw(d.field, p, n);
+}
+
+// ── equip verbs (guarded composites over Move.hpp equip primitives) ─────────
+inline ActionResult EquipCard(Duel &d, Card *equip, Card *monster) {
+    if (!equip || !monster) return ActionResult::Fail("equip needs an equip card and a monster.");
+    auto [z, p] = d.field.findCard(equip);
+    if (!z || z->type() != zone::ZoneType::SpellTrap) return ActionResult::Fail("the equip card must be set/activated in a spell/trap zone.");
+    zone::Zone *mz = d.field.monsterZoneOf(monster);
+    if (!mz || monster->state.controller != d.turnPlayer) return ActionResult::Fail("equip target must be your monster on the field.");
+    if (!EquipAttach(equip, monster)) return ActionResult::Fail("already equipped to that monster.");
+    return ActionResult::Ok(equip->name + " equips " + monster->name + " (ATK +" + std::to_string(equip->state.bonusAtk) + ").");
+}
+inline ActionResult UnequipCard(Duel &d, Card *equip) {
+    (void)d;  // equips are card-state only; the duel is not read
+    if (!equip || !EquipDetach(equip)) return ActionResult::Fail("that card equips nothing.");
+    return ActionResult::Ok(equip->name + " unequipped.");
 }
 
 }  // namespace openjoey::engine::action

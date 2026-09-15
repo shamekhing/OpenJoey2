@@ -1,16 +1,13 @@
 #pragma once
-// ── action/Observe — read-only state view + legal action space ──────────────
+// ── act/Observe — read-only state view + legal action space ──────────────────
 // The AI seams (foundation ai/Ai.hpp): RL player consumes Observe +
-// LegalActions + the act:: functions. Card reader consumes CardDef →
-// vector<ActionSpec> (same role as Catalog.hpp). Both raylib-free.
+// LegalActions + the act:: functions. Both raylib-free.
 #include <array>
 
-#include "Catalog.hpp"
 #include "engine/action/Battle.hpp"
-#include "engine/action/Chains.hpp"
-#include "engine/action/State.hpp"
-#include "engine/action/Summons.hpp"
-#include "engine/action/Support.hpp"
+#include "engine/action/Chain.hpp"
+#include "engine/action/Query.hpp"
+#include "engine/action/Summon.hpp"
 
 namespace openjoey::engine::action {
 
@@ -71,10 +68,19 @@ inline StateView Observe(const Duel &d, int viewer) {
     return v;
 }
 
+// Legal action space: verb ids only, no card knowledge. Which specific card
+// to act with is the caller's pick (the UI grid / the RL policy).
 inline std::vector<ActionSpec> LegalActions(const Duel &d, int player) {
     std::vector<ActionSpec> out;
     if (d.result != DuelResult::Ongoing || player != d.turnPlayer) return out;
     const bool mainPhase = d.canAct();
+    auto push = [&](ActionId id) {
+        ActionSpec s;
+        s.id = id;
+        s.speed = 1;
+        out.push_back(std::move(s));
+    };
+
     if (mainPhase && CanNormalSummon(d)) {
         bool anyM = false, anyHi = false;
         for (int i = 0; i < d.field.handZones[player].count(); ++i)
@@ -84,12 +90,12 @@ inline std::vector<ActionSpec> LegalActions(const Duel &d, int player) {
                     if (TributesRequired(c) > 0) anyHi = true;
                 }
         if (anyM) {
-            out.push_back({ActionId::Summon_Normal, EffectType::Ignition, 1});
-            out.push_back({ActionId::Summon_Set, EffectType::Ignition, 1});
+            push(ActionId::Summon_Normal);
+            push(ActionId::Summon_Set);
         }
         if (anyHi) {
-            out.push_back({ActionId::TributeSummon, EffectType::Ignition, 1});
-            out.push_back({ActionId::TributeSet, EffectType::Ignition, 1});
+            push(ActionId::TributeSummon);
+            push(ActionId::TributeSet);
         }
         bool anySet = false, anyUp = false;
         for (auto &mz : d.field.monsterZones[player])
@@ -98,34 +104,23 @@ inline std::vector<ActionSpec> LegalActions(const Duel &d, int player) {
                     if (!mz.isVisible()) anySet = !c->state.setThisTurn;
                     else anyUp = !c->state.placedThisTurn && !c->state.setThisTurn && !d.turnState.flipSummoned.count(c) && !d.turnState.positionChanged.count(c);
                 }
-        if (anySet) out.push_back({ActionId::FlipSummon, EffectType::Ignition, 1});
-        if (anyUp) out.push_back({ActionId::ChangeMonsterBattlePosition, EffectType::Ignition, 1});
+        if (anySet) push(ActionId::FlipSummon);
+        if (anyUp) push(ActionId::ChangeMonsterBattlePosition);
     }
-    if (d.turn.phase == Phase::Main1 && !d.turn.skipBattle) out.push_back({ActionId::EnterBattlePhase, EffectType::Ignition, 1});
+    if (d.turn.phase == Phase::Main1 && !d.turn.skipBattle) push(ActionId::EnterBattlePhase);
     if (d.turn.phase == Phase::Battle)
         for (auto &mz : d.field.monsterZones[player])
             if (Card *c = mz.peek())
                 if (CanAttack(d, c)) {
-                    out.push_back({ActionId::DeclareAttack, EffectType::Ignition, 1});
+                    push(ActionId::DeclareAttack);
                     break;
                 }
-    if (mainPhase) {
-        for (int p = 0; p < 2; ++p)
-            for (auto &z : d.field.spellTrapZones[p])
-                if (Card *c = z.peek())
-                    if (findClassicEffect(c->name)) {
-                        out.push_back({ActionId::ActivateCardEffect, EffectType::Ignition, 1});
-                        p = 2;
-                        break;
-                    }
-        for (auto &mz : d.field.monsterZones[player])
-            if (Card *c = mz.peek())
-                if (!classicEffectsFor(c->name).empty()) {
-                    out.push_back({ActionId::ActivateMonsterEffect, EffectType::Ignition, 1});
-                    break;
-                }
-    }
-    out.push_back({ActionId::EndTurn, EffectType::Ignition, 1});
+    out.push_back([] {
+        ActionSpec s;
+        s.id = ActionId::EndTurn;
+        s.speed = 1;
+        return s;
+    }());
     return out;
 }
 

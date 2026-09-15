@@ -1,32 +1,29 @@
-
-
 #pragma once
 
 // ── ActionId (openjoey) ──────────────────────────────────────────────────────
-// THE one action vocabulary: 213 actions, one per line, grouped by ruleset section.
-// Player actions and card effects are the same kind of thing — an ActionSpec binds
-// an ActionId to parameters, and the engine realizes EVERY id in
-// duel/engine/Support.hpp perform() (exhaustive switch; the iterate-all-ids test
-// proves nothing is unimplemented). Post-classic mechanics
-// (Synchro/Xyz/Pendulum/Link) realize as classic-format gates.
-//
-// ABI: appended-only. Full per-action realization table:
-// openjoey-engine/docs/ACTIONS.md.
+// THE action vocabulary, organized by the classic ruleset sections.
+// 47 ids in 13 categories. Two roles, one table:
+//   * §1–§8  = the OP space: an `Action{op, scope, amount}` in an ActionSpec is
+//              realized by the interpreter (engine/action/Action.hpp).
+//   * §11,14,21 = the VERB space: player entry points the Engine facade dispatches.
+// Dissolved sections keep their headers with a pointer to where their content
+// went — the table stays a readable index of the rules text.
 
 #include <cstdint>
+#include <vector>
 
 namespace openjoey {
 
 enum class ActionId : uint16_t {
     None = 0,
 
-    // ── ACTIVATION COSTS (paid before resolution, never refunded) ──
+    // ── 1. ACTIVATION COSTS (paid before resolution, never refunded) ──
     Cost_Tribute,
     Cost_Discard,
     Cost_PayLP,
     Cost_BanishCost,
 
-    // ── HAND / DECK MOVEMENTS ──
+    // ── 2. HAND / DECK MOVEMENTS ──
     Move_Draw,
     Move_MillToGY,
     Move_DiscardToGY,
@@ -35,258 +32,99 @@ enum class ActionId : uint16_t {
     Move_SearchToHand,
     Move_Excavate,
 
-    // ── REMOVAL & DESTRUCTION ──
+    // ── 3. REMOVAL & DESTRUCTION ──
     Move_DestroyToGY,
     Move_SendToGY,
     Move_Banish,
-    SendMaterialsToGraveyard,
 
-    // ── SUMMONING (source -> monster zone / EMZ) ──
+    // ── 4. SUMMONING ──
     Summon_Normal,
     Summon_Set,
-    Summon_Flip,
+    FlipSummon,
     Summon_Special,
     Summon_Token,
-    Summon_Fusion, // Classic Fusion Summon
-    Summon_Synchro, // Classic Synchro Summon
-    Summon_Xyz, // Classic Xyz Summon
-    Summon_Ritual, // Classic Ritual Summon
-    NormalSummon,
-    NormalSet,
-    PlayMonsterFaceUpAttack,
-    PlayMonsterFaceDownDefense,
+    Summon_Fusion,
+    Summon_Ritual,
     TributeSummon,
     TributeSet,
-    SendTributeToGraveyard,
-    FlipSummon,
-    FlipToFaceUpAttack,
-    ActivateFlipEffectTrigger,
-    SpecialSummon,
-    SpecialSummonFromHand,
-    SpecialSummonFromGraveyard,
-    SpecialSummonFromBanished,
-    SpecialSummonFromExtraDeck,
-    SpecialSummonFaceUp,
-    SpecialSummonFaceDown,
-    ChooseAttackOrDefensePosition,
-    SummonOrSetMonster,
-    TributeForRitualSummon,
 
-    // ── POSITION / VISIBILITY ──
-    Pos_ChangeAToDef,
-    Pos_ChangeDefToAtk,
-    Pos_Flip,
+    // ── 5. POSITION / VISIBILITY ──
     ChangeMonsterBattlePosition,
-    ChangeToAttackPosition,
-    ChangeToDefensePosition,
-    CheckCannotChangePosition,
 
-    // ── CHAIN & LIFE-POINT EFFECTS ──
+    // ── 6. CHAIN & LIFE-POINT EFFECTS ──
     NegateActivation,
     NegateEffect,
     LP_Damage,
     LP_Gain,
-    RespondWithEffect,
-    AddToChain,
     PassChain,
-    PassPriority,
     ResolveChain,
-    BuildChain,
-    ResolveInReverseOrder,
 
-    // ── EQUIP ──
+    // ── 7. EQUIP ──
     Equip_Equip,
     Equip_Unequip,
 
-    // ── COUNTERS ──
+    // ── 8. COUNTERS ──
     Counter_Place,
     Counter_Remove,
 
-    // ── DRAW PHASE ──
-    DrawCard,
-    SkipDraw,
-    DrawFirstCard,
-    Draw,
+    // ── 9. DRAW PHASE — dissolved: draws are §2 Move_Draw; turn-1 skip is config
+    // ── 10. STANDBY PHASE — dissolved: ResolveStandby lives in action/Turn.hpp
 
-    // ── STANDBY PHASE ──
-    EnterStandbyPhase,
-    ResolveStandbyEffect,
-
-    // ── MAIN PHASE 1 / 2 ──
+    // ── 11. MAIN PHASE 1 / 2 ──
     EnterMainPhase1,
     EnterMainPhase2,
     ActivateCardEffect,
-    ActivateSpellEffect,
-    ActivateTrapEffect,
-    ActivateMonsterEffect,
-    SetSpellCard,
-    SetTrapCard,
-    CheckMonsterPlayedThisTurn,
-    CheckMonstersInExtraDeck,
-    CheckMonstersInHand,
-    CheckMaterialsInRequiredPlaces,
-    MatchMaterialRequirements,
-    PlaceInExtraMonsterZone,
-    PlaceInExtraMonsterZoneOrPointedZone,
-    PlaceInPointedZone,
-    CannotPlayFaceUpDefense,
-    CheckAlreadyChangedThisTurn,
+    SetSpellTrap,
 
-    // ── END PHASE ──
-    EnterEndPhase,
-    SelectAndDiscard,
-    AnnounceEndOfTurn,
-    DiscardUntilHas6,
-    CannotEndTurn,
-    HandLimitUnresolved,
-    ResolveEndPhaseEffects,
+    // ── 12. END PHASE — dissolved: hand limit + discard are EndTurn steps
+    // ── 13. WIN CONDITIONS — dissolved: DuelResult / WinReason enums (duel/Duel.hpp)
 
-    // ── WIN CONDITIONS ──
-    CheckWinConditions,
-    DeckOut,
-    CardEffectWin,
-    ReduceLP0,
-    Win,
-    UnableToDraw,
-
-    // ── TURN MANAGEMENT ──
+    // ── 14. TURN MANAGEMENT ──
     StartTurn,
     EndTurn,
-    IncrementTurnNumber,
-    ResetPerTurnState,
-    SwapPlayers,
-    FirstTurnSkips,
-    StartingPlayerSkipBattle,
-    StartingPlayerSkipDraw,
 
-    // ── PUBLIC-ZONE ACTIONS ──
+    // ── 15. PUBLIC-ZONE ACTIONS ──
     ViewGraveyard,
-    PickUpGraveyard,
-    ZoneBecomesPendulumZone,
 
-    // ── DECK MANAGEMENT ──
+    // ── 16. DECK MANAGEMENT ──
     ShuffleDeck,
-    CutDeck,
 
-    // ── NORMAL SUMMON / SET ──
-    // (Already covered under Summoning section above)
+    // ── 19. FUSION SUMMON — dissolved: absorbed by Summon_Fusion
+    // ── 20. RITUAL SUMMON — dissolved: absorbed by Summon_Ritual
 
-    // ── TRIBUTE SUMMON / SET ──
-    // (Already covered under Summoning section above)
-
-    // ── FLIP SUMMON ──
-    // (Already covered under Summoning section above)
-
-    // ── SPECIAL SUMMON ──
-    // (Already covered under Summoning section above)
-    SummonFromCardEffect,
-
-    // ── FUSION SUMMON ──
-    ActivationFusionSummoningCard,
-    PlaceFusionCardInSpellTrapZone,
-    PlaceFusionMonsterInExtraMonsterZone,
-    PlaceFusionSummoningCardInGraveyard,
-    SendFusionMaterialsToGraveyard,
-    CheckFusionMaterials,
-    TakeFusionMonsterFromExtraDeck,
-
-    // ── RITUAL SUMMON ──
-    RitualSummon,
-    ActivateRitualSpellCard,
-    PlaceRitualSpellCardInGraveyard,
-    PlayRitualMonsterInMainMonsterZone,
-    HaveMatchingRitualMonster,
-    HaveRitualSpellInHand,
-
-    // ── SYNCHRO SUMMON (classic gate) ──
-    CoLinked,
-    CountLinkMonsterAs1OrLinkRating,
-    DeclaresSynchroSummon,
-    SendSynchroMaterialsToGraveyard,
-    SumLevelsMustEqualSynchroLevel,
-    SynchroSummon,
-    TakeSynchroMonsterFromExtraDeck,
-    CheckNonTunerMonsters,
-    NeedOneTuner,
-    CheckTunerMonster,
-
-    // ── XYZ SUMMON (classic gate) ──
-    ChooseXyzMonsterFromExtraDeck,
-    DetachXyzMaterial,
-    DeclareXyzSummoning,
-    PlaceXyzMonsterOnTop,
-    SendXyzMaterialToGraveyard,
-    StackXyzMaterials,
-    XyzSummon,
-    CheckXyzMaterials,
-    CheckXyzMaterialsFaceUp,
-
-    // ── PENDULUM SUMMON (classic gate) ──
-    ActivateInLeftmostZone,
-    ActivateInRightmostZone,
-    ActivatePendulumMonsterAsSpell,
-    DeclarePendulumSummoning,
-    PendulumMonsterGYToExtraDeck,
-    PendulumSummon,
-    HaveOnePendulumInEachZone,
-    LevelsMustBeBetweenScales,
-    CheckPendulumScales,
-
-    // ── LINK SUMMON (classic gate) ──
-    LinkArrowPointsToZone,
-    LinkMaterialCanBeLinkMonster,
-    LinkSummon,
-    MonsterIsLinked,
-    NearestPreviousLink,
-    ResolveLinkFirst,
-    ResolveLinkLast,
-    TakeSynchroMonsterFromExtraDeck, // Duplicate entry, removed during cleanup
-    // LinkSummon, // Duplicate entry, removed during cleanup
-
-    // ── BATTLE PHASE ──
+    // ── 21. BATTLE PHASE ──
     EnterBattlePhase,
-    SkipBattlePhase,
-    SelectMonsterToAttackWith,
-    SelectAttackTarget,
     DeclareAttack,
-    AttackMonster,
-    AttackDirectly,
-    CanChooseNotToAttack,
     CancelAttack,
     ConfirmAttack,
-    ReturnToMainPhase2,
-    ConfirmAttackResolution,
-    CanAttackDifferentMonster,
-    CanAttackMultipleMonsters,
-    CanAttackOnce,
-    CanAttackSameMonster,
-    CannotAttackAgain,
-    CanCancelAttack,
-    FaceUpAttackPosition,
-    FirstMonsterStillConsideredAttacked,
-    FirstPlayerCannotBattle,
     ProceedToDamageStep,
-    MonsterRemovedBeforeDamageStep,
-    NewMonsterPlayedBeforeDamageStep,
-    CannotSkipIfMonsterOnField,
-    CheckOpponentFieldEmpty,
-    CheckDirectAttackLegal,
-    CheckReplay,
-    ReplayAfterFieldChange,
-    HasNotAttackedYet,
-    ReSelectNewTarget,
 
-    // ── TRIBUTE SUMMON / SET (Requirements) ──
-    Level5to6Need1,
-    Level7orHigherNeed2,
-    RequireTribute,
-    SendTributedMonstersToGraveyard,
-    HaveRequiredTribute,
-
-    // ── END PHASE (Misc) ──
-    CheckHandSize,
-    MoreThan6Cards,
-
+    // ── 22. TRIBUTE REQUIREMENTS — dissolved: TributesRequired() query
+    // ── 23. END PHASE (Misc) — dissolved: OverHandLimit() query
 };
-}  // namespace openjoey
 
+// ── Scope: who/what an Action hits without extra arguments ───────────────────
+enum class Scope : uint8_t {
+    None = 0,
+    Target,          // one explicit card (ActionArgs::target)
+    Activator,       // the acting player themself
+    Opponent,        // the activator's opponent (player)
+    OppMonsters,     // ALL monsters the opponent controls (Raigeki)
+    AllMonsters,     // all monsters on both sides (Dark Hole)
+    AllSpellsTraps,  // all Spells/Traps on both sides (Heavy Storm)
+    OppAttackPos,    // opponent's Attack-Position monsters (Mirror Force)
+    PerOppMonster,   // amount x each opponent monster (Just Desserts)
+};
+
+// ── Action: ONE mat operation, as data ───────────────────────────────────────
+// An ActionId from §1–8 + who it hits + how much. A card doing several things
+// is an ActionSpec listing several Actions, resolved in order by the
+// interpreter (engine/action/Action.hpp) through the Move.hpp primitives.
+struct Action {
+    ActionId op = ActionId::None;
+    Scope scope = Scope::None;
+    int amount = 1;
+    bool needsTarget = false;
+};
+
+}  // namespace openjoey

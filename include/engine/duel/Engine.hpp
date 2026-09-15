@@ -15,10 +15,9 @@
 #include "action/ActionArgs.hpp"
 #include "action/ActionResult.hpp"
 #include "engine/action/Battle.hpp"
-#include "engine/action/Chains.hpp"
-#include "engine/action/Perform.hpp"
-#include "engine/action/State.hpp"
-#include "engine/action/Summons.hpp"
+#include "engine/action/Chain.hpp"
+#include "engine/action/Query.hpp"
+#include "engine/action/Summon.hpp"
 #include "engine/action/Turn.hpp"
 #include "engine/duel/Duel.hpp"
 #include "engine/duel/Recorder.hpp"
@@ -136,12 +135,19 @@ class Engine {
     ActionResult flipSummon(Card *c) {
         ActionArgs a;
         a.target = c;
-        return commit("flipSummon", ActionId::Summon_Flip, duel.turnPlayer, a, [&] { return action::FlipSummon(duel, c); });
+        return commit("flipSummon", ActionId::FlipSummon, duel.turnPlayer, a, [&] { return action::FlipSummon(duel, c); });
     }
     ActionResult changePosition(Card *c) {
         ActionArgs a;
         a.target = c;
-        return commit("changePosition", ActionId::ChangeMonsterBattlePosition, duel.turnPlayer, a, [&] { return action::ChangePosition(duel, c); });
+        return commit("changePosition", ActionId::ChangeMonsterBattlePosition, duel.turnPlayer, a, [&] {
+            auto *mz = duel.field.monsterZoneOf(c);
+            if (!mz) return ActionResult::Fail("position change: your monster on the field only.");
+            zone::Orientation to = (mz->orientation() == zone::Orientation::Vertical) ? zone::Orientation::Horizontal
+                                                                                     : zone::Orientation::Vertical;
+            return action::PosChange(duel.field, c, to) ? ActionResult::Ok(c->name + " position changed.")
+                                                        : ActionResult::Fail("position change failed.");
+        });
     }
     ActionResult fusionSummon(Card *f, const std::vector<Card *> &materials) {
         ActionArgs a;
@@ -162,7 +168,9 @@ class Engine {
         ActionArgs a;
         a.target = c;
         return commit("setSpellTrap", id, duel.turnPlayer, a, [&] {
-            return action::Perform(duel, id, a);
+            return action::SeatSpellTrap(duel.field, a.target)
+                       ? ActionResult::Ok(a.target->name + " set.")
+                       : ActionResult::Fail("set failed (no free spell/trap zone).");
         });
     }
 
@@ -170,7 +178,7 @@ class Engine {
     ActionResult activateEffect(const openjoey::ActionSpec &spec, int activator, const ActionArgs &args = {}) {
         ActionArgs a = args;
         a.spec = spec;
-        return commit("activateEffect", spec.id, activator, a, [&] { return action::ActivateAction(duel, spec, activator, args); });
+        return commit("activateEffect", spec.id, activator, a, [&] { return action::ActivateEffect(duel, spec, activator, args); });
     }
     ActionResult passResponse(int player) {
         ActionArgs a;

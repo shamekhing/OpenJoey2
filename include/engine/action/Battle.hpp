@@ -1,11 +1,12 @@
 #pragma once
 // ── act/battle — the Battle Step and Damage Step (p.34-39) ──────────────────
-#include "engine/action/Catalog.hpp"
-#include "engine/action/Chains.hpp"
-#include "engine/action/Moves.hpp"
-#include "engine/action/State.hpp"
+#include "engine/action/Chain.hpp"
+#include "engine/action/Move.hpp"
+#include "engine/action/Query.hpp"
 
 namespace openjoey::engine::action {
+
+using openjoey::ActionResult;
 
 // Battle Step (p.35): declare an attack; target == nullptr -> direct attack.
 // The attack is HELD OPEN (d.turnState.pending): ResolveDamage finishes it,
@@ -25,7 +26,7 @@ inline ActionResult DeclareAttack(Duel &d, Card *c, Card *target) {
         d.turnState.replayAttacker = nullptr;
     }
     if (target) {
-        zone::Zone_Monster *tz = d.field.monsterZoneOf(target);
+        zone::Zone *tz = d.field.monsterZoneOf(target);
         if (!tz || target->state.controller == c->state.controller) return ActionResult::Fail("invalid attack target: an opponent's monster only.");
         d.turnState.pending = PendingAttack{c, target, false};
     } else {
@@ -48,11 +49,11 @@ inline bool ConfirmAttack(Duel &d) {
     d.traceBattle(protocol::BattleStep::ReplayCheck);
     auto &pending = d.turnState.pending;
     if (!pending.attacker) return false;
-    zone::Zone_Monster *az = d.field.monsterZoneOf(pending.attacker);
+    zone::Zone *az = d.field.monsterZoneOf(pending.attacker);
     bool ok = az && pending.attacker->state.controller == d.turnPlayer;
     if (ok && pending.direct) ok = OpponentFieldEmpty(d, d.turnPlayer);
     else if (ok) {
-        zone::Zone_Monster *tz = d.field.monsterZoneOf(pending.target);
+        zone::Zone *tz = d.field.monsterZoneOf(pending.target);
         ok = tz && pending.target->state.controller != pending.attacker->state.controller;
     }
     if (!ok) {
@@ -64,23 +65,22 @@ inline bool ConfirmAttack(Duel &d) {
 }
 
 // Damage Step (p.38), classic math on effective stats. Face-down defenders
-// flip face-up first (visibility only); Flip effects enter the chain.
+// flip face-up first (visibility only); the flipped card lands in
+// d.pendingTriggers — whether it has an effect is a spec-provider concern.
 inline ActionResult ResolveDamage(Duel &d) {
     auto &pending = d.turnState.pending;
     if (!pending.attacker) return ActionResult::Fail("no attack to resolve.");
-    if (!ConfirmAttack(d)) return ActionResult::Fail("replay! attack cancelled — re-declare.");
-    Card *a = pending.attacker;
-    const int ap = a->state.controller;
-    d.turnState.attacked.insert(a);  // the attack is now committed
-    std::string log = a->name;
+    if (!ConfirmAttack(d)) return ActionResult::Fail("replay check failed — attack cancelled.");
     d.traceBattle(protocol::BattleStep::DamageBegin);
     d.damageStep = protocol::DamageStep::Calculate;
+    Card *a = pending.attacker;
+    const int ap = a->state.controller;
+    std::string log = a->name;
 
     if (pending.direct) {
-        const int opp = 1 - ap;
-        d.damageStep = protocol::DamageStep::Apply;
         d.lastDamageOutcome = protocol::DamageOutcome::DirectHit;
-        Damage(d, opp, a->effectiveAtk());
+        Damage(d, 1 - ap, a->effectiveAtk());
+        d.turnState.attacked.insert(a);
         d.turnState.pending = PendingAttack{};
         d.damageStep = protocol::DamageStep::End;
         d.traceBattle(protocol::BattleStep::Resolved);
@@ -89,21 +89,15 @@ inline ActionResult ResolveDamage(Duel &d) {
     }
 
     Card *t = pending.target;
-    zone::Zone_Monster *tz = d.field.monsterZoneOf(t);
+    zone::Zone *tz = d.field.monsterZoneOf(t);
     d.damageStep = protocol::DamageStep::Flip;
     if (tz && !tz->isVisible()) {
         tz->changeVisibility(zone::Visibility::Visible);
         tz->changeOrientation(zone::Orientation::Horizontal);
         log += " flips " + t->name + " face-up;";
-        for (const auto &e : classicEffectsFor(t->name)) {
-            if (e.timing != EffectType::Trigger || e.id == ActionId::None) continue;
-            if (const auto *ce = findClassicEffect(t->name); ce && ce->needsTarget) continue;  // targeted flips resolve manually
-            ActionArgs fa;
-            if (e.id == ActionId::Move_ReturnHand) fa.target = a;  // Wall of Illusion-style: return the attacker
-            d.chain.push(e, t->state.controller, fa);
-        }
+        d.pendingTriggers.push_back(t);  // flip effects: spec-provider's concern
     }
-    const zone::Orientation defPos = tz ? tz->position() : zone::Orientation::Vertical;
+    const zone::Orientation defPos = tz ? tz->orientation() : zone::Orientation::Vertical;
 
     d.damageStep = protocol::DamageStep::Compare;
     if (defPos == zone::Orientation::Vertical) {  // ATK vs ATK
@@ -138,11 +132,12 @@ inline ActionResult ResolveDamage(Duel &d) {
         }
     }
     d.damageStep = protocol::DamageStep::Apply;
+    d.turnState.attacked.insert(a);
     d.turnState.pending = PendingAttack{};
     d.damageStep = protocol::DamageStep::End;
     d.traceBattle(protocol::BattleStep::Resolved);
     if (!d.config.chainResponseWindow)
-        ResolveChain(d);  // legacy: Flip effects (and responses) resolve now —
+        ResolveChain(d);  // legacy: flip effects (and responses) resolve now —
                           // p.45 mode leaves them to the response window
     CheckWinConditions(d);
     return ActionResult::Ok(log);

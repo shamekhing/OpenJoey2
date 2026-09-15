@@ -59,6 +59,12 @@ struct Duel {
 
     TurnState turnState;  // once-per-turn flags + held-open attack
 
+    // Trigger hook (NO hardcoding): FlipSummon, ResolveDamage's flip, and
+    // ResolveStandby surface candidate cards here. A spec provider (later
+    // task) decides whether any of them has an ActionSpec; the engine does
+    // not know card names. Cleared by ResetPerTurnState / ResolveChain.
+    std::vector<Card *> pendingTriggers;
+
     // ── Deterministic RNG (replayability) ──────────────────────────────────────
     // The duel owns the single shuffle engine; zone shuffles must consume it
     // (Field/ZoneStack::shuffle take an engine parameter). Seed it once at

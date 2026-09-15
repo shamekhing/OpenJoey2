@@ -1,5 +1,8 @@
 #pragma once
-// ── act/state — duel-state queries and ops (all take Duel& explicitly) ──────
+// ── act/Query — duel-state queries and guards (read-only; all take Duel&) ────
+// Every legality predicate lives here. Guards NEVER mutate: a guard failure
+// means the caller gets ActionResult::Fail before anything moved.
+// Realization of an ActionId as a mat operation lives in Move.hpp / Action.hpp.
 #include <string>
 
 #include "action/ActionResult.hpp"
@@ -10,7 +13,7 @@ namespace openjoey::engine::action {
 using cards::Card;
 using openjoey::ActionResult;
 
-// ── Life Points ─────────────────────────────────────────────────────────────
+// ── Life Points ──────────────────────────────────────────────────────────────
 inline int Lp(const Duel &d, int player) { return d.lp[player]; }
 inline void Damage(Duel &d, int player, int n) {
     if (player < 0 || player >= 2 || n <= 0) return;
@@ -21,7 +24,7 @@ inline void GainLP(Duel &d, int player, int n) {
     d.lp[player] += n;
 }
 
-// ── Win conditions (p.44); decided duels are never overwritten ──────────────
+// ── Win conditions (p.44); decided duels are never overwritten ───────────────
 inline DuelResult CheckWinConditions(Duel &d) {
     if (d.result != DuelResult::Ongoing) return d.result;
     const bool p0 = d.lp[0] <= 0, p1 = d.lp[1] <= 0;
@@ -43,17 +46,21 @@ inline void SetResult(Duel &d, DuelResult r, WinReason w) {
         d.winReason = w;
     }
 }
-inline ActionResult ClassicGate(const char *mechanic) { return ActionResult::Fail(std::string(mechanic) + " are not legal in the classic format."); }
 
-// ── Legality predicates ─────────────────────────────────────────────────────
+// ── Legality predicates ──────────────────────────────────────────────────────
 inline int TributesRequired(const Card *c) {
     if (!c || !c->isMonster()) return 0;
     if (c->level >= 7) return 2;
     if (c->level >= 5) return 1;
     return 0;
 }
-inline bool CanNormalSummon(const Duel &d) { return d.result == DuelResult::Ongoing && !d.turnState.normalSummonUsed && (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2); }
-inline bool BattlePhaseOpen(const Duel &d) { return d.result == DuelResult::Ongoing && d.turn.phase == Phase::Battle && !d.turn.skipBattle; }
+inline bool CanNormalSummon(const Duel &d) {
+    return d.result == DuelResult::Ongoing && !d.turnState.normalSummonUsed &&
+           (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2);
+}
+inline bool BattlePhaseOpen(const Duel &d) {
+    return d.result == DuelResult::Ongoing && d.turn.phase == Phase::Battle && !d.turn.skipBattle;
+}
 inline bool OpponentFieldEmpty(const Duel &d, int player) {
     const int opp = 1 - player;
     for (int z = 0; z < zone::Field::MONSTER_ZONES; ++z)
@@ -63,7 +70,9 @@ inline bool OpponentFieldEmpty(const Duel &d, int player) {
 
 inline bool CanAttack(const Duel &d, Card *c) {
     auto *mz = d.field.monsterZoneOf(c);
-    return BattlePhaseOpen(d) && mz && c->state.controller == d.turnPlayer && mz->isVisible() && mz->position() == zone::Orientation::Vertical && !d.turnState.attacked.count(c);
+    return BattlePhaseOpen(d) && mz && c->state.controller == d.turnPlayer &&
+           mz->isVisible() && mz->orientation() == zone::Orientation::Vertical &&
+           !d.turnState.attacked.count(c);
 }
 inline bool CanDirectAttack(const Duel &d, Card *c) { return CanAttack(d, c) && OpponentFieldEmpty(d, c->state.controller); }
 inline bool AttackOpen(const Duel &d) { return d.turnState.pending.attacker != nullptr; }
@@ -71,11 +80,17 @@ inline bool CanCancelAttack(const Duel &d) { return AttackOpen(d); }
 inline bool HasNotAttacked(const Duel &d, Card *c) { return !d.turnState.attacked.count(c); }
 inline bool CanFlipSummon(const Duel &d, Card *c) {
     auto *mz = d.field.monsterZoneOf(c);
-    return d.result == DuelResult::Ongoing && (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2) && mz && c->state.controller == d.turnPlayer && !mz->isVisible() && !c->state.setThisTurn;
+    return d.result == DuelResult::Ongoing &&
+           (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2) && mz &&
+           c->state.controller == d.turnPlayer && !mz->isVisible() && !c->state.setThisTurn;
 }
 inline bool CanChangePosition(const Duel &d, Card *c) {
     auto *mz = d.field.monsterZoneOf(c);
-    return d.result == DuelResult::Ongoing && (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2) && mz && c->state.controller == d.turnPlayer && mz->isVisible() && !c->state.placedThisTurn && !c->state.setThisTurn && !d.turnState.flipSummoned.count(c) && !d.turnState.attacked.count(c) && !d.turnState.positionChanged.count(c);
+    return d.result == DuelResult::Ongoing &&
+           (d.turn.phase == Phase::Main1 || d.turn.phase == Phase::Main2) && mz &&
+           c->state.controller == d.turnPlayer && !c->state.placedThisTurn &&
+           !c->state.setThisTurn && !d.turnState.flipSummoned.count(c) &&
+           !d.turnState.attacked.count(c) && !d.turnState.positionChanged.count(c);
 }
 inline bool HasPlacedMonsterThisTurn(const Duel &d, int player) {
     for (const auto &mz : d.field.monsterZones[player])
@@ -103,8 +118,8 @@ inline bool CanEndTurn(const Duel &d, int player) {
 inline int DiscardToHandLimit(Duel &d, int player) {
     auto &hand = d.field.handZones[player];
     int n = 0;
-    // Remove-then-put (the invariant moveCard/moveTo uphold): the card must
-    // never sit in two zones at once, even transiently.
+    // Remove-then-put (the invariant moveTo upholds): the card must never sit
+    // in two zones at once, even transiently.
     while (hand.count() > DuelConfig::HAND_LIMIT) {
         Card *c = hand.peek(-1);
         if (!c || !hand.remove(c)) break;

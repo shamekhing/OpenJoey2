@@ -70,6 +70,8 @@ class Field {
     std::pair<IZone*, int> findCard(Card* c);              // returns {zone, player}
     std::pair<const IZone*, int> findCard(const Card* c) const;
     IZone* zoneOf(Card* c);                                // just the zone holding a card
+    Zone* monsterZoneOf(Card* c);                          // the monster cell holding c, or nullptr
+    const Zone* monsterZoneOf(const Card* c) const;        // const overload for guards
     std::vector<IZone*> zonesOf(const std::string& name);   // zone holding a card named `name`
 
     // ── Cards ────────────────────────────────────────────────────────────────
