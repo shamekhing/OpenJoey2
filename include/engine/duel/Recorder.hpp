@@ -35,8 +35,10 @@ struct DuelKeyframe {
 class IRecorder {
    public:
     virtual ~IRecorder() = default;
-    virtual void onAction(const DuelRecord &) = 0;
-    virtual void onKeyframe(const DuelKeyframe &) = 0;
+        virtual void onAction(const DuelRecord &) = 0;
+    // Keyframes are MOVABLE only (DuelSnapshot owns unique_ptr tokens): take by
+    // value so backends receive the deep-copy via move, never by const-ref copy.
+    virtual void onKeyframe(DuelKeyframe) = 0;
     virtual void onReset() = 0;
 };
 
@@ -44,7 +46,7 @@ class IRecorder {
 class MemoryRecorder : public IRecorder {
    public:
     void onAction(const DuelRecord &r) override { records.push_back(r); }
-    void onKeyframe(const DuelKeyframe &k) override { keyframes.push_back(k); }
+    void onKeyframe(DuelKeyframe k) override { keyframes.push_back(std::move(k)); }
     void onReset() override { records.clear(); keyframes.clear(); }
 
     const std::vector<DuelRecord> &log() const { return records; }
