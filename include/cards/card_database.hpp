@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Card.hpp"
+#include "cards/card.hpp"
 #include "CardParser.hpp"
 
 namespace openjoey::cards {

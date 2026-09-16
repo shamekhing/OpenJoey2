@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "cards/json_utils.hpp"
-#include "Card.hpp"
+#include "cards/card.hpp"
 
 namespace openjoey::cards {
 // ─────────────────────────────────────────────────────────────────────────────
