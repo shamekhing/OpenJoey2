@@ -1,9 +1,10 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_JSON_UTILS_H_
+#define OPENJOEY_CARDS_JSON_UTILS_H_
 // ── Internal JSON mapping helpers for CardParser. ────────────────────────────
 // NOT part of the public API: include "cards/CardParser.hpp" instead.
 #include <cstdint>
 #include <nlohmann/json.hpp>
-#include "cards/Card.hpp"
+#include "cards/card.hpp"
 #include <string>
 
 namespace openjoey::cards::detail {
@@ -22,3 +23,4 @@ std::string optStringMember(const nlohmann::json &j, const char *key, const std:
 uint32_t optCardId(const nlohmann::json &j);
 Card cardFromRemoteJson(const nlohmann::json &j);
 }  // namespace openjoey::cards::detail
+#endif  // OPENJOEY_CARDS_JSON_UTILS_H_

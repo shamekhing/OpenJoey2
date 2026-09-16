@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_CARD_ENUMS_H_
+#define OPENJOEY_CARDS_CARD_ENUMS_H_
 #include <cstdint>
 #include <string>
 
@@ -46,3 +47,4 @@ enum class Attribute : uint8_t {
 std::string normaliseString(const std::string &str);
 Attribute attribute_from_string(const std::string &str);
 } // namespace openjoey::cards
+#endif  // OPENJOEY_CARDS_CARD_ENUMS_H_

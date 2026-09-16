@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_CARD_COMPARE_H_
+#define OPENJOEY_CARDS_CARD_COMPARE_H_
 #include "Card.hpp"
 
 namespace openjoey::cards::compare {
@@ -24,3 +25,4 @@ inline bool byAttribute(const Card &a, const Card &b, Attribute attr) {
     return aHas != bHas ? aHas : byName(a, b);
 }
 }  // namespace openjoey::cards::compare
+#endif  // OPENJOEY_CARDS_CARD_COMPARE_H_

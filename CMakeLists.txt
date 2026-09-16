@@ -38,11 +38,11 @@ target_link_libraries(openjoey_headers INTERFACE nlohmann_json::nlohmann_json)
 add_library(openjoey::headers ALIAS openjoey_headers)
 
 add_library(openjoey_cards
-  src/cards/Cards.cpp
-  src/cards/CardDatabase.cpp
-  src/cards/CardEnums.cpp
-  src/cards/CardParser.cpp
-  src/cards/JsonUtils.cpp)
+  src/cards/cards.cpp
+  src/cards/card_database.cpp
+  src/cards/card_enums.cpp
+  src/cards/card_parser.cpp
+  src/cards/json_utils.cpp)
 target_compile_features(openjoey_cards PUBLIC cxx_std_17)
 target_include_directories(openjoey_cards PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

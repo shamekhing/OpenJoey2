@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_CARD_DATABASE_H_
+#define OPENJOEY_CARDS_CARD_DATABASE_H_
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
@@ -67,3 +68,4 @@ class CardDatabase {
 };
 
 }  // namespace openjoey::cards
+#endif  // OPENJOEY_CARDS_CARD_DATABASE_H_

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_CARD_H_
+#define OPENJOEY_CARDS_CARD_H_
 #include <algorithm>
 #include <cstdint>
 #include <map>
@@ -6,7 +7,7 @@
 #include <vector>
 
 #include "action/ActionSpec.hpp"
-#include "cards/CardEnums.hpp"
+#include "cards/card_enums.hpp"
 
 namespace openjoey::cards {
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,3 +84,4 @@ struct Card : CardDef {
 };
 
 }  // namespace openjoey::cards
+#endif  // OPENJOEY_CARDS_CARD_H_

@@ -1,4 +1,4 @@
-#include "cards/CardEnums.hpp"
+#include "cards/card_enums.hpp"
 
 #include <cctype>
 #include <string>

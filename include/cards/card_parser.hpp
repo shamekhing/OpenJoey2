@@ -1,10 +1,11 @@
-#pragma once
+#ifndef OPENJOEY_CARDS_CARD_PARSER_H_
+#define OPENJOEY_CARDS_CARD_PARSER_H_
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-#include "cards/JsonUtils.hpp"
+#include "cards/json_utils.hpp"
 #include "Card.hpp"
 
 namespace openjoey::cards {
@@ -40,3 +41,4 @@ struct ParseResult {
 //   * imageId == cardId for every parsed card
 ParseResult parseRemoteCardJson(const std::string &content);
 }  // namespace openjoey::cards
+#endif  // OPENJOEY_CARDS_CARD_PARSER_H_

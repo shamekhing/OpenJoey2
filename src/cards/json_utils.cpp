@@ -1,9 +1,9 @@
-#include "cards/JsonUtils.hpp"
+#include "cards/json_utils.hpp"
 
 #include <cstdint>
 #include <string>
 
-#include "cards/Card.hpp"
+#include "cards/card.hpp"
 
 namespace openjoey::cards::detail {
 

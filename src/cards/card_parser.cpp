@@ -1,4 +1,4 @@
-#include "cards/CardParser.hpp"
+#include "cards/card_parser.hpp"
 
 #include <nlohmann/json.hpp>
 #include <string>

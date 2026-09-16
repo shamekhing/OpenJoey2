@@ -1,4 +1,4 @@
-#include "cards/Card.hpp"
+#include "cards/card.hpp"
 using namespace openjoey::cards;
 
 bool CardDef::hasAttribute(Attribute a) const {

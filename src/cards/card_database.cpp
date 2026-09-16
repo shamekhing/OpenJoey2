@@ -1,4 +1,4 @@
-#include "cards/CardDatabase.hpp"
+#include "cards/card_database.hpp"
 using namespace openjoey::cards;
 
 void CardDatabase::Clear() {
