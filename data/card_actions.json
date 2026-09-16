@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "comment": "Card -> action link. Key = YGOProDeck card id. Layer 2 of the link: the ops an effect realizes, in resolution order. Timing/speed may be omitted — Layer 1 derives them from the card's race/type (Quick-Play -> speed 2, Counter -> speed 3). Loaded by cards/card_scripts.cpp; consumed by the UI menus and the pendingTriggers loop.",
+  "scripts": {
+    "12580477": { "id": "Move_ToGY",
+      "actions": [ { "op": "Move_ToGY", "scope": "OppMonsters", "asDestroy": true } ] },
+    "53129443": { "id": "Move_ToGY",
+      "actions": [ { "op": "Move_ToGY", "scope": "AllMonsters", "asDestroy": true } ] },
+    "66788016": { "id": "Move_ToGY", "needsTarget": true,
+      "actions": [ { "op": "Move_ToGY", "scope": "Target", "asDestroy": true } ] },
+    "5318639": { "id": "Move_ToGY", "needsTarget": true,
+      "actions": [ { "op": "Move_ToGY", "scope": "Target", "asDestroy": true } ] },
+    "19613556": { "id": "Move_ToGY",
+      "actions": [ { "op": "Move_ToGY", "scope": "AllSpellsTraps", "asDestroy": true } ] },
+    "44095762": { "id": "Move_ToGY",
+      "actions": [ { "op": "Move_ToGY", "scope": "OppAttackPos", "asDestroy": true } ] },
+    "71044499": { "id": "Move_Banish", "needsTarget": true,
+      "actions": [ { "op": "Move_Banish", "scope": "Target" } ] },
+    "4206964": { "id": "Move_ToGY", "timing": "Trigger", "needsTarget": true,
+      "actions": [ { "op": "Move_ToGY", "scope": "Target", "asDestroy": true } ] },
+
+    "55144522": { "id": "Move_Draw",
+      "actions": [ { "op": "Move_Draw", "amount": 2 } ] },
+    "79571449": { "id": "Move_Draw",
+      "actions": [ { "op": "Cost_Discard", "amount": 2 },
+                   { "op": "Move_Draw", "amount": 3 } ] },
+    "83968380": { "id": "Move_Draw",
+      "actions": [ { "op": "Move_Draw", "amount": 1 } ] },
+
+    "44763025": { "id": "Cost_Discard",
+      "actions": [ { "op": "Cost_Discard", "scope": "Opponent", "amount": 1 } ] },
+    "69015963": { "id": "Cost_PayLP",
+      "actions": [ { "op": "Cost_PayLP", "amount": 5000 },
+                   { "op": "Summon_Special", "scope": "Target" } ] },
+
+    "83764719": { "id": "Summon_Special", "needsTarget": true,
+      "actions": [ { "op": "Summon_Special", "scope": "Target" } ] },
+    "70828912": { "id": "Summon_Special", "needsTarget": true, "lpCost": 800,
+      "actions": [ { "op": "Summon_Special", "scope": "Target" },
+                   { "op": "Equip_Attach", "scope": "Target" } ] },
+    "24094653": { "id": "Summon_Fusion",
+      "actions": [ { "op": "Summon_Fusion" } ] },
+    "41426869": { "id": "Summon_Ritual",
+      "actions": [ { "op": "Summon_Ritual" } ] },
+
+    "19523799": { "id": "LP_Change",
+      "actions": [ { "op": "LP_Change", "scope": "Opponent", "amount": -800 } ] },
+    "84257640": { "id": "LP_Change",
+      "actions": [ { "op": "LP_Change", "scope": "Activator", "amount": 1000 } ] },
+    "24068492": { "id": "LP_Change",
+      "actions": [ { "op": "LP_Change", "scope": "PerOppMonster", "amount": -500 } ] },
+    "54652250": { "id": "LP_Change", "timing": "Trigger",
+      "actions": [ { "op": "LP_Change", "scope": "Opponent", "amount": -500 } ] },
+
+    "42703248": { "id": "Move_ReturnHand",
+      "actions": [ { "op": "Move_ReturnHand", "scope": "AllSpellsTraps" } ] },
+    "71044499-banish": { "id": "Move_Banish" },
+
+    "41420027": { "id": "Chain_Negate", "timing": "Quick", "speed": 3, "lpCost": 2000,
+      "actions": [ { "op": "Chain_Negate" } ] },
+
+    "24131556": { "id": "Counter_Place", "needsTarget": true,
+      "actions": [ { "op": "Counter_Place", "scope": "Target", "amount": 1 } ] },
+    "97847004": { "id": "Counter_Remove", "needsTarget": true,
+      "actions": [ { "op": "Counter_Remove", "scope": "Target", "amount": 1 } ] },
+
+    "18964575": { "id": "Equip_Attach", "needsTarget": true,
+      "actions": [ { "op": "Equip_Attach", "scope": "Target" } ] }
+  }
+}

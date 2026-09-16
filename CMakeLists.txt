@@ -42,7 +42,9 @@ add_library(openjoey_cards
   src/cards/card_database.cpp
   src/cards/card_enums.cpp
   src/cards/card_parser.cpp
-  src/cards/json_utils.cpp)
+  src/cards/json_utils.cpp
+  src/cards/card_scripts.cpp
+  src/cards/card_api.cpp)
 target_compile_features(openjoey_cards PUBLIC cxx_std_17)
 target_include_directories(openjoey_cards PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
