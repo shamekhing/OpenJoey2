@@ -69,7 +69,34 @@ Card cardFromRemoteJson(const nlohmann::json &j) {
         const int rank = optIntMember(j, "rank", 0);
         if (c.level == 0 && rank > 0) c.level = rank;
     }
+    c.scale = optIntMember(j, "scale", 0);
+    c.linkRating = optIntMember(j, "linkval", 0);
 
+    // Pendulum cards carry two rules texts; keep both, pendulum text first.
+    const std::string pend = optStringMember(j, "pend_desc");
+    const std::string monster = optStringMember(j, "monster_desc");
+    if (!pend.empty() || !monster.empty()) {
+        c.description = pend;
+        if (!pend.empty() && !monster.empty()) c.description += "\n";
+        c.description += monster;
+    }
+
+    // Link markers: "Left,Top" -> LinkMarker* attributes.
+    if (j.contains("linkmarkers") && j.at("linkmarkers").is_string()) {
+        const std::string markers = j.at("linkmarkers").get<std::string>();
+        std::string cur;
+        for (const char ch : markers) {
+            if (ch == ',') { add(cards::attribute_from_string(cur)); cur.clear(); }
+            else cur += ch;
+        }
+        if (!cur.empty()) add(cards::attribute_from_string(cur));
+    }
+
+    // Monster sub-typeline ("Continuous Monster", "Pendulum Effect Monster", ...).
+    add(cards::attribute_from_string(optStringMember(j, "typeline")));
+
+    // Ignored by the engine (presentation / collectible): card_sets, card_prices,
+    // card_images, ygoprodeck_url, archetype.
     return c;
 }
 

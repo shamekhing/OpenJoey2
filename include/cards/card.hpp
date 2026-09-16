@@ -27,6 +27,8 @@ struct CardDef {
     std::string description;
 
     int atk = 0, def = 0, level = 0;
+    int scale = 0;       // Pendulum scale (0 on non-Pendulum cards)
+    int linkRating = 0;  // Link rating (0 on non-Link monsters)
 
     std::vector<Attribute> attributes;  // all attributes (for filtering, etc.)
 
