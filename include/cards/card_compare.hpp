@@ -1,6 +1,6 @@
 #ifndef OPENJOEY_CARDS_CARD_COMPARE_H_
 #define OPENJOEY_CARDS_CARD_COMPARE_H_
-#include "Card.hpp"
+#include "cards/card.hpp"
 
 namespace openjoey::cards::compare {
 // ─────────────────────────────────────────────────────────────────────────────

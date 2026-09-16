@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "cards/card.hpp"
-#include "CardParser.hpp"
+#include "cards/card_parser.hpp"
 
 namespace openjoey::cards {
 // ─────────────────────────────────────────────────────────────────────────────
